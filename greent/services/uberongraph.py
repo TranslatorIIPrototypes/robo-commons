@@ -350,6 +350,59 @@ class UberonGraphKS(Service):
         )
         return results
 
+    def molecular_function_to_chemical(self, go_id):
+        """
+        Get relation ship between Chemicals and molecular function in eiether direction."""
+        results = []
+     
+        text = """
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            PREFIX GO: <http://purl.obolibrary.org/obo/GO_>
+            PREFIX CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
+            PREFIX owl: <http://www.w3.org/2002/07/owl#>
+            SELECT DISTINCT ?predicate ?label_predicate ?chemical_entity
+                from <http://reasoner.renci.org/ontology>
+                from <http://reasoner.renci.org/nonredundant>
+            where {
+                {$GO_ID (owl:equivalentClass|rdfs:subClassOf)* GO:0003674}.
+                $GO_ID ?predicate ?chemical_entity. 
+                ?predicate rdfs:label ?label_predicate.
+                
+
+            }
+        """ 
+        # every molucular_function ontology from GO
+        # with Everything from CHEBI (i.e CHEBI:35293 => chemical entity) , @TODO abandon this if re inserting is fine {?chemical_entity rdfs:subClassOf* CHEBI:35293}.
+        results = self.triplestore.query_template(
+            template_text = text,
+            outputs = ['predicate','label_predicate', 'chemical_entity'],
+            inputs = {'GO_ID': go_id})
+        return results
+
+    def chemical_to_molecular_function(self, chebi_id):
+        text = """
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            PREFIX GO: <http://purl.obolibrary.org/obo/GO_>
+            PREFIX CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
+            PREFIX owl: <http://www.w3.org/2002/07/owl#>
+            SELECT DISTINCT ?predicate ?label_predicate ?go_id
+                from <http://reasoner.renci.org/ontology>
+                from <http://reasoner.renci.org/nonredundant>
+            where {
+                {$CHEBI_ID (owl:equivalentClass|rdfs:subClassOf)* CHEBI:24431}.
+                $CHEBI_ID ?predicate ?go_id. 
+                ?predicate rdfs:label ?label_predicate.
+                
+                }
+        """ 
+        results = self.triplestore.query_template(
+            template_text = text,
+            outputs = ['predicate', 'label_predicate', 'go_id'],
+            inputs = {'CHEBI_ID': chebi_id}
+        )
+        return results
+
+
 
     def get_anatomy_by_cell_graph (self, cell_node):
         anatomies = self.cell_to_anatomy (cell_node.id)
@@ -473,3 +526,23 @@ class UberonGraphKS(Service):
                     anatomy_node.name = r['anatomy_label']
                 results.append ( (edge, node) )
         return results
+
+    def get_chemical_entity_by_molecular_function(self, go_node):
+        results =  self.molecular_function_to_chemical(go_node.id)
+        response = []
+        for r in results:
+            new_node = KNode(Text.obo_to_curie(r['chemical_entity']), type= node_types.CHEMICAL_SUBSTANCE)
+            predicate = LabeledID(Text.obo_to_curie(r['predicate']),r['label_predicate'])
+            edge = self.create_edge(go_node, new_node, 'uberongraph.get_chemical_entity_by_molecular_function', go_node.id, predicate)
+            response += [(new_node, edge)]
+        return response
+
+    def get_molecular_function_by_chemical_entity(self, chebi_node):
+        results = self.chemical_to_molecular_function(chebi_node.id)
+        response = []
+        for r in results :
+            new_node = KNode(Text.obo_to_curie(r['go_id']),type= node_types.MOLECULAR_ENTITY)
+            predicate = LabeledID(Text.obo_to_curie(r['predicate']), r['label_predicate'])
+            edge = self.create_edge(chebi_node, new_node, 'uberongraph.get_molecular_function_by_chemical_entity', chebi_node.id, predicate)
+            response += [(new_node, edge)]
+        return response
