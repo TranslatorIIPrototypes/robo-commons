@@ -12,13 +12,13 @@ def uberon(rosetta):
     return uberon
 
 
-def xtest_name(uberon):
+def test_name(uberon):
     cn ='CL:0000097'
     results = uberon.cell_get_cellname( cn )
     assert len(results) == 1
     assert results[0]['cellLabel'] == 'mast cell'
 
-def xtest_disease_to_go(uberon):
+def test_disease_to_go(uberon):    
     #Make sure that for a variety of cell types we 1) get relationships going both directions and
     # that we map all predicates
     disease = KNode('MONDO:0009212',type=node_types.DISEASE, name="Congenital Factor X Deficiency")
@@ -27,7 +27,7 @@ def xtest_disease_to_go(uberon):
         assert ri[0].standard_predicate.identifier != 'GAMMA:0'
     assert len(r) > 50
 
-def xtest_disease_to_go(uberon):
+def test_disease_to_go(uberon):
     #Make sure that for a variety of cell types we 1) get relationships going both directions and
     # that we map all predicates
     disease = KNode('HP:0012387',type=node_types.PHENOTYPIC_FEATURE, name="Bronchitis")
@@ -36,7 +36,7 @@ def xtest_disease_to_go(uberon):
         assert ri[0].standard_predicate.identifier != 'GAMMA:0'
     assert len(r) > 50
 
-def xtest_cell_to_go(uberon):
+def test_cell_to_go(uberon):
     #Make sure that for a variety of cell types we 1) get relationships going both directions and
     # that we map all predicates
     for cell in ('CL:0000121','CL:0000513', 'CL:0000233','CL:0000097', 'CL:0002251'):
@@ -51,7 +51,7 @@ def xtest_cell_to_go(uberon):
                 foundobj = True
         assert foundsub, foundobj
 
-def xtest_go_to_cell(uberon):
+def test_go_to_cell(uberon):
     #Make sure that for a variety of cell types we 1) get relationships going both directions and
     # that we map all predicates
     go = 'GO:0045576'
@@ -67,7 +67,7 @@ def xtest_go_to_cell(uberon):
     assert foundsub, foundobj
 
 
-def xtest_cell_to_anatomy_super(uberon):
+def test_cell_to_anatomy_super(uberon):
     k = KNode('CL:0002251', type=node_types.CELL, name='epithelial cell of the alimentary canal')
     results = uberon.get_anatomy_by_cell_graph( k )
     #Should get back digestive system UBERON:0001007
@@ -77,7 +77,7 @@ def xtest_cell_to_anatomy_super(uberon):
     assert 'UBERON:0001007' in idents
 
 
-def xtest_cell_to_anatomy(uberon):
+def test_cell_to_anatomy(uberon):
     k = KNode('CL:0000097', type=node_types.CELL)
     results = uberon.get_anatomy_by_cell_graph( k )
     #Mast cells are part of the immune system
@@ -85,7 +85,7 @@ def xtest_cell_to_anatomy(uberon):
     idents = [ ke[1].id for ke in results ]
     assert 'UBERON:0002405' in idents
 
-def xtest_anatomy_to_cell(uberon):
+def test_anatomy_to_cell(uberon):
     k = KNode('UBERON:0002405', type=node_types.ANATOMICAL_ENTITY, name='Immune system')
     results = uberon.get_cell_by_anatomy_graph( k )
     #Mast cells are part of the immune system
@@ -95,20 +95,20 @@ def xtest_anatomy_to_cell(uberon):
         assert identifier.startswith('CL:')
     assert 'CL:0000097' in identifiers
 
-def xtest_anatomy_to_cell_upcast(uberon):
+def test_anatomy_to_cell_upcast(uberon):
     k = KNode('CL:0000192', type=node_types.ANATOMICAL_ENTITY, name='Smooth Muscle Cell')
     results = uberon.get_cell_by_anatomy_graph( k )
     #There's no cell that's part of another cell?
     assert len(results) == 0
 
-def xtest_pheno_to_anatomy_7354(uberon):
+def test_pheno_to_anatomy_7354(uberon):
     #Arrhythmia occurs in...
     k = KNode('HP:0007354', type=node_types.PHENOTYPIC_FEATURE)
     results = uberon.get_anatomy_by_phenotype_graph( k )
     assert len(results) > 0
 
 
-def xtest_pheno_to_anatomy(uberon):
+def test_pheno_to_anatomy(uberon):
     #Arrhythmia occurs in...
     k = KNode('HP:0011675', type=node_types.PHENOTYPIC_FEATURE)
     results = uberon.get_anatomy_by_phenotype_graph( k )
@@ -122,7 +122,7 @@ def xtest_pheno_to_anatomy(uberon):
     assert 'UBERON:0000948' in identifiers #heart
     assert 'UBERON:0001981' in identifiers #blood vessel
 
-def xtest_anat_to_pheno_odd(uberon):
+def test_anat_to_pheno_odd(uberon):
     k = KNode('UBERON:3000111',type=node_types.ANATOMICAL_ENTITY)
     results = uberon.get_phenotype_by_anatomy_graph(k)
     if len(results) > 0:
@@ -130,7 +130,7 @@ def xtest_anat_to_pheno_odd(uberon):
         assert len(ntypes) == 1
         assert node_types.PHENOTYPIC_FEATURE in ntypes
 
-def xtest_anat_to_pheno(uberon):
+def test_anat_to_pheno(uberon):
     #Arrhythmia occurs in...
     k = KNode('UBERON:0000948', type=node_types.ANATOMICAL_ENTITY)
     results = uberon.get_phenotype_by_anatomy_graph( k )
@@ -144,13 +144,13 @@ def xtest_anat_to_pheno(uberon):
     assert 'HP:0001750' in identifiers #single ventricle
     assert 'HP:0001644' in identifiers #dilated cardiomyopathy
 
-def xtest_non_HP_pheno_to_anatomy(uberon):
+def test_non_HP_pheno_to_anatomy(uberon):
     #Arrhythmia occurs in...
     k = KNode('xx:0011675', type=node_types.PHENOTYPIC_FEATURE)
     results = uberon.get_anatomy_by_phenotype_graph( k )
     assert len(results) == 0
 
-def xtest_parts(uberon):
+def test_parts(uberon):
     uk = UberonGraphKS(ServiceContext.create_context ())
     results = uberon.get_anatomy_parts('UBERON:0004535')
     #What are the parts of the cardiovascular system?
@@ -159,17 +159,23 @@ def xtest_parts(uberon):
     assert 'UBERON:0000948' in curies #heart
     assert 'UBERON:0001981' in curies #blood vessel
 
-def test_some_test(uberon):
-    k = KNode('GO:0004500', type= node_types.MOLECULAR_ACTIVITY)
-    results = uberon.get_chemical_entity_by_molecular_function(k)
-    for r in results:
-        print (f"This is ID -- {r[1].source_id} __$$__  {r[1].target_id}")
-    assert False
+def test_molecular_function_to_chemical(uberon):
+    k = KNode('GO:0006084', type= node_types.CHEMICAL_SUBSTANCE)
+    results = uberon.get_chemical_entity_by_process_or_activity(k)
+    identifiers = [edge.target_id for node, edge in results]
+    assert 'CHEBI:15351' in identifiers
 
-def test_chemical_to_function(uberon):
-    print('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$')
-    k = KNode('CHEBI:0302932', type= node_types.CHEMICAL_SUBSTANCE)
-    results = uberon.get_molecular_function_by_chemical_entity(k)
-    for r in results:
-        print (f"This is ID -- {r[1].source_id} __$$__  {r[1].target_id}")
-    assert False
+def test_phenotype_to_biological_process_or_activity(uberon):
+    k = KNode('HP:0004339', type= node_types.PHENOTYPIC_FEATURE)
+    results = uberon.get_process_or_activity_by_phenotype(k)
+    identifiers = [edge.target_id for node, edge in results]
+    assert 'GO:0000096' in identifiers
+    assert 'GO:0006790' in identifiers
+
+def test_disease_to_anatomy(uberon):
+    k = KNode('MONDO:0003070', type = node_types.DISEASE)
+    results = uberon.get_anatomy_by_disease(k)
+    identifiers = [edge.target_id for node, edge in results]
+    assert 'UBERON:0001421' in identifiers
+    assert 'UBERON:0009472' in identifiers
+    assert 'UBERON:0007823' in identifiers
