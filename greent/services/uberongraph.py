@@ -395,18 +395,11 @@ class UberonGraphKS(Service):
             PREFIX has_phenotype_affecting: <http://purl.obolibrary.org/obo/UPHENO_0000001>
             PREFIX RO: <http://purl.obolibrary.org/obo/RO_>
 
-            SELECT ?go_id ?predicate ?predicate_label
+            SELECT DISTINCT ?go_id ?predicate ?predicate_label
             from <http://reasoner.renci.org/nonredundant>
             from <http://reasoner.renci.org/ontology>
             WHERE {
             $pheno_type ?predicate  ?go_id.
-            filter (
-                ?predicate in(
-                has_phenotype_affecting:,
-                RO:0002410, RO:0002609, RO:0004017, RO:0004019,
-                RO:0004021, RO:0004023, RO:0004024, RO:0004026
-                )
-            )
             graph <http://reasoner.renci.org/ontology/closure> {
                 { ?go_id rdfs:subClassOf GO:0008150 . }
                 UNION
@@ -427,7 +420,7 @@ class UberonGraphKS(Service):
             PREFIX owl: <http://www.w3.org/2002/07/owl#>
             PREFIX anatomicalEntity: <http://purl.obolibrary.org/obo/UBERON_0001062>
             PREFIX MONDO: <http://purl.obolibrary.org/obo/MONDO_>
-            SELECT ?anatomyID ?predicate ?predicate_label
+            SELECT DISTINCT ?anatomyID ?predicate ?predicate_label
             FROM <http://reasoner.renci.org/nonredundant>
             FROM <http://reasoner.renci.org/ontology>
             WHERE {
