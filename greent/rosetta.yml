@@ -178,7 +178,7 @@
         op    : biolink.phenotype_get_disease
     biological_process_or_activity:
       - link  : phenotype_to_biological_process_or_activity
-        op    : uberon.get_process_or_activity_by_phenotype
+        op    : uberongraph.get_process_or_activity_by_phenotype
   sequence_variant:
     gene:
       - link  : sequence_variant_to_gene

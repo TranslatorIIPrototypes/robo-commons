@@ -37,7 +37,10 @@ crawls = [
     (node_types.CHEMICAL_SUBSTANCE, node_types.DISEASE),
     (node_types.CHEMICAL_SUBSTANCE, node_types.PHENOTYPIC_FEATURE),
     (node_types.CHEMICAL_SUBSTANCE, node_types.CHEMICAL_SUBSTANCE),
-    (node_types.GENE, node_types.CHEMICAL_SUBSTANCE)
+    (node_types.GENE, node_types.CHEMICAL_SUBSTANCE),
+    (node_types.BIOLOGICAL_PROCESS_OR_ACTIVITY, node_types.CHEMICAL_SUBSTANCE),
+    (node_types.PHENOTYPIC_FEATURE, node_types.BIOLOGICAL_PROCESS_OR_ACTIVITY),
+    (node_types.DISEASE, node_types.ANATOMICAL_ENTITY)
 ]
 
 def crawl_all(rosetta):
