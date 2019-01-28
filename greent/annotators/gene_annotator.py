@@ -4,61 +4,76 @@ import time
 import logging
 from greent.annotators.annotator import Annotator
 import re
+from greent.annotators.util.ftp_helper import pull_hgnc_json
 
 logger = logging.getLogger(__name__)
 class GeneAnnotator(Annotator):
+    """
+    Singleton service that will download the whole hgnc_json reformat it and grab from there. 
+    """
+    instance = None
 
     def __init__(self, rosetta):
-        super().__init__(rosetta)
-        self.url = 'http://rest.genenames.org/fetch'
-        self.prefix_source_mapping = {
-            'HGNC': self.get_hgnc_annotations
-        }
+        if not self.instance:
+            self.instance = GeneAnnotator.__GeneAnnotator(rosetta)
+        else:
+            logger.debug('found annotator already created... going to  use that one.')
+            self.instance.rosetta = rosetta
     
-    def get_hgnc_annotations(self, node_curie):
-        """
-        Trying to mitigate for hgnc's request limit of 10 / sec 
-        Cannot be async.
-        """
-        time.sleep(0.10001)
-        identifier_parts = node_curie.split(':')
-        id = identifier_parts[1]
-        headers = {'Accept':'application/json'}
-        #@todo maybe add retries like hgnc service.
-        # and also use common config for URL and stuff, 
-        url = f"{self.url}/hgnc_id/{id}"
+    def __getattr__(self, name):
+        #redirect calls to the instance.
+        return getattr(self.instance, name)
     
-        r = requests.get(url, headers = headers).json()
-        try:
-            docs = r['response']['docs']
-        except:
-            #didn't get anything useful
-            logger.error("No good return")
-            return {}
-        annotations = {}
-        logger.debug(f"Number of docs: {docs}")
-        for doc in docs:
-            extract = self.extract_annotation_from_hgnc(doc)
-            annotations.update(extract)
-        return annotations
+    class __GeneAnnotator(Annotator):
+        def __init__(self, rosetta):
+            super().__init__(rosetta)
+            self.prefix_source_mapping = {
+                'HGNC': self.get_hgnc_annotations
+            }
+            self.hgnc_data = None
+        
+        def get_hgnc_full(self,hgnc_id = None):
+            """
+            Downloads and reformats hgnc so it can be access with hgnc_id.
+            """
+            if not self.hgnc_data:
+                logger.debug('Fetching hgnc whole data... ')
+                self.hgnc_data = {}
+                hgnc_json = pull_hgnc_json()
+                for hgnc_item in hgnc_json['response']['docs']:
+                    if hgnc_item['hgnc_id'] not in self.hgnc_data:
+                        self.hgnc_data[hgnc_item['hgnc_id']] = []
+                    self.hgnc_data[hgnc_item['hgnc_id']].append(hgnc_item)
+            if hgnc_id:
+                return self.hgnc_data.get(hgnc_id,[])
+            return self.hgnc_data
 
-    def extract_annotation_from_hgnc(self, raw):
-        """
-        Exracts certain parts of  the HGNC gene data.
-        """
-        keys_of_interest = [
-            'gene_family',
-            'gene_family_id',
-            'location',
-            'locus_group'
-        ]
-        new  = { key : raw[key] for key in keys_of_interest if key in raw }
-        #sanity check
-        if len(new.keys()) != len(keys_of_interest):
-            logger.warning(f"found data less than expected for {raw['hgnc_id']} ")
-        if new['location'] != None:
-            # Cytogenetic location, I think first digit denotes Chromosome number. 
-            regex = re.compile(r'\d+|\D+')
-            match = regex.search(new['location'])[0]
-            new['chromosome'] = match
-        return new
+
+        def get_hgnc_annotations(self, node_curie):
+            """
+            Returns a dictionary of annotations
+            """
+            docs = self.get_hgnc_full(node_curie)
+            conf = self.get_prefix_config('HGNC')
+            annotations = {}
+            for doc in docs:
+                extract = self.extract_annotation_from_hgnc(doc, conf['keys'] )
+                annotations.update(extract)
+            return annotations
+
+        def extract_annotation_from_hgnc(self, raw, keys_of_interest= []):
+            """
+            Exracts certain parts of  the HGNC gene data.
+            """
+            new  = { keys_of_interest[key] : raw[key] for key in keys_of_interest if key in raw }
+            #sanity check
+            if len(new.keys()) != len(keys_of_interest):
+                logger.warning(f"found data less than expected for {raw['hgnc_id']} ")
+            if 'location' in new and new['location'] != None:
+                # some don't have location
+                # Cytogenetic location, I think first digit denotes Chromosome number. 
+                regex = re.compile(r'\d+|\D+')
+                match = regex.search(new['location'])[0]
+                new['chromosome'] = match
+            new['taxon'] = '9606'
+            return new

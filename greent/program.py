@@ -174,7 +174,7 @@ class Program:
         self.rosetta.synonymizer.synonymize(node)
         try:
             result = annotate_shortcut(node, self.rosetta)
-            if result == None:
+            if type(result) == type(None):
                 logger.debug(f'No annotator found for {node}')
         except Exception as e:
             logger.error(e)

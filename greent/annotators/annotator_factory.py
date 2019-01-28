@@ -10,16 +10,20 @@ annotator_class_list = {
     node_types.CHEMICAL_SUBSTANCE: ChemicalAnnotator,
     node_types.DISEASE: DiseaseAnnotator
 }
+annotator_instances = {}
 
 
 def make_annotator(node, rosetta):
     """
-    Factory of annotators
+    Factory of annotators. Maintains instances so data can be cached. 
     """
-    annotator_class = annotator_class_list.get(node.type)
-    if annotator_class :
-        return annotator_class(rosetta)
-    return None
+    if node.type not in annotator_instances:
+        annotator_class = annotator_class_list.get(node.type)
+        if annotator_class :
+            annotator_instances[node.type] = annotator_class(rosetta)
+        else :
+            annotator_instances[node.type] =  None
+    return annotator_instances[node.type]
 
 def annotate_shortcut(node, rosetta):
     """

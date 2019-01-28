@@ -3,6 +3,7 @@ import logging
 import aiohttp
 import asyncio
 import greent.annotators.util.async_client as async_client
+from greent.util import Resource
 logger = LoggingUtil.init_logging(__name__, level=logging.DEBUG, format='medium')
 
 class Annotator:
@@ -15,7 +16,38 @@ class Annotator:
         variable as a that would be used as a mapper between the curie prefix and
         a function that will get annotation data in child class implementions. 
         """
+        # this variable should be set in subclass to associate getter functions with keys
         self.prefix_source_mapping = {}
+        config_file = Resource.get_resource_obj('conf/annotation_map.yaml','yaml')
+        if not config_file:
+            logger.error('No Config file found for annotations')
+            raise RuntimeWarning('Annotations have no config file. No annotations will be done.')
+        class_name = self.__class__.__name__.split('__')[-1]
+        self.config = config_file.get(class_name, None)
+        if not self.config:
+            logger.error(f' No config found for {class_name}')
+            raise RuntimeWarning(f' No config found for {class_name}')
+        for prefix in self.config['prefixes']:
+            self.config[prefix]['keys'] = self.remap_source_keys_to_dict(self.config[prefix]['keys'])
+
+         
+    def get_prefix_config(self, prefix):
+        """
+        Gets the config for a prefix from the whole config.
+        """
+        if self.config:
+            return self.config.get(prefix, None)
+    
+    def remap_source_keys_to_dict(self, source_keys):
+        """
+        converts array of keys to a dict with source as key of new dict and value as the property we want to map it to.
+        """
+        remapped = {}
+        for key in source_keys:
+            for key_name in key.keys():
+                source_key_name = key[key_name]['source']
+                remapped[source_key_name] = key_name    
+        return remapped
 
     def annotate(self, node, synonyms={}):
         """
@@ -43,7 +75,7 @@ class Annotator:
         for prefix in synonym_basket:
             for synonym in synonym_basket[prefix]:
                 tasks.append(self.get_from_cache(synonym))
-        results = await asyncio.gather(*tasks,return_exceptions= True)  
+        results = await asyncio.gather(*tasks,return_exceptions= False)  
         for result in results:
             properties.update(result)     
         return properties
@@ -58,7 +90,7 @@ class Annotator:
         key = f"annotation({Text.upper_curie(node_curie)})"
         logger.info(f"Getting attribute: {key}")
         # also here it might be helpful to make it async
-        cached_data = None #self.rosetta.cache.get(key)
+        cached_data = self.rosetta.cache.get(key)
         if cached_data == None:
 
             logger.info(f"cache miss: {key}")
@@ -103,8 +135,8 @@ class Annotator:
         
         return result
 
-    async def async_get_json(self, url):
-        await async_client.async_get_json(url)
+    async def async_get_json(self, url ,headers ={}):
+        return await async_client.async_get_json(url, headers)
     
-    async def async_get_text(self, url):
-        await async_client.async_get_text(url)
+    async def async_get_text(self, url, headers={}):
+        return await async_client.async_get_text(url, headers)
