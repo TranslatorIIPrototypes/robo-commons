@@ -302,26 +302,25 @@ def chebi_sdf_entry_to_dict(sdf_chunk):
     final_dict = {}
     current_key = 'mol_file'
     chebi_id = ''
-    interesting_keys = [
-        'Definition',
-        'InChi',
-        'SMILES',
-        'Charge',
-        'Mass',
-        'Monoisotopic Mass',
-        'IUPAC Names'
-    ]
+    interesting_keys = {
+        'Definition': 'definition',
+        'InChi': 'inchi',
+        'SMILES': 'inchikey',
+        'Charge': 'charge',
+        'Mass': 'mass',
+        'Monoisotopic Mass': 'monoisotopic_mass'
+    }
     for line in sdf_chunk:
         if len(line):
             if '>' == line[0]:
                 current_key = line.replace('>','').replace('<','').strip()  
                 if current_key in interesting_keys:
-                    final_dict[current_key] = ''
+                    final_dict[interesting_keys[current_key]] = ''
                 continue
             if current_key == 'ChEBI ID':
                 chebi_id = line
             if current_key in interesting_keys:
-                final_dict[current_key] += line        
+                final_dict[interesting_keys[current_key]] += line        
     return (chebi_id, final_dict)
 
 async def make_multiple_chembl_requests(num_requests = 100, start= 0 ):
