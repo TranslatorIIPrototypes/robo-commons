@@ -1,7 +1,7 @@
-from crawler.genes import load_genes
+from crawler.genes import load_genes, load_annotations_genes
 from greent.rosetta import Rosetta
 from greent import node_types
-from crawler.chemicals import load_chemicals
+from crawler.chemicals import load_chemicals, load_annotations_chemicals
 from crawler.program_runner import load_all
 from crawler.disease_phenotype import load_diseases_and_phenotypes
 from crawler.omni import create_omnicache,update_omnicache
@@ -10,7 +10,7 @@ import argparse
 
 def poolrun(type1,type2,rosetta):
     start = dt.now()
-    psize = 10
+    psize = 1
     load_all(type1,type2,rosetta,psize)
     end = dt.now()
     print(f'Poolsize: {psize}, time: {end-start}')
@@ -37,14 +37,19 @@ crawls = [
     (node_types.CHEMICAL_SUBSTANCE, node_types.PHENOTYPIC_FEATURE),
     (node_types.CHEMICAL_SUBSTANCE, node_types.CHEMICAL_SUBSTANCE),
     (node_types.CHEMICAL_SUBSTANCE, node_types.GENE),
-    (node_types.GENE, node_types.CHEMICAL_SUBSTANCE)
+    (node_types.GENE, node_types.CHEMICAL_SUBSTANCE),
+    (node_types.GENE, node_types.GENE_FAMILY)
 ]
 
 def crawl_all(rosetta):
-    load_synonyms(rosetta)
-    create_omnicache(rosetta)
+   load_synonyms(rosetta)
+   create_omnicache(rosetta)
     for (source,target) in crawls:
         poolrun(source,target,rosetta)
+
+def load_annotations(rosetta):
+    load_annotations_chemicals(rosetta)
+    load_annotations_genes(rosetta)
 
 def run(args):
     rosetta = Rosetta()
@@ -57,6 +62,9 @@ def run(args):
     elif args.omnicache:
         print('omnicache')
         create_omnicache(rosetta)
+    elif args.annotate:
+        print('annotate')
+        load_annotations(rosetta)
     else:
         print(f'crawl from {args.source} to {args.target}')
         poolrun(args.source, args.target,rosetta)
@@ -71,6 +79,7 @@ if __name__=='__main__':
     parser.add_argument('-o','--omnicache', help='Load omnicorp from postgres to redis', action='store_true')
     parser.add_argument('--source', help='type from which to build')
     parser.add_argument('--target', help='type to which to build')
+    parser.add_argument('-A', '--annotate', help='Preform adding annotation data to cache', action='store_true')
     args = parser.parse_args()
     run(args)
 
