@@ -42,8 +42,8 @@ crawls = [
 ]
 
 def crawl_all(rosetta):
-   load_synonyms(rosetta)
-   create_omnicache(rosetta)
+    load_synonyms(rosetta)
+    create_omnicache(rosetta)
     for (source,target) in crawls:
         poolrun(source,target,rosetta)
 
