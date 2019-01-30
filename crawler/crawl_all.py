@@ -10,7 +10,7 @@ import argparse
 
 def poolrun(type1,type2,rosetta):
     start = dt.now()
-    psize = 1
+    psize = 10
     load_all(type1,type2,rosetta,psize)
     end = dt.now()
     print(f'Poolsize: {psize}, time: {end-start}')
