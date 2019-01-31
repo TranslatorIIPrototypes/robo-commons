@@ -18,6 +18,8 @@ class DiseaseAnnotator(Annotator):
         conf = self.get_prefix_config('MONDO')
         ancestors_url = conf['url'] + mondo_curie
         response = await self.async_get_json(ancestors_url)
+        if 'ancestors' not in response:
+            return {}
         ancestors = response['ancestors']
         properties = { conf['keys'][x] : True for x in ancestors if x in conf['keys']}
         return properties

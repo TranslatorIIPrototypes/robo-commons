@@ -49,8 +49,7 @@ class ChemicalAnnotator(Annotator):
         chebi_raw = await self.async_get_json(url)
         chebi_roles = await self.get_chemical_roles(chebi_id)
         chebi_extract = self.extract_chebi_data(chebi_raw, conf['keys'])
-        logger.error(chebi_roles)
-        chebi_extract['roles'] = [x['role_label'] for x in chebi_roles[chebi_id]]
+        chebi_extract.update({x['role_label']: True for x in chebi_roles[chebi_id]})
         return chebi_extract
 
     def extract_chebi_data(self, chebi_raw, keys_of_interest):
@@ -58,12 +57,13 @@ class ChemicalAnnotator(Annotator):
         restructures chebi raw data
         """
         extract = {}
-        for prop in chebi_raw['all_properties']['property_value']:
-            prop_parts = prop.split(' ')
-            prop_name = prop_parts[0].split('/')[-1]
-            prop_value = prop_parts[1].strip('"')
-            if prop_name in keys_of_interest:
-                extract[keys_of_interest[prop_name]] = prop_value
+        if 'property_value' in chebi_raw['all_properties']:
+            for prop in chebi_raw['all_properties']['property_value']:
+                prop_parts = prop.split(' ')
+                prop_name = prop_parts[0].split('/')[-1]
+                prop_value = prop_parts[1].strip('"')
+                if prop_name in keys_of_interest:
+                    extract[keys_of_interest[prop_name]] = prop_value
         return extract
           
     async def get_kegg_data(self, kegg_id):
