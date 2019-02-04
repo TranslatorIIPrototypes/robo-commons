@@ -17,7 +17,8 @@ from greent import node_types
 from greent.export import BufferedWriter
 from greent.cache import Cache
 from greent.graph_components import KEdge
-
+from greent.annotators.annotator_factory import annotate_shortcut
+import traceback
 logger = LoggingUtil.init_logging(__name__, level=logging.DEBUG)
 
 class QueryDefinition:
@@ -174,6 +175,13 @@ class Program:
         if edge is not None:
             is_source = node.id == edge.source_id
         self.rosetta.synonymizer.synonymize(node)
+        try:
+            result = annotate_shortcut(node, self.rosetta)
+            if type(result) == type(None):
+                logger.debug(f'No annotator found for {node}')
+        except Exception as e:
+            logger.error(e)
+            logger.error(traceback.format_exc())
         if edge is not None:
             if is_source:
                 edge.source_id = node.id
