@@ -111,7 +111,10 @@ class Program:
         logstring += 'Transitions:\n'
         for k in self.transitions:
             logstring+=f' {k}: {self.transitions[k]}\n'
-        logger.debug(logstring)
+        total_transitions = len(self.transitions.keys())
+        if  total_transitions < 20:
+            logger.debug(logstring)
+        logger.debug(f'total transitions : {total_transitions}')
 
     def initialize_instance_nodes(self):
         # No error checking here. You should have caught any malformed questions before this point.
