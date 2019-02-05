@@ -250,7 +250,8 @@ def merge_roles_and_annotations(chebi_role_data, chebi_annotation_data):
     Merges roles into the bigger annotation dict as roles key.
     """
     for chebi_id in chebi_role_data:
-        chebi_annotation_data[chebi_id]['roles'] = chebi_role_data[chebi_id]
+        for key in chebi_role_data[chebi_id]:
+            chebi_annotation_data[chebi_id][key] = True
         yield (chebi_id, chebi_annotation_data[chebi_id])
 
 def annotate_from_chebi(rosetta):
@@ -262,11 +263,12 @@ def annotate_from_chebi(rosetta):
     num_request_per_round = 500
     loop = asyncio.new_event_loop()
     chemical_annotator = ChemicalAnnotator(rosetta)
+    interesting_keys = chemical_annotator.config['CHEBI']['keys']
     lines = chebisdf.split('\n')
     count = 0 
     for line in lines:
         if '$$$$' in line:
-            chebi_set = chebi_sdf_entry_to_dict(chunk)
+            chebi_set = chebi_sdf_entry_to_dict(chunk, interesting_keys= interesting_keys)
             chunk = []
             result_buffer[chebi_set[0]] = chebi_set[1]
             if len(result_buffer) == num_request_per_round :
@@ -288,36 +290,29 @@ def annotate_from_chebi(rosetta):
         #deal with the last pieces left in the buffer
         chebi_role_data = loop.run_until_complete(result_buffer.keys())
         for entry in merge_roles_and_annotations(chebi_role_data, result_buffer):
-            rosetta.cache.set(Text.upper_curie(entry[0]), entry[1])
+            rosetta.cache.set(f'annotation({Text.upper_curie(entry[0])})', entry[1])
     logger.debug('done caching chebi annotations...')
     loop.close()
     
 
 
 
-def chebi_sdf_entry_to_dict(sdf_chunk):
+def chebi_sdf_entry_to_dict(sdf_chunk, interesting_keys = {}):
     """
     Converts each SDF entry to a dictionary
     """
     final_dict = {}
     current_key = 'mol_file'
     chebi_id = ''
-    interesting_keys = {
-        'Definition': 'definition',
-        'InChi': 'inchi',
-        'SMILES': 'inchikey',
-        'Charge': 'charge',
-        'Mass': 'mass',
-        'Monoisotopic Mass': 'monoisotopic_mass'
-    }
     for line in sdf_chunk:
         if len(line):
             if '>' == line[0]:
-                current_key = line.replace('>','').replace('<','').strip()  
+                current_key = line.replace('>','').replace('<','').strip().replace(' ', '').lower() 
+                current_key = 'formula' if current_key == 'formulae' else current_key
                 if current_key in interesting_keys:
                     final_dict[interesting_keys[current_key]] = ''
                 continue
-            if current_key == 'ChEBI ID':
+            if current_key == 'chebiid':
                 chebi_id = line
             if current_key in interesting_keys:
                 final_dict[interesting_keys[current_key]] += line        
@@ -342,6 +337,7 @@ def annotate_from_chembl(rosetta):
     j = 100 #assume first that we can finish the whole thing with 100 rounds of 100 request for each round
     all_results = []
     logger.debug('annotating chembl data')
+    annotator = ChemicalAnnotator(rosetta)
     for i in range (0, j):
         #open the loop 
         loop = asyncio.new_event_loop()
@@ -354,17 +350,16 @@ def annotate_from_chembl(rosetta):
             total_count = results[0]['page_meta']['total_count']
             j = round(total_count / (1000 * num_requests))
         for result in results:
-            extract_chebml_data_add_to_cache(result, rosetta)
+            extract_chebml_data_add_to_cache(result, annotator, rosetta)
         logger.debug(f'done annotating { (i / j) * 100} % of chembl')
 
     logger.debug('caching chebml stuff done...')
 
-def extract_chebml_data_add_to_cache(result, rosetta):
+def extract_chebml_data_add_to_cache(result, annotator, rosetta):
     """
     Helper function to parse out and extract useful info form a single request result from chebml api.
     """
     molecules = result['molecules']
-    annotator = ChemicalAnnotator(rosetta)
     for molecule in molecules:
         extract = annotator.extract_chembl_data(molecule, annotator.get_prefix_config('CHEMBL')['keys'])
         logger.debug(extract)
