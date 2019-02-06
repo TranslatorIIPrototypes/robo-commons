@@ -4,6 +4,8 @@ import aiohttp
 import asyncio
 import greent.annotators.util.async_client as async_client
 from greent.util import Resource
+from greent import node_types
+
 logger = LoggingUtil.init_logging(__name__, level=logging.DEBUG, format='medium')
 
 class Annotator:
@@ -55,6 +57,11 @@ class Annotator:
         until all results are done.
         """
         logger.debug(f"Annotating {node.id}")
+        if node.type == node_types.GENE:
+            hgnc_symbols = node.get_synonyms_by_prefix('HGNC.SYMBOL')
+            for hgnc_symbol in hgnc_symbols:
+                key = f'synonymize({hgnc_symbol})'
+                self.rosetta.cache.set(key, node.synonyms)
         synonym_basket = {prefix : node.get_synonyms_by_prefix(prefix) for prefix in self.prefix_source_mapping.keys()}
         synonym_basket.update(synonyms)
         loop = asyncio.new_event_loop()
