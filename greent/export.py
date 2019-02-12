@@ -7,7 +7,6 @@ import logging
 from datetime import datetime
 from sys import stdout
 
-#watch("neo4j.bolt", logging.DEBUG, stdout)
 
 logger = LoggingUtil.init_logging(__name__, logging.DEBUG)
 
