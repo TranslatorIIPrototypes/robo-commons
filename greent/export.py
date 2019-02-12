@@ -82,13 +82,17 @@ def export_edge_chunk(tx,edgelist,edgelabel):
     reason to worry about preserving information from an old edge.
     What defines the edge are the identifiers of its nodes, and the source.function that created it."""
     cypher = f"""UNWIND $batches as row
+            OPTIONAL MATCH (a:{node_types.ROOT_ENTITY} {{id: row.source_id}})-[r1:{edgelabel}{{predicate_id: row.standard_id}}]-(b:{node_types.ROOT_ENTITY} {{id: row.target_id}}) 
+            DELETE r1 with row
             MATCH (a:{node_types.ROOT_ENTITY} {{id: row.source_id}}),(b:{node_types.ROOT_ENTITY} {{id: row.target_id}})
-            MERGE (a)-[r:{edgelabel} {{edge_source: row.provided_by, relation_label: row.original_predicate_label}}]->(b)
+            MERGE (a)-[r:{edgelabel} {{predicate_id: row.standard_id}}]->(b)
             set r.source_database=row.database
             set r.ctime=row.ctime 
             set r.predicate_id=row.standard_id 
             set r.relation=row.original_predicate_id 
             set r.publications=row.publications
+            set r.edge_source = row.provided_by
+            set r.relation_label = row.original_predicate_label
             """
     batch = [ {'source_id': edge.source_id,
                'target_id': edge.target_id,

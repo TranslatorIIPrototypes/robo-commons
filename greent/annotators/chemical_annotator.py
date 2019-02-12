@@ -2,6 +2,7 @@ import requests
 import logging
 from greent.annotators.annotator import Annotator
 from greent.annotators.util.async_sparql_client import TripleStoreAsync
+from greent.util import Text
 logger = logging.getLogger(__name__)
 
 class ChemicalAnnotator(Annotator):
@@ -33,7 +34,10 @@ class ChemicalAnnotator(Annotator):
         """
         Extracts interesting data from chembl raw response.
         """
-        extracted = {keys_of_interest[key] : str(chembl_raw[key]) for key in keys_of_interest if key in chembl_raw.keys()}
+        extracted = {keys_of_interest[key] : \
+                    self.convert_data_to_primitives(chembl_raw[key]) \
+                    for key in keys_of_interest if key in chembl_raw.keys()
+                    }
         
         if len(keys_of_interest) != len(extracted.keys()):
             logger.warn(f"All keys were not annotated for {chembl_raw['molecule_chembl_id']}")
@@ -49,7 +53,7 @@ class ChemicalAnnotator(Annotator):
         chebi_raw = await self.async_get_json(url)
         chebi_roles = await self.get_chemical_roles(chebi_id)
         chebi_extract = self.extract_chebi_data(chebi_raw, conf['keys'])
-        chebi_extract.update({x['role_label']: True for x in chebi_roles[chebi_id]})
+        chebi_extract.update({Text.snakify(x['role_label']): True for x in chebi_roles[chebi_id]})
         return chebi_extract
 
     def extract_chebi_data(self, chebi_raw, keys_of_interest):
@@ -76,7 +80,9 @@ class ChemicalAnnotator(Annotator):
         return self.extract_kegg_data(kegg_dict, conf['keys'])
     
     def extract_kegg_data(self, kegg_dict, keys_of_interest):
-        extracted = {keys_of_interest[key] : kegg_dict[key] for key in keys_of_interest if key in kegg_dict.keys()}
+        extracted = {keys_of_interest[key] : \
+            self.convert_data_to_primitives(kegg_dict[key]) \
+            for key in keys_of_interest if key in kegg_dict.keys()}
         if len(keys_of_interest) != len(extracted.keys()):
             logger.warn(f"All keys were not annotated for {kegg_dict['ENTRY']}")
         return extracted
@@ -110,11 +116,14 @@ class ChemicalAnnotator(Annotator):
         PREFIX CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
         SELECT DISTINCT ?role_label
         from <http://reasoner.renci.org/ontology>
-        from <http://reasoner.renci.org/nonredundant>
+        from <http://reasoner.renci.org/redundant>
         where {
             $chebi_id has_role: ?role.
             ?role rdfs:label ?role_label.
+            GRAPH <http://reasoner.renci.org/ontology/closure> {
+                ?role rdfs:subClassOf CHEBI:50906.
             }
+        }
         """
         query_result = await self.tripleStore.async_query_template(
             inputs = {'chebi_id': chebi_id},

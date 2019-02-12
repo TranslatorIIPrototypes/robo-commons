@@ -1,4 +1,5 @@
 from greent.annotators.annotator import Annotator
+from greent.util import Text
 import logging
 
 logger = logging.getLogger(name = __name__)
@@ -21,6 +22,6 @@ class DiseaseAnnotator(Annotator):
         if 'ancestors' not in response:
             return {}
         ancestors = response['ancestors']
-        properties = { conf['keys'][x] : True for x in ancestors if x in conf['keys']}
+        properties = {Text.snakify(conf['keys'][x]) : True for x in ancestors if x in conf['keys']}
         return properties
 
