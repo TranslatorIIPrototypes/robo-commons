@@ -3,6 +3,7 @@ import logging
 from greent.annotators.annotator import Annotator
 from greent.annotators.util.async_sparql_client import TripleStoreAsync
 from greent.util import Text
+import asyncio
 logger = logging.getLogger(__name__)
 
 class ChemicalAnnotator(Annotator):
@@ -142,8 +143,23 @@ class ChemicalAnnotator(Annotator):
         headers = {
             'Accept': 'application/json'
         }
-        result = await self.async_get_json(url, headers= headers)
-        return self.extract_pubchem_data(result, conf['keys'])
+        result = await self.async_get_raw_response(url, headers= headers)
+        # async with result as result_json:
+        result_json = result['json']
+        # pubmed api blocks if too many req are sent
+        if result['status'] != 200:
+            raise Exception('Pubmed failed skipping')
+        throttle = result['headers']['X-Throttling-Control']
+        throttle_warnings = { Text.snakify(value.split(':')[0].lower()) : value.split(':')[1] for value in throttle.split(',') }
+        if 'Yellow' in throttle_warnings['request_time_status']:
+            await asyncio.sleep(0.1) 
+        elif 'Red' in throttle_warnings['request_time_status']:
+            await asyncio.sleep(0.5)
+        elif 'Black' in throttle_warnings['request_time_status']:
+            await asyncio.sleep(2)
+        logger.info(f'Pubmed throttle--------------------')
+        logger.info(throttle_warnings.get('request_time_status'))
+        return self.extract_pubchem_data(result_json, conf['keys'])
 
     def extract_pubchem_data(self, pubchem_raw, keys_of_interest = []):
         """
