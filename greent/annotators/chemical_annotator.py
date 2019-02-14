@@ -134,7 +134,7 @@ class ChemicalAnnotator(Annotator):
         return {chebi_id: query_result}
 
 
-    async def get_pubchem_data(self, pubchem_id):
+    async def get_pubchem_data(self, pubchem_id, retries = 0):
         """
         Gets pubchem annotations.
         """ 
@@ -147,18 +147,25 @@ class ChemicalAnnotator(Annotator):
         # async with result as result_json:
         result_json = result['json']
         # pubmed api blocks if too many req are sent
-        if result['status'] != 200:
-            raise Exception('Pubmed failed skipping')
         throttle = result['headers']['X-Throttling-Control']
         throttle_warnings = { Text.snakify(value.split(':')[0].lower()) : value.split(':')[1] for value in throttle.split(',') }
         if 'Yellow' in throttle_warnings['request_time_status']:
-            await asyncio.sleep(0.1) 
+            logger.warn('Pubchem requests reached Yellow')
+            await asyncio.sleep(0.5) 
         elif 'Red' in throttle_warnings['request_time_status']:
-            await asyncio.sleep(0.5)
-        elif 'Black' in throttle_warnings['request_time_status']:
+            logger.warn('Pubchem requests reached RED')
             await asyncio.sleep(2)
-        logger.info(f'Pubmed throttle--------------------')
-        logger.info(throttle_warnings.get('request_time_status'))
+        elif 'Black' in throttle_warnings['request_time_status']:
+            sleep_sec = 3 * ( retries + 1 ) # 
+            logger.error(f'Pubchem request blocked, sleeping {sleep_sec} seconds, no of retries {retries}')
+            await asyncio.sleep(sleep_sec)
+            # repeat call if retries has changed till 3 
+            if retries < 3:
+                return await self.get_pubchem_data(pubchem_id, retries + 1)
+            else:
+                # exceeding retries return {}
+                logger.warn(f'retry limit exceed for {pubchem_id} , returning empty')
+                return {}
         return self.extract_pubchem_data(result_json, conf['keys'])
 
     def extract_pubchem_data(self, pubchem_raw, keys_of_interest = []):
