@@ -173,11 +173,14 @@ class ChemicalAnnotator(Annotator):
         Extracts pubchem data.
         """
         result = {}
-        for compound in pubchem_raw['PC_Compounds']:
-            #I beileve we will have one in the array,
-            for prop in compound['props']:
-                label = prop['urn']['label']
-                if label in keys_of_interest:
-                    values = [prop['value'][v] for v in prop['value'].keys()]
-                    result[keys_of_interest[label]] = values[0] if len(values) == 1 else values
+        if 'PC_Compounds' in pubchem_raw:    
+            for compound in pubchem_raw['PC_Compounds']:
+                #I beileve we will have one in the array,
+                for prop in compound['props']:
+                    label = prop['urn']['label']
+                    if label in keys_of_interest:
+                        values = [prop['value'][v] for v in prop['value'].keys()]
+                        result[keys_of_interest[label]] = values[0] if len(values) == 1 else values
+        else:
+            logger.error(f"got this : {pubchem_raw} for pubchem")
         return result
