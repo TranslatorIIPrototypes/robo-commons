@@ -148,7 +148,7 @@ class ChemicalAnnotator(Annotator):
         result_json = result['json']
         # pubmed api blocks if too many req are sent
         throttle = result['headers']['X-Throttling-Control']
-        throttle_warnings = { Text.snakify(value.split(':')[0].lower()) : value.split(':')[1] for value in throttle.split(',') }
+        throttle_warnings = { Text.snakify(value.split(':')[0].lower()) : value.split(':')[1] for value in throttle.split(',') if ':' in value }
         if 'Yellow' in throttle_warnings['request_time_status']:
             logger.warn('Pubchem requests reached Yellow')
             await asyncio.sleep(0.5) 
