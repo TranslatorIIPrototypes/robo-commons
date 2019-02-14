@@ -97,7 +97,7 @@ class Annotator:
         key = f"annotation({Text.upper_curie(node_curie)})"
         logger.info(f"Getting attribute: {key}")
         # also here it might be helpful to make it async
-        cached_data = None#self.rosetta.cache.get(key)
+        cached_data = self.rosetta.cache.get(key)
         if cached_data == None:
 
             logger.info(f"cache miss: {key}")
