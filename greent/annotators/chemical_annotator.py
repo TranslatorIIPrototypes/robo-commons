@@ -149,13 +149,13 @@ class ChemicalAnnotator(Annotator):
         # pubmed api blocks if too many req are sent
         throttle = result['headers']['X-Throttling-Control']
         throttle_warnings = { Text.snakify(value.split(':')[0].lower()) : value.split(':')[1] for value in throttle.split(',') if ':' in value }
-        if 'Yellow' in throttle_warnings['request_time_status']:
+        if 'Yellow' in throttle_warnings['request_time_status'] or 'Yellow' in throttle_warnings['request_count_status']:
             logger.warn('Pubchem requests reached Yellow')
             await asyncio.sleep(0.5) 
-        elif 'Red' in throttle_warnings['request_time_status']:
+        if 'Red' in throttle_warnings['request_time_status'] or 'Red' in throttle_warnings['request_count_status']:
             logger.warn('Pubchem requests reached RED')
             await asyncio.sleep(2)
-        elif 'Black' in throttle_warnings['request_time_status']:
+        if 'Black' in throttle_warnings['request_time_status'] or 'Black' in throttle_warnings['request_count_status']:
             sleep_sec = 3 * ( retries + 1 ) # 
             logger.error(f'Pubchem request blocked, sleeping {sleep_sec} seconds, no of retries {retries}')
             await asyncio.sleep(sleep_sec)
