@@ -93,6 +93,7 @@ def export_edge_chunk(tx,edgelist,edgelabel):
             set r.publications=row.publications
             set r.edge_source = row.provided_by
             set r.relation_label = row.original_predicate_label
+            set r += row.properties
             """
     batch = [ {'source_id': edge.source_id,
                'target_id': edge.target_id,
@@ -103,7 +104,8 @@ def export_edge_chunk(tx,edgelist,edgelabel):
                'original_predicate_id': edge.original_predicate.identifier,
                'original_predicate_label': edge.original_predicate.label,
                'publication_count': len(edge.publications),
-               'publications': edge.publications[:1000]
+               'publications': edge.publications[:1000],
+               'properties': edge.properties
                }
               for edge in edgelist]
 
