@@ -101,6 +101,7 @@ def export_edge_chunk(tx,edgelist,edgelabel):
             SET r.relation = CASE WHEN EXISTS(r.relation) THEN r.relation + [row.original_predicate_id] ELSE [row.original_predicate_id] END
             SET r.publications = [pub in row.publications where pub in r.publications ] + r.publications
             )
+            SET r.properties += row.properties
             """
     batch = [ {'source_id': edge.source_id,
                'target_id': edge.target_id,
