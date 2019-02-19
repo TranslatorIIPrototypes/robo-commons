@@ -717,3 +717,7 @@ slots:
   posetively regulates:
     mappings:
       - RO:0002598
+
+  mereotopologically related to:
+    mappings:
+      - RO:0002323

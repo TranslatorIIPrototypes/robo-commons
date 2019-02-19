@@ -69,6 +69,14 @@ def get_identifiers(input_type,rosetta):
             symbol = gene_dict['symbol']
             lids.append( LabeledID(identifier=gene_dict['hgnc_id'], label=symbol) )
         print("OK")
+    elif input_type == node_types.CELLULAR_COMPONENT:
+        print('Pulling cellular compnent descendants')
+        identifiers = requests.get("http://onto.renci.org/descendants/GO:0005575").json()['descendants']
+        for ident in identifiers:
+            if ident not in bad_idents:
+                res = requests.get(f'http://onto.renci.org/label/{ident}/').json()
+                lids.append(LabeledID(ident,res['label']))
+
     elif input_type == node_types.CHEMICAL_SUBSTANCE:
         print('pull chem ids')
         identifiers = requests.get("http://onto.renci.org/descendants/CHEBI:23367").json()['descendants']

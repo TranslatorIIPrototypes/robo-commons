@@ -439,6 +439,31 @@ class UberonGraphKS(Service):
         )
         return results
 
+    def cellular_component_to_chemical_substance(self, cellular_component_id):
+        text = """
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        PREFIX GO:  <http://purl.obolibrary.org/obo/GO_>
+        PREFIX chemical_entity: <http://purl.obolibrary.org/obo/CHEBI_24431>
+        SELECT DISTINCT ?predicate ?predicate_label ?chemical_entity ?chemical_label
+        FROM <http://reasoner.renci.org/ontology>
+        FROM <http://reasoner.renci.org/redundant>
+        WHERE {
+        $cellular_component_id  ?predicate ?chemical_entity.
+        graph <http://reasoner.renci.org/ontology/closure> 
+        {
+            ?chemical_entity rdfs:subClassOf chemical_entity:.
+        }
+        ?predicate rdfs:label ?predicate_label .
+        ?chemical_entity rdfs:label ?chemical_label.
+        }
+        """
+        results = []
+        results = self.triplestore.query_template(
+            template_text = text,
+            outputs = ['predicate','predicate_label','chemical_entity', 'chemical_label'],
+            inputs = {'cellular_component_id': cellular_component_id}
+        )
+        return results
 
     def get_anatomy_by_cell_graph (self, cell_node):
         anatomies = self.cell_to_anatomy (cell_node.id)
@@ -596,7 +621,7 @@ class UberonGraphKS(Service):
     def get_anatomy_by_disease(self, disease_node):
         response = []
         for curie in disease_node.get_synonyms_by_prefix('MONDO'):
-            results = self.disease_to_anatomy(disease_node.id)
+            results = self.disease_to_anatomy(curie)
             for r in results:
                 anatomy_node = KNode(Text.obo_to_curie(r['anatomyID']), type= node_types.ANATOMICAL_ENTITY, name=r['anatomy_label'])
                 predicate = LabeledID(Text.obo_to_curie(r['predicate']), r['predicate_label'])
@@ -608,4 +633,23 @@ class UberonGraphKS(Service):
                     predicate\
                 )
                 response.append((edge, anatomy_node))
+        return response
+
+
+    def get_chemical_substance_by_cellular_component(self, cellular_component_node):
+        response = []
+        logger.debug('getting chemicals woop')
+        for curie in cellular_component_node.get_synonyms_by_prefix('GO'):
+            results = self.cellular_component_to_chemical_substance(curie)
+            for r in results :
+                chemical_node = KNode(Text.obo_to_curie(r['chemical_entity']), type= node_types.CHEMICAL_SUBSTANCE, name=r['chemical_label'])
+                predicate = LabeledID(Text.obo_to_curie(r['predicate']), r['predicate_label'])
+                edge = self.create_edge(
+                    cellular_component_node,
+                    chemical_node,
+                    'uberon.get_chemical_entity_by_cellular_component',
+                    cellular_component_node.id,
+                    predicate
+                )
+                response.append((edge, chemical_node))
         return response
