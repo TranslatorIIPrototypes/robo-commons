@@ -113,7 +113,7 @@ def export_edge_chunk(tx,edgelist,edgelabel):
                'original_predicate_label': edge.original_predicate.label,
                'publication_count': len(edge.publications),
                'publications': edge.publications[:1000],
-               'properties': edge.properties
+               'properties': edge.properties if edge.properties != None else {}
                }
               for edge in edgelist]
 
