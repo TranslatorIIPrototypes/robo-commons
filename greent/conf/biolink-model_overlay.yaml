@@ -454,6 +454,7 @@ slots:
     mappings:
       - CTD:affects_transport_of
       - CTD:affects^transport
+      - RO:0002011
 
   increases transport of:
     mappings:

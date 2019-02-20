@@ -99,7 +99,7 @@ def export_edge_chunk(tx,edgelist,edgelabel):
             SET r.source_database = CASE WHEN EXISTS(r.source_database) THEN r.source_database + [row.database] ELSE [row.database] END
             SET r.predicate_id = row.standard_id
             SET r.relation = CASE WHEN EXISTS(r.relation) THEN r.relation + [row.original_predicate_id] ELSE [row.original_predicate_id] END
-            SET r.publications = [pub in row.publications where pub in r.publications ] + r.publications
+            SET r.publications = [pub in row.publications where not pub in r.publications ] + r.publications
             )
             SET r += row.properties
             """

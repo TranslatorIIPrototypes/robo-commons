@@ -71,7 +71,12 @@ def get_identifiers(input_type,rosetta):
         print("OK")
     elif input_type == node_types.CELLULAR_COMPONENT:
         print('Pulling cellular compnent descendants')
-        identifiers = requests.get("http://onto.renci.org/descendants/GO:0005575").json()['descendants']
+        cell_comp_desc = requests.get("http://onto.renci.org/descendants/GO:0005575").json()['descendants']
+        molecular_desc = requests.get('http://onto.renci.org/descendants/GO:0003674').json()['descendants']
+        biological_function_desc = requests.get('http://onto.renci.org/descendants/GO:0008150').json()['descendants']
+        # for now trying with exclusive descendants of cellular component 
+        identifiers = [x for x in cell_comp_desc if x not in molecular_desc and x not in biological_function_desc]
+
         for ident in identifiers:
             if ident not in bad_idents:
                 res = requests.get(f'http://onto.renci.org/label/{ident}/').json()
