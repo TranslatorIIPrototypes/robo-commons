@@ -39,15 +39,18 @@ def get_identifiers(input_type,rosetta):
                 if label is not None and not label.startswith('obsolete'):
                     lids.append(LabeledID(ident,label))
     elif input_type == node_types.GENETIC_CONDITION:
-        identifiers_disease = rosetta.core.mondo.get_ids()
+        identifiers_disease = ['MONDO:0005109']#rosetta.core.mondo.get_ids()
         for ident in identifiers_disease:
             print(ident)
             if ident not in bad_idents:
                 if rosetta.core.mondo.is_genetic_disease(KNode(ident,type=node_types.DISEASE)):
+                    print('~~~~~~~~~~~~~~~~~~ is genetic disease')
                     label = rosetta.core.mondo.get_label(ident)
                     if label is not None and not label.startswith('obsolete'):
                         print(ident,label,len(lids))
                         lids.append(LabeledID(ident,label))
+                else:
+                    print('__________________ nOpe')
     elif input_type == node_types.ANATOMICAL_ENTITY:
         identifiers = requests.get("http://onto.renci.org/descendants/UBERON:0001062").json()['descendants']
         for ident in identifiers:
@@ -71,12 +74,8 @@ def get_identifiers(input_type,rosetta):
         print("OK")
     elif input_type == node_types.CELLULAR_COMPONENT:
         print('Pulling cellular compnent descendants')
-        cell_comp_desc = requests.get("http://onto.renci.org/descendants/GO:0005575").json()['descendants']
-        molecular_desc = requests.get('http://onto.renci.org/descendants/GO:0003674').json()['descendants']
-        biological_function_desc = requests.get('http://onto.renci.org/descendants/GO:0008150').json()['descendants']
+        identifiers = requests.get("http://onto.renci.org/descendants/GO:0005575").json()['descendants']
         # for now trying with exclusive descendants of cellular component 
-        identifiers = [x for x in cell_comp_desc if x not in molecular_desc and x not in biological_function_desc]
-
         for ident in identifiers:
             if ident not in bad_idents:
                 res = requests.get(f'http://onto.renci.org/label/{ident}/').json()
