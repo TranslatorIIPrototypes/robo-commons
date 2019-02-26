@@ -1,5 +1,5 @@
 from builder.question import LabeledID
-from greent import node_types
+from greent import node_types, config
 from builder.buildmain import run
 from multiprocessing import Pool
 from functools import partial
@@ -11,21 +11,23 @@ import requests
 # There's a tradeoff here: do we want these things in the database or not.  One big problem
 # is that they end up getting tangled up in a huge number of explosive graphs, and we almost
 # never want them.  So let's not put them in, at least to start out...
+conf = config.Config('greent.conf')
 
-bad_idents = ('MONDO:0021199', # Disease by anatomical system,
-'MONDO:0000001', # Disease,
-'MONDO:0021194', # Disease by subcellular system affected,
-'MONDO:0021195', # Disease by cellular process disrupted,
-'MONDO:0021198', # Rare Genetic Disease,
-'MONDO:0003847', # Inherited Genetic Disease,
-'MONDO:0003847', # Rare Disease,
-'UBERON:0000468', # Multicellular Organism)
-              )
+bad_idents = conf.get('bad_identifiers')
+# ('MONDO:0021199', # Disease by anatomical system,
+# 'MONDO:0000001', # Disease,
+# 'MONDO:0021194', # Disease by subcellular system affected,
+# 'MONDO:0021195', # Disease by cellular process disrupted,
+# 'MONDO:0021198', # Rare Genetic Disease,
+# 'MONDO:0003847', # Inherited Genetic Disease,
+# 'MONDO:0003847', # Rare Disease,
+# 'UBERON:0000468', # Multicellular Organism)
+#               )
 
 def get_identifiers(input_type,rosetta):
     lids = []
     if input_type == node_types.DISEASE:
-        identifiers = rosetta.core.mondo.get_ids()
+        identifiers =  rosetta.core.mondo.get_ids()
         for ident in identifiers:
             if ident not in bad_idents:
                 label = rosetta.core.mondo.get_label(ident)
@@ -39,18 +41,15 @@ def get_identifiers(input_type,rosetta):
                 if label is not None and not label.startswith('obsolete'):
                     lids.append(LabeledID(ident,label))
     elif input_type == node_types.GENETIC_CONDITION:
-        identifiers_disease = ['MONDO:0005109']#rosetta.core.mondo.get_ids()
+        identifiers_disease = rosetta.core.mondo.get_ids()
         for ident in identifiers_disease:
             print(ident)
             if ident not in bad_idents:
                 if rosetta.core.mondo.is_genetic_disease(KNode(ident,type=node_types.DISEASE)):
-                    print('~~~~~~~~~~~~~~~~~~ is genetic disease')
                     label = rosetta.core.mondo.get_label(ident)
                     if label is not None and not label.startswith('obsolete'):
                         print(ident,label,len(lids))
                         lids.append(LabeledID(ident,label))
-                else:
-                    print('__________________ nOpe')
     elif input_type == node_types.ANATOMICAL_ENTITY:
         identifiers = requests.get("http://onto.renci.org/descendants/UBERON:0001062").json()['descendants']
         for ident in identifiers:
