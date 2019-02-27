@@ -25,6 +25,7 @@ from greent.graph_components import KNode
 from greent.util import LoggingUtil
 
 rosetta_config_file = os.path.join(os.path.dirname(__file__), "..", "..", "greent", "rosetta.yml")
+properties_file = os.path.join(os.path.dirname(__file__), "..", "..", "greent", "conf", "annotation_map.yaml")
 
 logger = LoggingUtil.init_logging(__name__, level=logging.DEBUG)
 
@@ -195,7 +196,7 @@ class TaskLog(Resource):
                 description: text
         """
 
-        task_log_file = os.path.join(os.environ['ROBOKOP_HOME'], 'task_logs', f'{task_id}.log')
+        task_log_file = os.path.join(os.environ['ROBOKOP_HOME'], 'logs','builder_task_logs', f'{task_id}.log')
         if os.path.isfile(task_log_file):
             with open(task_log_file, 'r') as log_file:
                 log_contents = log_file.read()
@@ -260,6 +261,26 @@ class Connections(Resource):
 
 api.add_resource(Connections, '/connections')
 
+class Properties(Resource):
+    def get(self):
+        """
+        Get a list of all node properties that may be in the graph
+        ---
+        tags: [util]
+        responses:
+            200:
+                description: Properties
+                content:
+                    application/json:
+        """
+        with open(properties_file, 'r') as stream:
+            properties = yaml.load(stream)
+
+        return properties
+
+api.add_resource(Properties, '/properties')
+
+
 class Concepts(Resource):
     def get(self):
         """
@@ -284,7 +305,7 @@ api.add_resource(Concepts, '/concepts')
 if __name__ == '__main__':
 
     # Get host and port from environmental variables
-    server_host = '0.0.0.0' #os.environ['ROBOKOP_HOST']
+    server_host = '0.0.0.0'
     server_port = int(os.environ['BUILDER_PORT'])
 
     app.run(host=server_host,\
