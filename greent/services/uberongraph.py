@@ -423,7 +423,9 @@ class UberonGraphKS(Service):
             FROM <http://reasoner.renci.org/nonredundant>
             FROM <http://reasoner.renci.org/ontology>
             WHERE {
-            $diseaseID ?predicate ?anatomyID.
+            graph <http://reasoner.renci.org/redundant> {
+                $diseaseID ?predicate ?anatomyID.
+            }
             ?anatomyID rdfs:label ?anatomy_label.
             graph <http://reasoner.renci.org/ontology/closure> {
                 ?anatomyID rdfs:subClassOf anatomicalEntity: .
