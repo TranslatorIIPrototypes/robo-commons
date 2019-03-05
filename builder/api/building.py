@@ -162,7 +162,7 @@ class Annotator(Resource):
             'id': node.id,
             'equivalent_identifiers': equivalent_ids,
             'type': node.type,
-            'label': equivalent_ids[node.id]
+            'name': equivalent_ids[node.id]
         }
         try:
             result = annotator_factory.annotate_shortcut(node, rosetta)
