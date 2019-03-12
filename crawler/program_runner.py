@@ -127,8 +127,7 @@ def get_identifiers(input_type,rosetta):
 
         for ident in identifiers:
             if ident not in bad_idents:
-                res =get_label(ident) # requests.get(f'https://uberonto.renci.org/label/{ident}/')
-                p = res.json()
+                p = get_label(ident) #requests.get(f'https://uberonto.renci.org/label/{ident}/')
                 lids.append(LabeledID(ident, p['label']))
     else:
         print(f'Not configured for input type: {input_type}')
