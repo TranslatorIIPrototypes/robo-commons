@@ -25,7 +25,6 @@ async def async_get_text(url,headers = {}):
                 return ''
             return await response.text()
 
-
 async def async_get_response(url, headers= {}):
     """
     Returns the whole reponse object

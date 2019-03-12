@@ -2,6 +2,7 @@ from greent.annotators.annotator import Annotator
 from greent.util import Text
 import logging
 
+
 logger = logging.getLogger(name = __name__)
 
 class DiseaseAnnotator(Annotator):
