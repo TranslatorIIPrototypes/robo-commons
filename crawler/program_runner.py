@@ -24,6 +24,12 @@ bad_idents = conf.get('bad_identifiers')
 # 'UBERON:0000468', # Multicellular Organism)
 #               )
 
+def get_label(curie, url='https://uberonto.renci.org/label/'):
+    try:
+        return requests.get(f'{url}/{curie}').json()
+    except:
+        return {'label': ''}
+
 def get_identifiers(input_type,rosetta):
     lids = []
     if input_type == node_types.DISEASE:
@@ -54,13 +60,13 @@ def get_identifiers(input_type,rosetta):
         identifiers = requests.get("https://uberonto.renci.org/descendants/UBERON:0001062").json()
         for ident in identifiers:
             if ident not in bad_idents:
-                res = requests.get(f'https://uberonto.renci.org/label/{ident}').json()
+                res = get_label(ident) #requests.get(f'https://uberonto.renci.org/label/{ident}').json()
                 lids.append(LabeledID(ident,res['label']))
     elif input_type == node_types.CELL:
         identifiers = requests.get("https://uberonto.renci.org/descendants/CL:0000000").json()
         for ident in identifiers:
             if ident not in bad_idents:
-                res = requests.get(f'https://uberonto.renci.org/label/{ident}/').json()
+                res = get_label(ident) #requests.get(f'https://uberonto.renci.org/label/{ident}/').json()
                 lids.append(LabeledID(ident,res['label']))
     elif input_type == node_types.GENE:
         print("Pull genes")
@@ -77,7 +83,7 @@ def get_identifiers(input_type,rosetta):
         # for now trying with exclusive descendants of cellular component 
         for ident in identifiers:
             if ident not in bad_idents:
-                res = requests.get(f'https://uberonto.renci.org/label/{ident}/').json()
+                res = get_label(ident) #requests.get(f'https://uberonto.renci.org/label/{ident}/').json()
                 lids.append(LabeledID(ident,res['label']))
 
     elif input_type == node_types.CHEMICAL_SUBSTANCE:
@@ -110,7 +116,7 @@ def get_identifiers(input_type,rosetta):
             try:
                 lids.append(LabeledID(ident,chebi_labels[ident]))
             except KeyError:
-                res = requests.get(f'https://uberonto.renci.org/label/{ident}/').json()
+                res = get_label(ident) #requests.get(f'https://uberonto.renci.org/label/{ident}/').json()
                 lids.append(LabeledID(ident,res['label']))
 
     elif input_type == node_types.BIOLOGICAL_PROCESS_OR_ACTIVITY:
@@ -121,7 +127,7 @@ def get_identifiers(input_type,rosetta):
 
         for ident in identifiers:
             if ident not in bad_idents:
-                res = requests.get(f'https://uberonto.renci.org/label/{ident}/')
+                res =get_label(ident) # requests.get(f'https://uberonto.renci.org/label/{ident}/')
                 p = res.json()
                 lids.append(LabeledID(ident, p['label']))
     else:
