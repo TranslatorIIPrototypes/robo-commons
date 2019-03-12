@@ -54,7 +54,7 @@ def get_identifiers(input_type,rosetta):
         identifiers = requests.get("https://uberonto.renci.org/descendants/UBERON:0001062").json()
         for ident in identifiers:
             if ident not in bad_idents:
-                res = requests.get(f'https://uberonto.renci.org/label/{ident}/').json()
+                res = requests.get(f'https://uberonto.renci.org/label/{ident}').json()
                 lids.append(LabeledID(ident,res['label']))
     elif input_type == node_types.CELL:
         identifiers = requests.get("https://uberonto.renci.org/descendants/CL:0000000").json()
