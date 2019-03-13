@@ -135,6 +135,7 @@ slots:
       - RO:0002450
       - hetio:UPREGULATES_AuG
       - hetio:UPREGULATES_DuG
+      - GO:acts_upstream_of_or_within_positive_effect
 
     #In the model, here for the hetio mappings
   negatively regulates, entity to entity:
@@ -581,6 +582,9 @@ slots:
       - RO:0009501  # Better to turn to B - (Causes) -> A  for Pheno -> Biological Process/ Molecular activity, where B = Biological process , A= Phenotypic feature.
       - RO:0004028 # ^^ Similar case like 0009501
       - RO:0002337
+      - RO:0002254
+      - RO:0002202
+      - RO:0002258
 
   disrupts:
     mappings:
@@ -722,3 +726,16 @@ slots:
   mereotopologically related to:
     mappings:
       - RO:0002323
+  
+  moleculary interacts with:
+    mappings:
+      - CTD:molecularly_interacts_with
+  
+  decreases molecular interaction:
+    mappings:
+      - CTD:decreases_molecular_interaction_with
+  
+  increases molecular interaction:
+    mappings:
+      - CTD:increases_molecular_interaction_with
+  
