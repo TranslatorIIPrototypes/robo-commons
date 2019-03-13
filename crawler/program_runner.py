@@ -27,9 +27,10 @@ bad_idents = conf.get('bad_identifiers')
 def get_label(curie, url='https://uberonto.renci.org/label/'):
     y = {'label': ''}
     try:        
-        y.upate(requests.get(f'{url}/{curie}').json())
+        y.update(requests.get(f'{url}/{curie}').json())
         return y
-    except:
+    except Exception as e:
+        print(e)
         return y
 
 def get_identifiers(input_type,rosetta):
