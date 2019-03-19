@@ -115,10 +115,6 @@ slots:
       - biolink:gene_get_process             # biolink returns no relation_id or an identifier that is not a curie
       - biolink:gene_get_process_or_function # biolink returns no relation_id or an identifier that is not a curie
 
-  capable of:
-    mappings:
-      - biolink:gene_get_function            # biolink returns no relation_id or an identifier that is not a curie
-      - RO:0002584
 
   affects:
     mappings:
@@ -562,7 +558,8 @@ slots:
       - RO:0002328 #Part of is capable of
       - RO:0002216 #Capable of part of
       - RO:0002329 #part of something that is capable of
-
+      - biolink:gene_get_function            # biolink returns no relation_id or an identifier that is not a curie
+      - RO:0002584
   causes:
     mappings:
       - RO:0002595  #Actually causally relates entity to process, while causes is supposed to be entity to entity...
