@@ -527,6 +527,7 @@ slots:
       - RO:0002338 # has_target_start_location
       - RO:0004026
       - RO:0004027
+      - RO:0001018
 
   contributes to:
     mappings:
@@ -736,3 +737,14 @@ slots:
     mappings:
       - CTD:increases_molecular_interaction_with
   
+  part of:
+    mappings:
+      - RO:0002007
+  
+  overlaps:
+    mappings:
+      - RO:0002220
+
+  spatially disjoint from:
+    mappings:
+      - RO:0002163
