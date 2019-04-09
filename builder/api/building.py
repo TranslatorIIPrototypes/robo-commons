@@ -25,6 +25,7 @@ import builder.api.definitions
 from builder.buildmain import setup
 from greent.graph_components import KNode
 from greent.util import LoggingUtil
+import re
 from builder.question import Question
 
 rosetta_config_file = os.path.join(os.path.dirname(__file__), "..", "..", "greent", "rosetta.yml")
