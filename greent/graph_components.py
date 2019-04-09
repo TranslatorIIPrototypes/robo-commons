@@ -108,7 +108,7 @@ class KEdge(FromDictMixin):
         standard_predicate_label: The label for the predicate as converted into a shared standard (e.g. biolink)
         publications: a list of pubmed id curies that provide evidence for or create this edge.
         url: the url that actually created the edge (for calls that can be so coded.). Optional
-        properties: A map of any other information about the edge that we may want to persist.  Default None.
+        properties: A map of any othe information about the edge that we may want to persist.  Default None.
         is_support: Whether or not the edge is a support edge. Default False.
         """
         self.source_id = None
@@ -122,7 +122,7 @@ class KEdge(FromDictMixin):
         self.url = None
         self.is_support = False
         self.properties = {}
-
+        self.namespace = 'default'
         super().__init__(*args, **kwargs)
 
         if self.provided_by is None:
@@ -137,7 +137,7 @@ class KEdge(FromDictMixin):
             return super().load_attribute(key, value)
 
     def __key(self):
-        return (self.source_id, self.target_id, self.provided_by, self.original_predicate)
+        return (self.source_id, self.target_id, self.provided_by, self.original_predicate, self.namespace)
 
     def __eq__(self, other):
         return self.__key() == other.__key()

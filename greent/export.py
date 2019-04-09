@@ -27,7 +27,7 @@ class BufferedWriter:
     def __init__(self,rosetta):
         self.rosetta = rosetta
         self.written_nodes = set()
-        self.written_edges = defaultdict(lambda: defaultdict( set ) )
+        self.written_edges = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
         self.node_queues = defaultdict(list)
         self.edge_queues = defaultdict(list)
         self.node_buffer_size = 100
@@ -49,9 +49,9 @@ class BufferedWriter:
             self.flush()
 
     def write_edge(self,edge):
-        if edge in self.written_edges[edge.source_id][edge.target_id]:
+        if edge in self.written_edges[edge.source_id][edge.target_id][edge.namespace]:
             return
-        self.written_edges[edge.source_id][edge.target_id].add(edge)
+        self.written_edges[edge.source_id][edge.target_id][edge.namespace].add(edge)
         label = Text.snakify(edge.standard_predicate.label)
         typed_edges = self.edge_queues[label]
         typed_edges.append(edge)
@@ -84,7 +84,7 @@ def export_edge_chunk(tx,edgelist,edgelabel):
     cypher = f"""UNWIND $batches as row
             
             MATCH (a:{node_types.ROOT_ENTITY} {{id: row.source_id}}),(b:{node_types.ROOT_ENTITY} {{id: row.target_id}})
-            MERGE (a)-[r:{edgelabel} {{predicate_id: row.standard_id}}]->(b)
+            MERGE (a)-[r:{edgelabel} {{predicate_id: row.standard_id, namespace: row.namespace}}]->(b)
             ON CREATE SET r.edge_source = [row.provided_by]
             ON CREATE SET r.relation_label = [row.original_predicate_label]
             ON CREATE SET r.source_database=[row.database]
@@ -113,7 +113,8 @@ def export_edge_chunk(tx,edgelist,edgelabel):
                'original_predicate_label': edge.original_predicate.label,
                'publication_count': len(edge.publications),
                'publications': edge.publications[:1000],
-               'properties': edge.properties if edge.properties != None else {}
+               'properties': edge.properties if edge.properties != None else {},
+               'namespace': edge.namespace
                }
               for edge in edgelist]
 
