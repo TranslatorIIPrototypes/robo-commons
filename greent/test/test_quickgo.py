@@ -11,7 +11,7 @@ def quickgo(rosetta):
     quickgo = rosetta.core.quickgo
     return quickgo
 
-def xtest_xontology_relationships(quickgo):
+def test_xontology_relationships(quickgo):
     #Mast Cell Chemotaxis
     r = quickgo.go_term_to_cell_xontology_relationships (KNode("GO:0002551", type=node_types.BIOLOGICAL_PROCESS))
     assert len(r) == 1
@@ -19,7 +19,7 @@ def xtest_xontology_relationships(quickgo):
     #Mast Cells
     assert r[0][1].id == 'CL:0000097'
 
-def xtest_extensions(quickgo):
+def test_extensions(quickgo):
     #positive regulation of action potential
     r = quickgo.go_term_to_cell_annotation_extensions (KNode("GO:0045760", type=node_types.BIOLOGICAL_PROCESS))
     types = set([n.type for e,n in r])
@@ -30,7 +30,7 @@ def xtest_extensions(quickgo):
         assert len(myedges) == 1
         assert myedges[0][0].standard_predicate is not None
 
-def xtest_extensions_long(quickgo):
+def test_extensions_long(quickgo):
     #positive regulation of action potential
     r = quickgo.go_term_to_cell_annotation_extensions (KNode("GO:0044267", type=node_types.BIOLOGICAL_PROCESS))
     #types = set([n.type for e,n in r])
@@ -41,7 +41,7 @@ def xtest_extensions_long(quickgo):
     #    assert len(myedges) == 1
     #    assert myedges[0][0].standard_predicate is not None
 
-def xtest_reverse_extensions(quickgo):
+def test_reverse_extensions(quickgo):
     r = quickgo.cell_to_go_term_annotation_extensions(KNode("CL:0002131", type=node_types.CELL))
     types = set([n.type for e,n in r])
     assert len(types) == 1
@@ -52,7 +52,7 @@ def xtest_reverse_extensions(quickgo):
     assert myedges[0][1].name=='sodium channel regulator activity'
 
 
-def xtest_reverse_extensions(quickgo):
+def test_reverse_extensions(quickgo):
     r = quickgo.cell_to_go_term_annotation_extensions(KNode("CL:0002189", type=node_types.CELL))
     assert len(r) > 0
     types = set([n.type for e,n in r])
@@ -65,7 +65,7 @@ def xtest_reverse_extensions(quickgo):
     #assert myedges[0][1].name=='sodium channel regulator activity'
 
 
-def xtest_extensions_bp(quickgo):
+def test_extensions_bp(quickgo):
     #Neurotransmitter secretion
     r = quickgo.go_term_to_cell_annotation_extensions (KNode("GO.BIOLOGICAL_PROCESS:0007269", type=node_types.BIOLOGICAL_PROCESS))
     types = set([n.type for e,n in r])
@@ -78,7 +78,7 @@ def xtest_extensions_bp(quickgo):
     assert 'CL:1001571' in identifiers #Hippocampal pyramidal neuron
 
 
-def xtest_go_to_gene(quickgo):
+def test_go_to_gene(quickgo):
     r = quickgo.go_term_to_gene_annotation (KNode("GO:0007165", type=node_types.BIOLOGICAL_PROCESS))
     for e,k in r:
         assert k.type == node_types.GENE
