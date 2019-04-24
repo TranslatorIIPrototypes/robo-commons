@@ -542,6 +542,55 @@ class UberonGraphKS(Service):
         )
         return results
 
+    def cellular_component_to_cellular_component(self, cellular_component_id):
+        text = """
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        PREFIX GO:  <http://purl.obolibrary.org/obo/GO_>
+        PREFIX cellular_component: <http://purl.obolibrary.org/obo/GO_0005575>
+        SELECT DISTINCT  ?predicate ?predicate_label ?cellular_comp ?cellular_comp_label
+        FROM <http://reasoner.renci.org/ontology>
+        FROM <http://reasoner.renci.org/nonredundant>{
+        $cellular_component_id ?predicate ?cellular_comp.
+        graph <http://reasoner.renci.org/ontology/closure> 
+        {
+            ?cellular_comp rdfs:subClassOf cellular_component:.
+        }
+        ?predicate rdfs:label ?predicate_label.
+        ?cellular_comp rdfs:label ?cellular_comp_label.
+        }
+        """
+        results = []
+        results = self.triplestore.query_template(
+            template_text = text,
+            outputs = ['predicate','predicate_label','cellular_comp', 'cellular_comp_label'],
+            inputs = {'cellular_component_id': cellular_component_id}
+        )
+        return results
+        
+    def biological_process_or_activity_to_anatomical_entity(self, process_id):
+        text =""" PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        PREFIX GO:  <http://purl.obolibrary.org/obo/GO_>
+        PREFIX anatomical_entity: <http://purl.obolibrary.org/obo/UBERON_0001062>
+        SELECT DISTINCT  ?predicate ?predicate_label ?anatomical_entity ?anatomical_label
+        FROM <http://reasoner.renci.org/ontology>
+        FROM <http://reasoner.renci.org/redundant>{
+            $process_id ?predicate ?anatomical_entity.
+            graph <http://reasoner.renci.org/ontology/closure> 
+            {
+                ?anatomical_entity rdfs:subClassOf anatomical_entity:.
+            }
+            ?predicate rdfs:label ?predicate_label .
+            ?anatomical_entity rdfs:label ?anatomical_label.
+        }
+        """
+        results = []
+        results = self.triplestore.query_template(
+            template_text = text,
+            outputs = ['predicate','predicate_label','anatomical_entity', 'anatomical_label'],
+            inputs = {'process_id': process_id}
+        )
+        return results
+
     def get_anatomy_by_cell_graph (self, cell_node):
         anatomies = self.cell_to_anatomy (cell_node.id)
         results = []
@@ -784,3 +833,37 @@ class UberonGraphKS(Service):
         return response
     
 
+    def get_cellular_component_by_cellular_component(self, cellular_component_node):
+        response = []
+        for curie in cellular_component_node.get_synonyms_by_prefix('GO'):
+            results = self.cellular_component_to_cellular_component(curie)
+            for r in results :
+                cellular_component_node_new = KNode(Text.obo_to_curie(r['cellular_comp']), type= node_types.CELL, name=r['cellular_comp_label'])
+                predicate = LabeledID(Text.obo_to_curie(r['predicate']), r['predicate_label'])
+                edge = self.create_edge(
+                    cellular_component_node,
+                    cellular_component_node_new,
+                    'uberon.get_cellular_component_by_cellular_component',
+                    cellular_component_node.id,
+                    predicate
+                )
+                response.append((edge, cellular_component_node_new))
+        return response
+
+
+    def get_anatomical_entity_by_process_or_activity(self, process_node):
+        response = [] 
+        for curie in process_node.get_synonyms_by_prefix('GO'):
+            results = self.biological_process_or_activity_to_anatomical_entity(curie)
+            for r in results:
+                anatomical_node = KNode(Text.obo_to_curie(r['anatomical_entity']), type= node_types.ANATOMICAL_ENTITY, name=r['anatomical_label'])
+                predicate = LabeledID(Text.obo_to_curie(r['predicate']), r['predicate_label'])
+                edge = self.create_edge(
+                    process_node,
+                    anatomical_node,
+                    'uberon.get_anatomical_entity_by_process_or_activity',
+                    process_node.id,
+                    predicate
+                )
+                response.append((edge, anatomical_node))
+        return response

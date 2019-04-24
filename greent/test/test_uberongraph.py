@@ -132,7 +132,7 @@ def test_anat_to_pheno_odd(uberon):
 
 def test_anat_to_pheno(uberon):
     #Arrhythmia occurs in...
-    k = KNode('UBERON:0000948', type=node_types.ANATOMICAL_ENTITY)
+    k = KNode('', type=node_types.ANATOMICAL_ENTITY)
     results = uberon.get_phenotype_by_anatomy_graph( k )
     #phenos
     ntypes = set([n.type for e,n in results])
@@ -236,3 +236,22 @@ def test_cell_component_to_cell(uberon):
     for edge_tar_id, predicate, node_id , node_name in attributes:
         assert edge_tar_id == node_id
     assert 'CL:0000540' in identifiers
+
+def test_cellular_component_to_cellular_component(uberon):
+    k = KNode('GO:0033267', type = node_types.CELLULAR_COMPONENT)
+    results = uberon.get_cellular_component_by_cellular_component(k)
+    identifiers =  [edge.target_id for edge, node in results]
+    attributes = [(edge.target_id, edge.original_predicate, node.id, node.name) for edge, node in results]
+    for edge_tar_id, predicate, node_id , node_name in attributes:
+        assert edge_tar_id == node_id
+    assert 'GO:0097458' in identifiers
+
+
+def test_process_or_activity_to_anatomical_entity(uberon):
+    k = KNode('GO:0003334', type = node_types.BIOLOGICAL_PROCESS_OR_ACTIVITY)
+    results = uberon.get_anatomical_entity_by_process_or_activity(k)
+    identifiers =  [edge.target_id for edge, node in results]
+    attributes = [(edge.target_id, edge.original_predicate, node.id, node.name) for edge, node in results]
+    for edge_tar_id, predicate, node_id , node_name in attributes:
+        assert edge_tar_id == node_id
+    assert 'CL:0000312' in identifiers
