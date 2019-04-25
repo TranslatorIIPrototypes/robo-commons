@@ -838,7 +838,7 @@ class UberonGraphKS(Service):
         for curie in cellular_component_node.get_synonyms_by_prefix('GO'):
             results = self.cellular_component_to_cellular_component(curie)
             for r in results :
-                cellular_component_node_new = KNode(Text.obo_to_curie(r['cellular_comp']), type= node_types.CELL, name=r['cellular_comp_label'])
+                cellular_component_node_new = KNode(Text.obo_to_curie(r['cellular_comp']), type= node_types.CELLULAR_COMPONENT, name=r['cellular_comp_label'])
                 predicate = LabeledID(Text.obo_to_curie(r['predicate']), r['predicate_label'])
                 edge = self.create_edge(
                     cellular_component_node,
