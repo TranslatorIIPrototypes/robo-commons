@@ -114,6 +114,7 @@ slots:
     mappings:
       - biolink:gene_get_process             # biolink returns no relation_id or an identifier that is not a curie
       - biolink:gene_get_process_or_function # biolink returns no relation_id or an identifier that is not a curie
+      - GO:is_active_in
 
 
   affects:
@@ -376,6 +377,10 @@ slots:
       - CTD:increases^degradation
       - CTD:increases^cleavage
       - CTD:increases^hydrolysis
+      - RO:0002586
+      - GOREL:0002004
+      - RO:0002590
+
 
   decreases degradation of:
     mappings:
@@ -458,6 +463,7 @@ slots:
       - CTD:increases_transport_of
       - CTD:increases^transport
       - RO:0002020
+      - GOREL:0002003
 
   decreases transport of:
     mappings:
@@ -511,6 +517,7 @@ slots:
   coexists with:
     mappings:
       - RO:0002325  # colocalizes_with
+      - GO:colocalizes_with
 
     #In translator_minimal now, here for hetio
   expresses:
@@ -553,6 +560,7 @@ slots:
       - GOREL:0001007
       - RO:0040036
       - GOREL:0002008
+      - nbo#by:means
 
   capable of:
     mappings:
@@ -709,6 +717,10 @@ slots:
       - RO:0002344
       - RO:0002479
       - RO:0002232
+      - RO:0002342
+      - RO:0002021
+      - RO:0002341
+
 
   regulates:
     mappings:
@@ -741,6 +753,7 @@ slots:
   part of:
     mappings:
       - RO:0002007
+      - GO:part_of
   
   overlaps:
     mappings:
@@ -753,3 +766,10 @@ slots:
   in linkage disequilibrium with:
     mappings:
       - NCIT:C16798
+
+  results in organization of:
+    - RO:0002592
+    - GOREL:0002005
+
+  has input or output:
+    - RO:0004007
