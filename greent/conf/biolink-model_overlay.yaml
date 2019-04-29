@@ -770,6 +770,7 @@ slots:
   results in organization of:
     - RO:0002592
     - GOREL:0002005
+    - GOREL:0002006
 
   has input or output:
     - RO:0004007
