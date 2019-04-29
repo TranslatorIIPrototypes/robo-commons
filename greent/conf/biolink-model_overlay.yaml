@@ -768,9 +768,11 @@ slots:
       - NCIT:C16798
 
   results in organization of:
-    - RO:0002592
-    - GOREL:0002005
-    - GOREL:0002006
+    mappings:      
+      - RO:0002592
+      - GOREL:0002005
+      - GOREL:0002006
 
   has input or output:
-    - RO:0004007
+    mappings:
+      - RO:0004007
