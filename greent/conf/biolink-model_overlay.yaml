@@ -446,6 +446,7 @@ slots:
     mappings:
       - CTD:increases_stability_of
       - CTD:increases^stability
+      - GOREL:00120006
 
   decreases stability of:
     mappings:
@@ -776,3 +777,7 @@ slots:
   has input or output:
     mappings:
       - RO:0004007
+
+  has input: 
+    mappings:
+      - RO:0004009
