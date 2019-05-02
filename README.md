@@ -56,22 +56,22 @@ $ cd robokop-interfaces
 The graph and concept map will be stored in a Neo4j server instance. Start the Neo4j instance with:
 
 ```
-$ docker-compose  -f deploy/graph/docker-compose.yml up -d
+[robokop-interfaces/] $ docker-compose  -f deploy/graph/docker-compose.yml up -d
 ```
 
 Optionally you can load our latest build of the knowledge graph available at [RobokopKG](http://robokopkg.renci.org). Once you download a version of dump file best suited, run the following commands:
 
 ```
-$ cp <dump_file> <workspace>/neo4j_data/
-$ cd deploy/graph
-$ ../robokopkg/scripts/reload.sh -f <dump_file_name_only> -c ../robokopkg/scripts/docker-compose-backup.yml
-$ cd <workspace>/robokop-interfaces/ 
+[robokop-interfaces/] $ cp <dump_file> <workspace>/neo4j_data/
+[robokop-interfaces/] $ cd deploy/graph
+[robokop-interfaces/deploy/graph] $ ../robokopkg/scripts/reload.sh -f <dump_file_name_only> -c ../robokopkg/scripts/docker-compose-backup.yml
+[robokop-interfaces/deploy/graph] $ cd <workspace>/robokop-interfaces/ 
 ```
 
 ### Cache
 Start the Redis container.
 ```
-$ docker-compose -f deploy/cache/docker-compose.yml up -d 
+[robokop-interfaces/] $ docker-compose -f deploy/cache/docker-compose.yml up -d 
 ```
 
 ### App
@@ -79,7 +79,7 @@ $ docker-compose -f deploy/cache/docker-compose.yml up -d
 Now that the backend for the App is up we can start the app containers.
 
 ```
-$ docker-compose -f deploy/docker-compose.yml up -d
+[robokop-interfaces/] $ docker-compose -f deploy/docker-compose.yml up -d
 ```
 
 If you have not imported database dump into your neo4j instance, you will need to run the following command to initialize the type graph. This imports the graph of Translator services, overlays local service configurations, and imports locally defined services. It configures all of these according to the biolink-model.
