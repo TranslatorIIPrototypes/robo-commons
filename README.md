@@ -29,7 +29,7 @@ CACHE_HOST=request_cache
 ```
  
 
-If you wish to test robokopkg instance on a smaller computer, you can modify the following values to fit your hardware, but the default values are the ones used on robokopkg.renci.org.
+If you wish to test robokopkg instance on a smaller computer, you can modify the following values to fit your hardware, but the default values are the ones used on [RobokopKG](http://robokopkg.renci.org).
 
 ```
 NEO4J_HEAP_MEMORY
