@@ -20,22 +20,25 @@ $ cd <workspace>
 ```
 We will setup our enviroment using [these](https://github.com/NCATS-Gamma/robokop#environment-settings) enviroment settings. Copy and save them to ``<workspace>/shared/robokop.env``.
 
- 
-Replace the following values and save the file. 
-
+If you would like to run the neo4j and redis-cache instance on the same host as the app you can use these values. If you choose to have Neo4j and Redis hosted on a different host you would change these values.
 ```
 # neo4j host name  
 NEO4J_HOST=neo4j
-
-# These are memory parameters when starting neo4j. Provide reasonably higher values if you intend to run
-# complex queries on Neo4j. The values here are examples, replace values to your appropriation. 
-NEO4J_HEAP_MEMORY=32G
-NEO4J_HEAP_MEMORY_INIT=4G
-NEO4J_CACHE_MEMORY=512MB
-
-# cache host
+# cache host name
 CACHE_HOST=request_cache
 ```
+ 
+
+If you wish to test robokopkg instance on a smaller computer, you can modify the following values to fit your hardware, but the default values are the ones used on robokopkg.renci.org.
+
+```
+NEO4J_HEAP_MEMORY
+NEO4J_HEAP_MEMORY_INIT
+NEO4J_CACHE_MEMORY
+```
+
+And finally, set the password variables found on the bottom section of the file. 
+
 For Windows, run the following to make sure that your terminal is set up with the enviroment variable before running docker commands.
 
 ```
