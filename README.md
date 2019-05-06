@@ -78,9 +78,22 @@ Start the Redis container.
 
 Now that the backend for the App is up we can start the app containers.
 
+##### Building the container
+We need to build the container with the current user and group permissions so that log file ownership and the code directory does not get elevated. 
+
 ```
-[robokop-interfaces/] $ docker-compose -f deploy/docker-compose.yml up -d
+[robokop-interfaces/] $ cd deploy
+[robokop-interfaces/deploy] $ docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) -t robokop_interfaces .
 ```
+
+##### Composing up
+
+```
+[robokop-interfaces/deploy] $ docker-compose up -d 
+```
+
+
+#### Initial Database setup
 
 If you have not imported database dump into your neo4j instance, you will need to run the following command to initialize the type graph. This imports the graph of Translator services, overlays local service configurations, and imports locally defined services. It configures all of these according to the biolink-model.
 
