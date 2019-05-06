@@ -39,7 +39,7 @@ NEO4J_CACHE_MEMORY
 
 And finally, set the password variables found on the bottom section of the file. 
 
-For Windows, run the following to make sure that your terminal is set up with the enviroment variable before running docker commands.
+Run the following to make sure that your terminal is set up with the enviroment variable before running docker commands.
 
 ```
 $ set -a 

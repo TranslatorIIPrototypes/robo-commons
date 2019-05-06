@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 compose_file="scripts/docker-compose-backup.yml"
 
