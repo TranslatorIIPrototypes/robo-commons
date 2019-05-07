@@ -20,7 +20,7 @@ services:
     entrypoint:
       - /bin/sh
       - -c
-      - "chown neo4j:neo4j /ssl && docker-entrypoint.sh neo4j"
+      - "chown neo4j:neo4j /ssl && /docker-entrypoint.sh neo4j"
     volumes:
       - ../../../neo4j_data:/data
       - ../../../neo4j_logs:/logs
