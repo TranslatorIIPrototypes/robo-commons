@@ -51,7 +51,7 @@ class MyChem(Service):
                             if min(outcome['prr_95_ci']) > 1:
                                 if meddra_id in indication_meddra:
                                     continue
-                                predicate = LabeledID(identifier="Aeolus:0000001",label= "causes_or_contributes_to")
+                                predicate = LabeledID(identifier="Aeolus:0000001",label= "causes_adverse_event")
                             elif max(outcome['prr_95_ci']) < 1:
                                 predicate = LabeledID(identifier="RO:0002559",label= "prevents")
                             else:
@@ -159,7 +159,7 @@ class MyChem(Service):
                             continue
                         print(outcome['name'], outcome['case_count'], outcome['prr_95_ci'])
                         if outcome['case_count'] > 5 and min(outcome['prr_95_ci']) > 1:
-                            predicate = LabeledID(identifier="RO:0003302", label="causes_or_contributes_to")
+                            predicate = LabeledID(identifier="RO:0003302", label="causes_adverse_event")
                         elif outcome['case_count'] > 5 and max(outcome['prr_95_ci']) < 1:
                             predicate = LabeledID(identifier="RO:0002559", label="prevents")
                         else:

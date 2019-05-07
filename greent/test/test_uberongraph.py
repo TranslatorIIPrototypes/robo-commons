@@ -132,7 +132,7 @@ def test_anat_to_pheno_odd(uberon):
 
 def test_anat_to_pheno(uberon):
     #Arrhythmia occurs in...
-    k = KNode('', type=node_types.ANATOMICAL_ENTITY)
+    k = KNode('UBERON:0000948', type=node_types.ANATOMICAL_ENTITY)
     results = uberon.get_phenotype_by_anatomy_graph( k )
     #phenos
     ntypes = set([n.type for e,n in results])
