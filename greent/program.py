@@ -137,10 +137,10 @@ class Program:
 
             # Ignore the name we're given. Get one from bionames.
             if isinstance(n.curie, str):
-                n.name = get_name_for_curie(n.curie)
+                bionames_name = get_name_for_curie(n.curie)
             elif isinstance(n.curie, list):
-                n.name = [get_name_for_curie(c) for c in n.curie]
-
+                bionames_name = [get_name_for_curie(c) for c in n.curie]
+            n.name = bionames_name if bionames_name else n.name
             start_node = KNode(n.curie, type=n.type, name=n.name)
             self.process_node(start_node, [n.id])
         return
