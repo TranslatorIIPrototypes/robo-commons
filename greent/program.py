@@ -38,8 +38,9 @@ class QueryDefinition:
 def get_name_for_curie(curie):
     response = requests.get(f"https://bionames.renci.org/ID_to_label/{curie}/")
     if response.ok:
-        logger.debug(response.json())
-        return response.json()[0]['label']
+        response_json = response.json()
+        #logger.debug(response_json)
+        return response_json[0]['label'] if response_json else None
     else:
         logger.warning(f"Bionames ID_to_label failed for curie {curie}.")
         return None

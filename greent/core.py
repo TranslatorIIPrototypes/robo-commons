@@ -1,5 +1,3 @@
-import json
-
 from greent.ontologies.go2 import GO2
 from greent.ontologies.hpo2 import HPO2
 from greent.ontologies.mondo2 import Mondo2
@@ -10,6 +8,7 @@ from greent.services.chemotext import Chemotext
 from greent.services.clingen import ClinGen
 from greent.services.ctd import CTD
 from greent.services.ensembl import Ensembl
+from greent.services.gtopdb import gtopdb
 from greent.services.gwascatalog import GWASCatalog
 from greent.services.hetio import HetIO
 from greent.services.hmdb_beacon import HMDB
@@ -56,7 +55,8 @@ class GreenT:
             "ctd"              : lambda :  CTD(self.service_context),
             "ensembl"          : lambda :  Ensembl(self.service_context),
             "go"               : lambda :  GO2(self.service_context),
-            "gwascatalog"      : lambda :  GWASCatalog(self.service_context, rosetta),
+            "gtopdb"           : lambda :  gtopdb(self.service_context),
+            "gwascatalog"      : lambda :  GWASCatalog(self.service_context),
             "hetio"            : lambda :  HetIO (self.service_context),
             "hgnc"             : lambda :  HGNC(self.service_context),
             "hmdb"             : lambda :  HMDB(self.service_context),

@@ -3,9 +3,10 @@ from greent import node_types, config
 from builder.buildmain import run
 from multiprocessing import Pool
 from functools import partial
-from crawler.crawl_util import pull_via_ftp
+from crawler.crawl_util import pull_via_ftp, get_variant_list
 from json import loads
 from greent.graph_components import KNode
+from greent.util import Text
 import requests
 
 # There's a tradeoff here: do we want these things in the database or not.  One big problem
@@ -115,6 +116,19 @@ def get_identifiers(input_type,rosetta):
             elif line.startswith('name:'):
                 label = line[5:].strip()
                 chebi_labels[tid] = label
+        # go for KEGG
+        print('pull KEGG')
+        content = requests.get('http://rest.kegg.jp/list/compound').content.decode('utf-8')
+    
+        for line in content.split('\n'):
+            if line :
+                identifier, label = line.split('\t')
+                identifier = identifier.replace('cpd', 'KEGG.COMPOUND')
+                identifier= identifier.replace('CPD', 'KEGG.COMPOUND')
+                # maybe pick the first one for kegg,
+                label = label.split(';')[0].strip(' ')
+                lids.append(LabeledID(identifier, label))
+        
         for ident in identifiers:
             try:
                 lids.append(LabeledID(ident,chebi_labels[ident]))
@@ -143,8 +157,16 @@ def get_identifiers(input_type,rosetta):
                 name = gene_fam_data[key][k]['sub_family_name']
                 name = f'{name} ({key})' if 'NOT NAMED' in name else name
                 lids.append(LabeledID(f'PANTHER.FAMILY:{key}:{k}',gene_fam_data[key][k]['sub_family_name'] ))        
+
+    elif input_type == node_types.SEQUENCE_VARIANT:
+        # grab every variant already in the graph
+        #var_list = get_variant_list(rosetta, limit=30)
+        var_list = get_variant_list(rosetta)
+        for variant in var_list:
+            lids.append(LabeledID(variant[0], Text.un_curie(variant[0])))
     else:
         print(f'Not configured for input type: {input_type}')
+
     return lids
 
 def do_one(itype,otype,identifier):

@@ -13,7 +13,7 @@
 
 '@concepts' :
 
-  anatomical_entity  : [ 'UBERON' ]
+  anatomical_entity  : [ 'UBERON', 'GTEX' ]
   biological_process : [ 'GO.BIOLOGICAL_PROCESS' ]
   cell               : [ 'CL' ]
   cellular_component : [ 'GO.CELLULAR_COMPONENT' ]
@@ -24,9 +24,9 @@
   Name               : [ 'NAME.DRUG', 'NAME.DISEASE', 'NAME.SYMPTOM', 'NAME.ANATOMY', 'DISEASE_NAME', 'MESH.NAME', 'NAME.PHENOTYPE' ]
   pathway            : [ 'KEGG', 'REACTOME', 'PHARMGKB.PATHWAYS', 'WIKIPATHWAYS', 'BIOCARTA.PATHWAY', 'KEGG.PATHWAY', 'REACT', 'KEGG-path' ]
   phenotypic_feature : [ 'HP' , 'NCIT', 'EFO']
-  sequence_variant   : [ 'CAID', 'HGVS', 'DBSNP', 'CLINVARVARIANT', 'MYVARIANT_HG19', 'MYVARIANT_HG38']
-  chemical_substance : [ 'DRUGBANK', 'PUBCHEM', 'CHEBI', 'CHEMBL','DRUG.INTERACTION', 'INCHI', 'INCHIKEY',  'PUBCHEM.COMPOUND', 'KEGG.COMPOUND', 'KEGG.DRUG' , 'PHAROS.DRUG', 'CTD' ]
-  gene_family        : [ '' ]
+  sequence_variant   : [ 'CAID', 'HGVS', 'ROBO_VARIANT', 'DBSNP', 'CLINVARVARIANT', 'MYVARIANT_HG19', 'MYVARIANT_HG38']
+  chemical_substance : [ 'DRUGBANK', 'PUBCHEM', 'CHEBI', 'CHEMBL','DRUG.INTERACTION', 'INCHI', 'INCHIKEY',  'PUBCHEM.COMPOUND', 'KEGG.COMPOUND', 'KEGG.DRUG', 'KEGG', 'PHAROS.DRUG', 'CTD']
+  gene_family        : ['PANTHER.FAMILY', 'HGNC.FAMILY']
 
 '@translator-registry' :
   skip_list:
@@ -76,11 +76,20 @@
 #        op    : ctd.drug_to_gene #Going away eventually, but not yet
       - link  : drug_to_gene
         op    : ctd.drug_to_gene_expanded
+      - link  : drug_to_enzyme
+        op    : mychem.get_gene_by_drug
+      - link  : chem_to_precursor
+        op    : gtopdb.chem_to_precursor
+      - link  : ligand_to_gene
+        op    : gtopdb.ligand_to_gene
     disease_or_phenotypic_feature:
       - link  : adverse_events
         op    : mychem.get_adverse_events
       - link  : drugcentral
         op    : mychem.get_drugcentral
+    chemical_substance:
+      - link  : chemical_to_chemical_class
+        op    : uberongraph.get_chemical_to_chemical
   disease_or_phenotypic_feature:
     chemical_substance:
       - link  : exposures
@@ -146,6 +155,9 @@
     gene_family:
       - link  : gene_to_gene_family
         op    : hgnc.gene_get_gene_family
+    cellular_component:
+      - link  : gene_to_cellular_component
+        op    : quickgo.gene_to_cellular_component
     chemical_substance:
 #      - link  : gene_to_drug
 #        op    : ctd.gene_to_drug #Going away eventually, but not yet
@@ -197,11 +209,14 @@
         op    : myvariant.sequence_variant_to_gene
       - link  : sequence_variant_to_gene
         op    : ensembl.sequence_variant_to_gene
-    disease_or_phenotypic_feature:
-      - link  : sequence_variant_to_disease_or_phenotypic_feature
-        op    : biolink.sequence_variant_get_phenotype
-      - link  : sequence_variant_to_disease_or_phenotypic_feature
-        op    : gwascatalog.sequence_variant_to_disease_or_phenotypic_feature
+    #disease_or_phenotypic_feature:
+      #- link  : sequence_variant_to_disease_or_phenotypic_feature
+      #  op    : biolink.sequence_variant_get_phenotype
+      #- link  : sequence_variant_to_disease_or_phenotypic_feature
+      #  op    : gwascatalog.sequence_variant_to_disease_or_phenotypic_feature
+    sequence_variant:
+      - link  : sequence_variant_to_sequence_variant
+        op    : ensembl.sequence_variant_to_sequence_variant
   cellular_component:
     chemical_substance:
       - link  : cellular_component_to_chemical_substance

@@ -1,11 +1,10 @@
-import requests
 from greent import node_types
 from greent.graph_components import KNode, LabeledID
 from greent.service import Service
 from greent.util import Text, LoggingUtil
-import logging,json
+import requests,logging,json,os
 
-logger = LoggingUtil.init_logging(__name__, logging.DEBUG)
+logger = LoggingUtil.init_logging(__name__, logging.INFO, logFilePath=f'{os.environ["ROBOKOP_HOME"]}/logs/')
 
 class MyVariant(Service):
     
@@ -14,8 +13,9 @@ class MyVariant(Service):
         self.synonymizer = rosetta.synonymizer
         self.effects_ignore_list = ['intergenic_region', 'sequence_feature']
         # we'll switch to this when they do
-        #self.url_fields = 'snpeff.ann.effect,snpeff.ann.feature_type,snpeff.ann.gene_id,dbnsfp.gtex'
-        self.url_fields = 'snpeff.ann.effect,snpeff.ann.feature_type,snpeff.ann.genename,dbnsfp.gtex'
+        #self.url_fields = 'snpeff.ann.effect,snpeff.ann.feature_type,snpeff.ann.gene_id'
+        self.url_fields = 'snpeff.ann.effect,snpeff.ann.feature_type,snpeff.ann.genename'
+        self.already_synonymized_gene_nodes = {}
 
     def batch_sequence_variant_to_gene(self, variant_nodes):
         if len(variant_nodes) <= 1000:
@@ -23,16 +23,23 @@ class MyVariant(Service):
             post_params = {'fields' : self.url_fields, 'ids' : '', 'assembly': 'hg38'}
             node_lookup = {}
             for node in variant_nodes:
+                # default to empty result for invalid or missing IDs
+                annotation_dictionary[node.id] = []
                 # we could support hg19 as well, but calls need to be all one or the other
                 # for now we only do hg38
-                myvariant_ids = node.get_synonyms_by_prefix('MYVARIANT_HG38')
-                for myvar_id in myvariant_ids:
-                    post_params['ids'] += f'{Text.un_curie(myvar_id)},'
-                    node_lookup[myvar_id] = node
+                myvariant_curies = node.get_synonyms_by_prefix('MYVARIANT_HG38')
+                if not myvariant_curies:
+                    logger.info(f'No MYVARIANT_HG38 synonym found for: {node.id}')
+                else:
+                    for myvar_curie in myvariant_curies:
+                        myvar_id = Text.un_curie(myvar_curie)
+                        post_params['ids'] += f'{myvar_id},'
+                        node_lookup[myvar_id] = node
 
             if not post_params['ids']:
-                logger.warning('batch_sequence_variant_to_gene called but nodes provided had no MyVariant IDs')
+                logger.warning('batch_sequence_variant_to_gene called but all nodes provided had no MyVariant IDs')
                 return annotation_dictionary
+
             # remove that extra comma
             post_params['ids'] = post_params['ids'][:-1]
             query_url = f'{self.url}variant'
@@ -41,18 +48,19 @@ class MyVariant(Service):
                 query_json = query_response.json()
                 for annotation_json in query_json:
                     try:
-                        annotation_id = annotation_json['_id']
-                        myvar_id = f'MYVARIANT_HG38:{annotation_id}'
+                        myvar_id = annotation_json['_id']
+                        myvar_curie = f'MYVARIANT_HG38:{myvar_id}'
                         variant_node = node_lookup[myvar_id]
-                        annotation_dictionary[variant_node.id] = self.process_annotation(variant_node, annotation_json, myvar_id, query_url)
+                        results = self.process_annotation(variant_node, annotation_json, myvar_curie, query_url)
+                        if results:
+                            annotation_dictionary[variant_node.id] = results
                     except KeyError as e:
-                        logger.warning(f'MyVariant batch call failed on an annotation.')
-                        pass 
+                        logger.warning(f'MyVariant batch call failed for annotation: {annotation_json["query"]}')
             else:
                 logger.error(f'MyVariant non-200 response on batch: {query_response.status_code})')
             return annotation_dictionary
         else:
-            return self.batch_sequence_variant_to_gene(variant_nodes[0:1000]).update(self.batch_sequence_variant_to_gene(hgvs_list[1000:]))
+            raise Exception('More than 1000 nodes attemped for MyVariant batch call - not supported.')
 
     def sequence_variant_to_gene(self, variant_node):
         return_results = []
@@ -78,13 +86,13 @@ class MyVariant(Service):
 
     def process_annotation(self, variant_node, annotation_json, curie_id, query_url):
         results = []
-        already_synonymized_gene_nodes = {}
         try:
             if 'snpeff' in annotation_json:
                 annotations = annotation_json['snpeff']['ann']
                 # sometimes this is a list and sometimes a single instance
                 if not isinstance(annotations, list):
                     annotations = [annotations]
+
                 for annotation in annotations:
                     # for now we only take transcript feature type annotations
                     if annotation['feature_type'] != 'transcript':
@@ -100,31 +108,32 @@ class MyVariant(Service):
                     #for identifier in [s.identifier for s in synonyms]:
                     #    if Text.get_curie(identifier) == 'HGNC':
 
-                    if gene_symbol in already_synonymized_gene_nodes:
-                        temp_node = already_synonymized_gene_nodes[gene_symbol]
+                    if gene_symbol in self.already_synonymized_gene_nodes:
+                        gene_node = self.already_synonymized_gene_nodes[gene_symbol]
                     else:
-                        temp_node = KNode(f'HGNC.SYMBOL:{gene_symbol}', name=f'{gene_symbol}', type=node_types.GENE)
-                        self.synonymizer.synonymize(temp_node)
-                        already_synonymized_gene_nodes[gene_symbol] = temp_node
+                        gene_node = KNode(f'HGNC.SYMBOL:{gene_symbol}', name=f'{gene_symbol}', type=node_types.GENE)
+                        self.synonymizer.synonymize(gene_node)
+                        self.already_synonymized_gene_nodes[gene_symbol] = gene_node
 
-                    gene_ids = temp_node.get_synonyms_by_prefix('HGNC')
-                    if gene_ids:
-                        identifier = gene_ids.pop()
-                        props = {}
-                        #do we want this?
-                        #if 'putative_impact' in annotation:
-                        #    props['putative_impact'] = annotation['putative_impact']
+                        if gene_node.id.startswith('HGNC.SYM'):
+                            logger.debug(f'MyVariant provided gene symbol {gene_symbol} for the HGNC.SYMBOL value for variant {variant_node.id}), synonymization could not find a real ID.')
+                   
+                    props = {}
+                    #do we want this?
+                    #if 'putative_impact' in annotation:
+                    #    props['putative_impact'] = annotation['putative_impact']
 
-                        effects_list = annotation['effect'].split('&')
-                        for effect in effects_list:
-                            if effect in self.effects_ignore_list:
-                                continue
+                    effects_list = annotation['effect'].split('&')
+                    for effect in effects_list:
+                        if effect in self.effects_ignore_list:
+                            continue
 
-                            predicate = LabeledID(identifier=f'SNPEFF:{effect}', label=f'{effect}')
-                            edge = self.create_edge(variant_node, temp_node, 'myvariant.sequence_variant_to_gene', curie_id, predicate, url=query_url, properties=props)
-                            results.append((edge, temp_node))
-                    else:
-                        logger.debug(f'MyVariant provided gene symbol: ({gene_symbol}), synonymization could not find a real ID.')
+                        predicate = LabeledID(identifier=f'SNPEFF:{effect}', label=f'{effect}')
+                        edge = self.create_edge(variant_node, gene_node, 'myvariant.sequence_variant_to_gene', curie_id, predicate, url=query_url, properties=props)
+                        results.append((edge, gene_node))
+            
+            else:
+                logger.error(f'no snpeff annotation found for variant {variant_node.id}')
 
         except KeyError as e:
             logger.error(f'myvariant annotation error:{e}')

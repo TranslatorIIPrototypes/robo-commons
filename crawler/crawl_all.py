@@ -1,4 +1,5 @@
 from crawler.genes import load_genes, load_annotations_genes
+from crawler.sequence_variants import load_sequence_variants, precache_variant_batch_data
 from greent.rosetta import Rosetta
 from greent import node_types
 from crawler.chemicals import load_chemicals, load_annotations_chemicals
@@ -21,6 +22,20 @@ def load_synonyms(rosetta=None,refresh_chemicals=False):
     load_genes(rosetta)
     load_chemicals(rosetta,refresh=refresh_chemicals)
     load_diseases_and_phenotypes(rosetta)
+
+def load_genetic_variants(rosetta=None):
+    if rosetta is None:
+        rosetta = Rosetta()
+    # load starting set of variants into the graph 
+    load_sequence_variants(rosetta)
+    # the order is important here, variant-to-variant first
+    poolrun(node_types.SEQUENCE_VARIANT, node_types.SEQUENCE_VARIANT, rosetta)
+
+    print('batch cache preloading for genetic variants...')
+    precache_variant_batch_data(rosetta)
+    print('finished batch cache preloading for genetic variants...')
+
+    poolrun(node_types.SEQUENCE_VARIANT, node_types.GENE, rosetta)
 
 crawls = [
     (node_types.DISEASE, node_types.PHENOTYPIC_FEATURE),
@@ -71,6 +86,9 @@ def run(args):
     elif args.synonyms:
         print('synonyms')
         load_synonyms(rosetta)
+    elif args.genetic_variants:
+        print('genetic variation')
+        load_genetic_variants(rosetta)
     elif args.omnicache:
         print('omnicache')
         create_omnicache(rosetta)
@@ -88,6 +106,7 @@ if __name__=='__main__':
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-a','--all', help='Perform all crawls consecutively', action='store_true')
     parser.add_argument('-s','--synonyms', help='Build all synonyms (genes, chemicals, diseases, phenotypes)', action='store_true')
+    parser.add_argument('-g','--genetic_variants', help='Load genetic variant knowledge', action='store_true')
     parser.add_argument('-o','--omnicache', help='Load omnicorp from postgres to redis', action='store_true')
     parser.add_argument('--source', help='type from which to build')
     parser.add_argument('--target', help='type to which to build')
