@@ -72,13 +72,18 @@ classes:
       - HGNC
       - NCBIGENE
       - ENSEMBL
-      - UniProtKB
       - EC
       - RNAcentral
       - MGI
       - ZFIN
       - HGNC.SYMBOL
       - IUPHAR
+
+  gene_product:
+    id_prefixes:
+      - UniProtKB
+      - GTOPDB
+      - PR
 
   sequence variant:
     id_prefixes:
