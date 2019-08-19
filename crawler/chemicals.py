@@ -1,27 +1,22 @@
-from ftplib import FTP
-from io import BytesIO
-from gzip import decompress, GzipFile
+from gzip import GzipFile
 from greent.util import LoggingUtil, Text
 from greent.graph_components import LabeledID
 import logging
 import os
 from crawler.mesh_unii import refresh_mesh_pubchem
-from crawler.crawl_util import glom, dump_cache, pull_via_ftp
+from crawler.crawl_util import glom, pull_via_ftp, pull_and_decompress, dump_cache
 from functools import partial
 import pickle
 import requests
 import greent.annotators.util.async_client as async_client
 import asyncio
 from greent.annotators.chemical_annotator import ChemicalAnnotator
-
+from crawler.chebi import pull_chebi, chebi_sdf_entry_to_dict
+from crawler.pullers import pull_uniprot
+from crawler.pullers import pull_iuphar
 
 logger = LoggingUtil.init_logging(__name__, level=logging.DEBUG)
 
-
-def pull(location,directory,filename):
-    data = pull_via_ftp(location, directory, filename)
-    rdf = decompress(data).decode()
-    return rdf
 
 def make_mesh_id(mesh_uri):
     return f"mesh:{mesh_uri.split('/')[-1][:-1]}"
@@ -37,13 +32,53 @@ def pull_mesh_chebi():
             outf.write(f'{m}\t{c}\n')
     return pairs
 
+def pull_uniprot_chebi():
+    url = 'https://query.wikidata.org/sparql?format=json&query=SELECT DISTINCT ?c ?s WHERE { ?compound wdt:P683 ?c. ?compound p:P352 ?statement . ?statement pq:P2888 ?s. }'
+    results = requests.get(url).json()
+    pairs = [ (f'UniProtKB:{r["s"]["value"].split("/")[-1]}',f'CHEBI:{r["c"]["value"]}')
+             for r in results['results']['bindings'] ]
+    #with open('uniprot_chebi.txt','w') as outf:
+    #    for m,c in pairs:
+    #        outf.write(f'{m}\t{c}\n')
+    return pairs
+
+###
+#
+# Chemical synonymization includes both small molecules and large molecules (peptides and proteins)
+# In many cases these don't intersect, but in some they do, and we need to handle that
+#
+# Chemicals can be described 4 ways:
+# 1. InchiKey - the most specific.  For chemicals with ik's, UniChem has a concordance.
+# 2. SMILES - everything with an IK has a smiles, but not vice versa: can handle things like R-groups
+# 3. AA sequence - Peptides e.g. can be described with a smiles, but AA sequence is more succinct.  Sometimes
+#                  this can get ugly, because something might be made up of 2 sequences hooked together.
+# 4. Nothing - We can have a name for something without any information about the structure.
+#
+# Each source can contain a mix. So e.g. chebi contains some with inchi, some with smiles, and some with nothing
+#
+# Synonymization process:
+#  1. Handle all the stuff that has an InchiKey using unichem
+#  2. Mesh is all "no structure".  We try to use a variety of sources to hook mesh id's to anything else
+#  3. Pull from chebi the sdf and db files, use them to link to things (KEGG) in the no inchi/no smiles cases
+#  4. Go to KEGG, and get sequences for peptides.
+#  5. Pull UniProt (swissprot) XML.  Create mint, nextprot, string, PR ids (for humans).  Keep sequences.
+#     Calculate sequences also for the sub-sequences (Uniprot_PRO)
+#  6. Use the sequences to merge UniProt with KEGG
+#  7. Read IUPHAR, discard things with INCHI, use things with sequence to match UniProt/PRO/KEGG
+#     Use the hand-curated version of IUPHAR to match the un-sequenced stuff left over
+#  8. Use wikidata to get links between CHEBI and UniProt_PRO
+#  9. glom across sequence and chemical stuff
+# 10. Drop PRO only sequences.
 def load_chemicals(rosetta, refresh=False):
     #Build if need be
     if refresh:
         refresh_mesh_pubchem(rosetta)
     #Get all the simple stuff
+    # 1. Handle all the stuff that has an InchiKey using unichem
+    # 2. Mesh is all "no structure".  We try to use a variety of sources to hook mesh id's to anything else
     print('UNICHEM')
     concord = load_unichem()
+    # 2. Mesh is all "no structure".  We try to use a variety of sources to hook mesh id's to anything else
     #DO MESH/UNII
     print('MESH/UNII')
     mesh_unii_file = os.path.join(os.path.dirname(__file__),'mesh_to_unii.txt')
@@ -58,16 +93,50 @@ def load_chemicals(rosetta, refresh=False):
     print('MESH/CHEBI')
     mesh_chebi = pull_mesh_chebi()
     glom(concord, mesh_chebi,['CHEBI'])
-    #Add labels to CHEBIs, CHEMBLs, and MESHes
+    # 3. Pull from chebi the sdf and db files, use them to link to things (KEGG) in the no inchi/no smiles cases
+    pubchem_chebi_pairs, kegg_chebi_pairs = pull_chebi()
+    glom(concord, pubchem_chebi_pairs)
+    glom(concord, kegg_chebi_pairs)
+    # 4. Go to KEGG, and get sequences for peptides.
+    sequence_concord = rosetta.core.kegg.pull_sequences()
+    # 5. Pull UniProt (swissprot) XML.  Create mint, nextprot, string, PR ids (for humans).  Keep sequences.
+    # Calculate sequences also for the sub-sequences (Uniprot_PRO)
+    sequence_to_uniprot = pull_uniprot()
+    # 6. Use the sequences to merge UniProt with KEGG
+    for s,v in sequence_to_uniprot.items():
+        sequence_concord[s].update(v)
+    # 7. Read IUPHAR, discard things with INCHI, use things with sequence to match UniProt/PRO/KEGG
+    #     Use the hand-curated version of IUPHAR to match the un-sequenced stuff left over
+    sequence_to_iuphar, iuphar_glom = pull_iuphar()
+    for s,v in sequence_to_iuphar.items():
+        sequence_concord[s].update(v)
+    glom(concord,iuphar_glom)
+    #  8. Use wikidata to get links between CHEBI and UniProt_PRO
+    unichebi = pull_uniprot_chebi()
+    glom(concord, unichebi)
+    #  9. glom across sequence and chemical stuff
+    new_groups = sequence_concord.values()
+    glom(concord,new_groups)
+    # 10. Drop PRO only sequences.
+    to_remove = []
+    for eq_id_set in concord:
+        if len(eq_id_set) > 1:
+            continue
+        print(eq_id_set)
+        item = iter(eq_id_set).next()
+        if '#PRO_' in item:
+            to_remove.add(eq_id_set)
+    for eids in to_remove:
+        concord.remove(eids)
+    #Add labels to CHEBIs, CHEMBLs, MESHes
     print('LABEL')
     label_chebis(concord)
     label_chembls(concord)
     label_meshes(concord)
     #Dump
     with open('chemconc.txt','w') as outf:
-        for key in concord:
-            outf.write(f'{key}\t{concord[key]}\n')
-    #dump_cache(concord,rosetta)
+        dump_cache(concord,rosetta,outf)
+    dump_cache(concord,rosetta)
 
 def get_chebi_label(ident):
     res = requests.get(f'https://uberonto.renci.org/label/{ident}/').json()
@@ -228,7 +297,7 @@ def load_unichem():
             prefix_j = prefixes[kj]
             dr =f'pub/databases/chembl/UniChem/data/wholeSourceMapping/src_id{ki}'
             fl = f'src{ki}src{kj}.txt.gz'
-            pairs = pull('ftp.ebi.ac.uk',dr ,fl )
+            pairs = pull_and_decompress('ftp.ebi.ac.uk', dr, fl)
             uni_glom(pairs,prefix_i,prefix_j,chemcord)
     return chemcord
 
@@ -255,7 +324,7 @@ def merge_roles_and_annotations(chebi_role_data, chebi_annotation_data):
         yield (chebi_id, chebi_annotation_data[chebi_id])
 
 def annotate_from_chebi(rosetta):
-    chebisdf = pull('ftp.ebi.ac.uk', '/pub/databases/chebi/SDF/','ChEBI_complete_3star.sdf.gz' )
+    chebisdf = pull_and_decompress('ftp.ebi.ac.uk', '/pub/databases/chebi/SDF/', 'ChEBI_complete_3star.sdf.gz')
     chunk = []
     logger.debug('caching chebi annotations')
     #grab a bunch of them to make use of concurrent execution for fetching roles from Uberon
@@ -293,30 +362,7 @@ def annotate_from_chebi(rosetta):
             rosetta.cache.set(f'annotation({Text.upper_curie(entry[0])})', entry[1])
     logger.debug('done caching chebi annotations...')
     loop.close()
-    
 
-
-
-def chebi_sdf_entry_to_dict(sdf_chunk, interesting_keys = {}):
-    """
-    Converts each SDF entry to a dictionary
-    """
-    final_dict = {}
-    current_key = 'mol_file'
-    chebi_id = ''
-    for line in sdf_chunk:
-        if len(line):
-            if '>' == line[0]:
-                current_key = line.replace('>','').replace('<','').strip().replace(' ', '').lower() 
-                current_key = 'formula' if current_key == 'formulae' else current_key
-                if current_key in interesting_keys:
-                    final_dict[interesting_keys[current_key]] = ''
-                continue
-            if current_key == 'chebiid':
-                chebi_id = line
-            if current_key in interesting_keys:
-                final_dict[interesting_keys[current_key]] += line        
-    return (chebi_id, final_dict)
 
 async def make_multiple_chembl_requests(num_requests = 100, start= 0 ):
     """
@@ -370,3 +416,7 @@ def extract_chebml_data_add_to_cache(result, annotator, rosetta):
 def load_annotations_chemicals(rosetta):
     annotate_from_chebi(rosetta)
     annotate_from_chembl(rosetta)
+
+if __name__ == '__main__':
+    x = pull_uniprot_chebi()
+    print(x)

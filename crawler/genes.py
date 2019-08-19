@@ -37,8 +37,9 @@ def json_2_identifiers(gene_dict):
     idset = set([hgnc_id])
     if 'entrez_id' in gene_dict:
         idset.add( LabeledID(identifier=f"NCBIGENE:{gene_dict['entrez_id']}", label=symbol))
-    if 'uniprot_ids' in gene_dict:
-        idset.update([LabeledID(identifier=f"UniProtKB:{uniprotkbid}", label=symbol) for uniprotkbid in gene_dict['uniprot_ids']])
+    #We're going to move uniprots into gene products, not genes.
+    #if 'uniprot_ids' in gene_dict:
+    #    idset.update([LabeledID(identifier=f"UniProtKB:{uniprotkbid}", label=symbol) for uniprotkbid in gene_dict['uniprot_ids']])
     if 'ensembl_gene_id' in gene_dict:
         idset.add( LabeledID(identifier=f"ENSEMBL:{gene_dict['ensembl_gene_id']}", label=symbol))
     if 'iuphar' in gene_dict:
@@ -70,10 +71,7 @@ def load_genes(rosetta):
 
 def synonymize_genes():
     """
-    Our gene synonymization actually has to deal with UniProtKB ids as well, because they come back from GO. For a lot
-    of them, they're not in HGNC.  So in our synonymizer, we go to uniprot, get the hgnc id, then go to hgnc. So
-    we either need to make sure that doesn't happen, or look in the cache within the synonymizer.  I want to limit
-    where we use the cache, so let's do that work up front.
+    We are no longer going to unify genes and products.  So we will not have UniProts here.
     """
     ids_to_synonyms = {}
     hgnc = pull_hgnc_json()
@@ -83,57 +81,59 @@ def synonymize_genes():
     for idset in hgnc_identifiers:
         for lid in idset:
             ids_to_synonyms[lid.identifier] = idset
-
-    tabs = pull_uniprot_kb()
-    lines = tabs.split('\n')
-    logger.debug(f'Found {len(lines)} lines in the uniprot data')
-    uniprots = defaultdict(dict)
-    for line in lines:
-        x = line.split('\t')
-        if len(x) < 3:
-            continue
-        uniprots[x[0]][x[1]] = x[2]
-    premapped = 0
-    isoforms = 0
-    unpremapped = 0
-    hgnc_mapped = 0
-    entrez_mapped = 0
-    still_unmapped = 0
-    for up in uniprots:
-        uniprot_id = f"UniProtKB:{up}"
-        if uniprot_id in ids_to_synonyms:
-            #great, we already know about this one
-            premapped += 1
-        elif '-' in up:
-            isoforms += 1
-        else:
-            unpremapped += 1
-            #Can we map it with HGNC?
-            if ('HGNC' in uniprots[up]) and (uniprots[up]['HGNC'] in ids_to_synonyms):
-                synonyms = ids_to_synonyms[uniprots[up]['HGNC']]
-                synonyms.add(uniprot_id)
-                ids_to_synonyms[uniprot_id] = synonyms
-                hgnc_mapped += 1
-            elif ('GeneID' in uniprots[up]) and (f"NCBIGENE:{uniprots[up]['GeneID']}" in ids_to_synonyms):
-                #no? How about Entrez?
-                entrez = f"NCBIGENE:{uniprots[up]['GeneID']}"
-                synonyms = ids_to_synonyms[entrez]
-                synonyms.add(uniprot_id)
-                ids_to_synonyms[uniprot_id] = synonyms
-                entrez_mapped += 1
-            else:
-                #Oh well.  There are a lot of other keys, but they don't overlap the HGNC Keys
-                #We're still going to toss the uniprotkb in there, because, we're going to end up looking for
-                # it later anyway
-                still_unmapped += 1
-                ids_to_synonyms[uniprot_id] = set([LabeledID(identifier=uniprot_id, label=None)])
-    logger.debug(f'There were {premapped} UniProt Ids already mapped in HGNC')
-    logger.debug(f'There were {isoforms} UniProt Ids that are just isoforms')
-    logger.debug(f'There were {unpremapped} UniProt Ids not already mapped in HGNC')
-    logger.debug(f'There were {hgnc_mapped} Mapped using HGNC notes in UniProt')
-    logger.debug(f'There were {entrez_mapped} Mapped using Entrez in UniProt')
-    logger.debug(f'There were {still_unmapped} UniProt Ids left that we are keeping as solos')
     return ids_to_synonyms
+
+    #This might get pushed into gene_product?
+    #tabs = pull_uniprot_kb()
+    #lines = tabs.split('\n')
+    #logger.debug(f'Found {len(lines)} lines in the uniprot data')
+    #uniprots = defaultdict(dict)
+    #for line in lines:
+    #    x = line.split('\t')
+    #    if len(x) < 3:
+    #        continue
+    #    uniprots[x[0]][x[1]] = x[2]
+    #premapped = 0
+    #isoforms = 0
+    #unpremapped = 0
+    #hgnc_mapped = 0
+    #entrez_mapped = 0
+    #still_unmapped = 0
+    #for up in uniprots:
+    #    uniprot_id = f"UniProtKB:{up}"
+    #    if uniprot_id in ids_to_synonyms:
+    #        #great, we already know about this one
+    #        premapped += 1
+    #    elif '-' in up:
+    #        isoforms += 1
+    #    else:
+    #        unpremapped += 1
+    #        #Can we map it with HGNC?
+    #        if ('HGNC' in uniprots[up]) and (uniprots[up]['HGNC'] in ids_to_synonyms):
+    #            synonyms = ids_to_synonyms[uniprots[up]['HGNC']]
+    #            synonyms.add(uniprot_id)
+    #            ids_to_synonyms[uniprot_id] = synonyms
+    #            hgnc_mapped += 1
+    #        elif ('GeneID' in uniprots[up]) and (f"NCBIGENE:{uniprots[up]['GeneID']}" in ids_to_synonyms):
+    #            #no? How about Entrez?
+    #            entrez = f"NCBIGENE:{uniprots[up]['GeneID']}"
+    #            synonyms = ids_to_synonyms[entrez]
+    #            synonyms.add(uniprot_id)
+    #            ids_to_synonyms[uniprot_id] = synonyms
+    #            entrez_mapped += 1
+    #        else:
+    #            #Oh well.  There are a lot of other keys, but they don't overlap the HGNC Keys
+    #            #We're still going to toss the uniprotkb in there, because, we're going to end up looking for
+    #            # it later anyway
+    #            still_unmapped += 1
+    #            ids_to_synonyms[uniprot_id] = set([LabeledID(identifier=uniprot_id, label=None)])
+    #logger.debug(f'There were {premapped} UniProt Ids already mapped in HGNC')
+    #logger.debug(f'There were {isoforms} UniProt Ids that are just isoforms')
+    #logger.debug(f'There were {unpremapped} UniProt Ids not already mapped in HGNC')
+    #logger.debug(f'There were {hgnc_mapped} Mapped using HGNC notes in UniProt')
+    #logger.debug(f'There were {entrez_mapped} Mapped using Entrez in UniProt')
+    #logger.debug(f'There were {still_unmapped} UniProt Ids left that we are keeping as solos')
+    #return ids_to_synonyms
 
 def load_annotations_genes(rosetta):
     """

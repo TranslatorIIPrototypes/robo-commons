@@ -6,6 +6,7 @@ from greent.graph_components import LabeledID
 from greent.util import Text, LoggingUtil
 from greent.synonymizers import cell_synonymizer
 from greent.synonymizers import hgnc_synonymizer
+from greent.synonymizers import uniprot_synonymizer
 from greent.synonymizers import oxo_synonymizer
 from greent.synonymizers import substance_synonymizer
 from greent.synonymizers import disease_synonymizer
@@ -21,6 +22,9 @@ class Synonymizer:
         self.rosetta = rosetta
         self.concepts = concepts
         self.fixed_synonymizers = {
+            #This doesn't allow unificiation of gp and chemicals very easily, but that's very complicated to do
+            # on the fly
+            node_types.GENE_PRODUCT:set([uniprot_synonymizer]),
             node_types.GENE:set([hgnc_synonymizer]),
             node_types.DISEASE:set([disease_synonymizer]),
             node_types.CHEMICAL_SUBSTANCE:set([substance_synonymizer]),

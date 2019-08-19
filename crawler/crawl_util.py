@@ -1,4 +1,6 @@
 from ftplib import FTP
+from gzip import decompress
+
 from greent.util import Text
 from builder.question import LabeledID
 from io import BytesIO
@@ -101,3 +103,8 @@ def get_variant_list(rosetta: Rosetta, limit: int = None) -> list:
     # return the simple array to the caller
     return var_list
 
+
+def pull_and_decompress(location, directory, filename):
+    data = pull_via_ftp(location, directory, filename)
+    rdf = decompress(data).decode()
+    return rdf

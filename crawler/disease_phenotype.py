@@ -1,6 +1,7 @@
 from crawler.crawl_util import glom, dump_cache
 from builder.question import LabeledID
 from greent.util import Text
+import os
 
 def write_sets(sets,fname):
     with open(fname,'w') as outf:
@@ -73,7 +74,8 @@ def build_sets(o):
 # It's possible we could rebuild using the services, but no doubt very slowly
 def read_meddra():
     pairs = []
-    with open('MRCONSO.RRF','r') as inf:
+    mrcon = os.path.join(os.path.dirname(__file__), 'MRCONSO.RRF')
+    with open(mrcon,'r') as inf:
         for line in inf:
             x = line.strip().split('|')
             if x[1] != 'ENG':

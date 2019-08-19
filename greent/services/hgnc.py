@@ -17,8 +17,9 @@ prefixes_to_hgnc = {
     'HGNC.SYMBOL': 'symbol',
     'OMIM': 'omim_id',
     #UNIPROTKB is not a identifiers.org prefix.  Uniprot is, and uniprot.isoform is.
-    'UNIPROTKB': 'uniprot_ids',
-    'UniProtKB': 'uniprot_ids',
+    #UNIPROT now goes in gene products, not this.
+    #'UNIPROTKB': 'uniprot_ids',
+    #'UniProtKB': 'uniprot_ids',
     'ENSEMBL': 'ensembl_gene_id',
     #'RNAcentral': 'rna_central_ids' According to the docs, rna_central_ids should be supported but it is not.
 }

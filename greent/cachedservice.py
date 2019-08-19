@@ -13,6 +13,9 @@ class CachedService(Service):
         #print (f"==================> {url}")
         obj = self.context.cache.get(key)
         if not obj:
-            obj = requests.get(url).json ()
+            if url.endswith('/'):
+                url = url[:-1]
+            rv = requests.get(url)
+            obj = rv.json()
             self.context.cache.set(key, obj)
         return obj
