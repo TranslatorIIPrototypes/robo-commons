@@ -251,6 +251,14 @@
   genetic_condition: mondo.is_genetic_disease
   molecular_activity: go.is_molecular_function
   biological_process: go.is_biological_process
+  cellular_component: go.is_cellular_component
   cell: typecheck.is_cell
   disease: typecheck.is_disease
   phenotypic_feature: typecheck.is_phenotypic_feature
+  gene_family: typecheck.is_gene_family
+  gene_product: typecheck.is_gene_product
+  gene: typecheck.is_gene
+  anatomical_entity: uberon.is_anatomical_entity
+  sequence_variant: typecheck.is_sequence_variant
+  pathway: typecheck.is_pathway
+  chemical_substance: typecheck.is_chemical

@@ -1,6 +1,7 @@
 from greent.ontologies.go2 import GO2
 from greent.ontologies.hpo2 import HPO2
 from greent.ontologies.mondo2 import Mondo2
+from greent.ontologies.uberon import Uberon
 from greent.services.biolink import Biolink
 from greent.services.caster import Caster
 from greent.services.chembio import ChemBioKS
@@ -73,6 +74,7 @@ class GreenT:
             "quickgo"          : lambda :  QuickGo (self.service_context),
             "tkba"             : lambda :  TranslatorKnowledgeBeaconAggregator (self.service_context),
             "typecheck"        : lambda :  TypeCheck(self.service_context, self, rosetta),
+            "uberon"           : lambda :  Uberon(self.service_context),
             "uberongraph"      : lambda :  UberonGraphKS(self.service_context),
             "unichem"          : lambda :  UniChem(self.service_context),
             "uniprot"          : lambda :  UniProt(self.service_context),

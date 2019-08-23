@@ -13,7 +13,9 @@ class Onto(CachedService):
         obj = self.get(f"{self.url}/id_list/{self.name.upper()}")
         return obj
     def is_a(self,identifier,candidate_ancestor):
-        obj = self.get(f"{self.url}/is_a/{identifier}/{candidate_ancestor}/")
+        obj = self.get(f"{self.url}/is_a/{identifier}/{candidate_ancestor}")
+        if obj is None:
+            return False
         #print (f"obj: {json.dumps(obj, indent=2)}")
         return obj is not None and 'is_a' in obj and obj['is_a']
     def get_label(self,identifier):

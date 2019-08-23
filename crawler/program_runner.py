@@ -84,12 +84,16 @@ def get_identifiers(input_type,rosetta):
     elif input_type == node_types.CELLULAR_COMPONENT:
         print('Pulling cellular compnent descendants')
         identifiers = requests.get("https://onto.renci.org/descendants/GO:0005575").json()
-        # for now trying with exclusive descendants of cellular component 
+        # for now trying with exclusive descendants of cellular component
+        # "cell" is a cellular component, and therefore every type of cell is a cellular component.
+        # For querying neo4j, this is confusing, so let's subset to not include things in CL here.
         for ident in identifiers:
-            if ident not in bad_idents:
-                res = get_label(ident) #requests.get(f'https://onto.renci.org/label/{ident}/').json()
-                lids.append(LabeledID(ident,res['label']))
-
+            if ident.startswith('CL:'):
+                continue
+            if ident in bad_idents:
+                continue
+            res = get_label(ident) #requests.get(f'https://onto.renci.org/label/{ident}/').json()
+            lids.append(LabeledID(ident,res['label']))
     elif input_type == node_types.CHEMICAL_SUBSTANCE:
         print('pull chem ids')
         identifiers = requests.get("https://onto.renci.org/descendants/CHEBI:23367").json()

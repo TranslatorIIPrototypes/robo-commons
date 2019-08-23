@@ -19,8 +19,10 @@ class TypeCheck(Service):
 
     def is_cell(self, node):
         """This is a very cheesy approach.  Once we have a generic ontology browser hooked in, we can reformulate"""
-        curie_prefix = Text.get_curie(node.id)
-        return curie_prefix == 'CL'
+        for pref in ['CL']:
+            if len(node.get_synonyms_by_prefix(pref)) > 0:
+                return True
+        return False
 
     #The way caster works, these nodes won't necessarily be synonymized yet.  So it may just
     # have e.g. a Meddra ID or something
@@ -39,5 +41,48 @@ class TypeCheck(Service):
         #If this thing can be converted to HP, then it's a phenotype
         self.synonymizer.synonymize(node)
         hps = node.get_synonyms_by_prefix('HP')
-        return len(hps) > 0
+        if len(hps) > 0:
+            return True
+        efos = node.get_synonyms_by_prefix('EFO')
+        if len(efos) > 0:
+            return True
+        return False
 
+    def is_gene_product(self,node):
+        #If this thing can be converted to HP, then it's a phenotype
+        self.synonymizer.synonymize(node)
+        uniprot = node.get_synonyms_by_prefix('UniProtKB')
+        if len(uniprot) > 0:
+            return True
+        return False
+
+    def is_gene_family(self,node):
+        if node.id.startswith('HGNC.FAMILY'):
+            return True
+        if node.id.startswith('PANTHER.FAMILY'):
+            return True
+        return False
+
+    def is_gene(self,node):
+        hgncs = node.get_synonyms_by_prefix('HGNC')
+        if len(hgncs) > 0:
+            return True
+        ensembls = node.get_synonyms_by_prefix('ENSEMBL')
+        if len(ensembls) > 0:
+            return True
+        ncbis = node.get_synonyms_by_prefix('NCBIGENE')
+        if len(ncbis) > 0:
+            return True
+        return False
+
+    def is_sequence_variant(self,node):
+        return False
+
+    def is_pathway(self,node):
+        return False
+
+    def is_chemical(self,node):
+        for pref in ['CHEBI', 'CHEMBL', 'UniProtKB', 'KEGG.COMPOUND']:
+            if len(node.get_synonyms_by_prefix(pref)) > 0:
+                return True
+        return False
