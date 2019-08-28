@@ -61,3 +61,23 @@ class Onto(CachedService):
     
     def get_parents(self, identifier):
         return self.get(f"{self.url}/parents/{identifier}")['parents']
+
+
+        
+    def onto_curie_to_parent_curie(self, node):
+        #Ideally our ancestory list would be same as our query node
+
+        response = self.get_parents(node.id)
+        results = []
+        predicate = LabeledID(identifier="GAMMA:0000003", label="is_a")        
+        for curie in response:
+            name = self.get_label(curie)
+            new_node = KNode(curie, type = node.type, name = name)                        
+            results.append((
+                self.create_edge(
+                    node,
+                    new_node,
+                    'HPO.get_anscestors',
+                    node.id,
+                    predicate), new_node))
+        return results
