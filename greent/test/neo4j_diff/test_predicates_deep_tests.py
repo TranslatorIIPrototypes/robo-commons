@@ -8,7 +8,7 @@ from greent import node_types
 import yaml
 
 DB1_CONF = {
-    'uri': "bolt://robokopdb1.renci.org:7687",
+    'uri': "bolt://robokopdb2.renci.org:7687",
     'auth': (
         'neo4j',
         os.environ['NEO4J_PASSWORD']
@@ -92,8 +92,6 @@ def test_predicates_types_between_concepts(db1_driver, db2_driver, rosetta):
             if key in EXECLUDED_NODE_TYPE:
                 continue
             pairs.append((node_type, key))    
-    print("**********************************************************")
-    print(pairs)
     # now we ask for predicates for each pair 
     for n1, n2 in pairs:
         q = f""" MATCH (n1:{n1})-[e]-(n2:{n2}) return distinct type(e) as type, count(e) as count ORDER BY type"""
@@ -112,7 +110,34 @@ def test_predicates_types_between_concepts(db1_driver, db2_driver, rosetta):
         count_diffs = {}
         for t in common_types:
             if db1_type_list[t] != db2_type_list[t]:
-                count_diffs[t] = db1_type_list[t] - db2_type_list[t]
+                count_diffs[t] = {
+                    'counts': db1_type_list[t] - db2_type_list[t]
+                }
+                sample_size = 10
+                sample_ids = []
+                counts = count_diffs[t]['counts']
+                if counts != 0: 
+                    q = f"MATCH(n1:{n1})-[e:{t}]-(n2:{n2}) return collect(distinct e.id) as ids"
+                    edge_ids_db1 = query(main_db, q).single()['ids']
+                    edge_ids_db2 = query(other_db, q).single()['ids']
+                    
+                    if counts > 0 :# means db1 has more
+                        for i in edge_ids_db1:
+                            if i not in edge_ids_db2:
+                                sample_ids.append(
+                                    f"""MATCH p = (:{n1})-[:{t}{{id:'{i}'}}]-(:n2) return p"""
+                                )
+                            if len(sample_ids) >=  sample_size or len(sample_ids) == counts:
+                                break
+                    else:
+                        for i in edge_ids_db2:
+                            if i not in edge_ids_db1:
+                                sample_ids.append(
+                                    f"""MATCH p = (:{n1})-[:{t}{{id:'{i}'}}]-(:n2) return p"""
+                                )
+                            if len(sample_ids) >=  sample_size  or len(sample_ids) == counts:
+                                break
+                count_diffs[t]['samples'] = sample_ids
         report[f"{n1}<->{n2}"]['count_diffs'] = count_diffs
     # now for the test if everylist in the report is empty we are :)
     write_report_to_file(report, 'predicate_diff.json')
