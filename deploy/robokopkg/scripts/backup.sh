@@ -1,6 +1,7 @@
 #!/bin/bash
 
 compose_file="scripts/docker-compose-backup.yml"
+graph_compose_file="docker-compose.yml"
 
 function printHelp(){
     echo "
@@ -9,14 +10,14 @@ function printHelp(){
             ./backup.sh -c ./docker-compose-backup.yml 
         Arguments:
             -c   backup-compose-file       docker compose file.
-            
-            -h    help          display this message.
+            -f   graph-compose file        docker compose file.
+            -h   help                      display this message.
 
     "
 }
 
 
-while getopts :hc: opt; do
+while getopts :hc:f: opt; do
     case $opt in 
         h) 
         printHelp
@@ -24,6 +25,9 @@ while getopts :hc: opt; do
         ;;
         c) 
         compose_file=$OPTARG
+        ;;
+        f)
+        graph_compose_file=$OPTARG
         ;;
         \?) 
         echo "Invalid option -$OPTARG" 
@@ -39,7 +43,6 @@ docker-compose -f $compose_file up -d
 
 # ------------- back up process start 
 
-export backup_time=$(date +"%m%d%y-%I-%M-%S")
 
 # when killing containers New neo4j complains 'Active Logical log detected', 
 # and needs a clean shutdown :/
@@ -48,13 +51,11 @@ docker exec $(docker ps -f name=neo4j -q) bash -c "bin/neo4j start; bin/neo4j st
 
 
 # 
-docker exec $(docker ps -f name=neo4j -q) bash bin/neo4j-admin dump --to data/graph.db.$backup_time.dump
+docker exec $(docker ps -f name=neo4j -q) bash bin/neo4j-admin dump --to data/graph.db.dump
 
-docker exec $(docker ps -f name=neo4j -q)  ln -sf /data/graph.db.$backup_time.dump data/graph.db.latest.dump
 
 # kill back-upper container
 docker kill $(docker ps -f name=neo4j -q)
 # ------------------ back up complete
 # compose main file
-docker-compose up -d 
-
+docker-compose -f $graph_compose_file up -d
