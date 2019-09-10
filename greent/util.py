@@ -95,6 +95,12 @@ class Text:
         return ':'.join( text.split('/')[-1].split('_') )
 
     @staticmethod
+    def curie_to_obo (text):
+        x = text.split(':')
+        return f'<http://purl.obolibrary.org/obo/{x[0]}_{x[1]}>'
+
+
+    @staticmethod
     def snakify(text):
         decomma = '_'.join( text.split(','))
         dedash = '_'.join( decomma.split('-'))

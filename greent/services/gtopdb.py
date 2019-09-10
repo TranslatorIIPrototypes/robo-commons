@@ -60,13 +60,14 @@ class gtopdb(Service):
         return output
 
     def make_edge(self,chem,gene,r,identifier,url):
-        'Activator', 'Agonist', 'Allosteric modulator', 'Antagonist', 'Antibody', 'Channel blocker', 'Gating inhibitor', 'Inhibitor', 'Subunit-specific'
-        if r['type'] == 'Agonist':
-            predicate = LabeledID(identifier='CTD:increases_activity_of', label='increases activity of')
-        elif r['type'] in ['Antagonist','Channel blocker', 'Inhibitor', 'Gating inhibitor']:
-            predicate = LabeledID(identifier='CTD:decreases_activity_of', label='decreases activity of')
-        else:
-            predicate = LabeledID(identifier='RO:0002434', label='interacts with')
+        rel=Text.snakify(r['type'])
+        predicate = LabeledID(identifier=f'GAMMA:{rel}',label=rel)
+        #if r['type'] == 'Agonist':
+        #    predicate = LabeledID(identifier='CTD:increases_activity_of', label='increases activity of')
+        #elif r['type'] in ['Antagonist','Channel blocker', 'Inhibitor', 'Gating inhibitor']:
+        #    predicate = LabeledID(identifier='CTD:decreases_activity_of', label='decreases activity of')
+        #else:
+        #    predicate = LabeledID(identifier='RO:0002434', label='interacts with')
         props = {x: r[x] for x in ['primaryTarget', 'affinityParameter', 'endogenous'] }
         affins = [float(x.strip()) for x in r['affinity'].split('-') ]
         if len(affins) > 0:

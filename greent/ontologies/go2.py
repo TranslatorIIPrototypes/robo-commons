@@ -26,7 +26,7 @@ class GO2(Onto):
         return super(GO2,self).get_synonyms(identifier)
 
     def search (self,text, is_regex=False):
-        return super(GO2,self).searh (text, is_regex)
+        return super(GO2,self).search (text, is_regex)
 
     def is_cellular_component(self,node):
         """Checks go to find whether the subject is a cellular component"""

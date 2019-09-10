@@ -69,6 +69,22 @@ class UberonGraphKS(Service):
         )
         return results
 
+    def get_label (self, identifier):
+        obo_id = Text.curie_to_obo(identifier)
+        text = """
+        prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        select distinct ?label
+        from <http://reasoner.renci.org/ontology>
+        where {
+            $obo_id rdfs:label ?label .
+        }
+        """
+        results = self.triplestore.query_template(
+                inputs= {'obo_id': obo_id}, outputs = ['label'], template_text=text)
+        if len(results) < 1:
+            return ''
+        return results[0]['label']
+
     def cell_get_cellname (self, cell_identifier):
         """ Identify label for a cell type
         :param cell: CL identifier for cell type 
@@ -118,82 +134,47 @@ class UberonGraphKS(Service):
             result['curie'] = Text.obo_to_curie(result['part'])
         return results
 
-
-    def anatomy_to_cell (self, anatomy_identifier):
-        """ Identify anatomy terms related to cells.
-
-        :param cell: CL identifier for cell type
-        """
-        text = """
-        prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
-        prefix CL: <http://purl.obolibrary.org/obo/CL_>
-        prefix BFO: <http://purl.obolibrary.org/obo/BFO_>
-        prefix GO: <http://purl.obolibrary.org/obo/GO_>
-        select distinct ?cellID ?cellLabel
-        from <http://reasoner.renci.org/nonredundant>
-        from <http://reasoner.renci.org/ontology>
-        where {
-            graph <http://reasoner.renci.org/redundant> {
-                ?cellID BFO:0000050 $anatomyID .
+    def anatomy_to_anatomy(self, identifier):
+        results = {'subject': [], 'object': []}
+        for direction,query in \
+            (('subject','      ?input_id ?p ?output_id .'),
+             ('object','       ?output_id ?p ?input_id .')):
+            text=""" PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
+            select distinct ?output_id ?output_label ?p ?pLabel 
+            from <http://reasoner.renci.org/nonredundant>
+            from <http://reasoner.renci.org/ontology>
+            where {
+                graph <http://reasoner.renci.org/redundant> {
+            """ + query + \
+            """
+                }
+                graph <http://reasoner.renci.org/ontology/closure> {
+                    ?output_id rdfs:subClassOf UBERON:0001062 . 
+                }
+                ?output_id rdfs:label ?output_label .
+                ?p rdfs:label ?pLabel .
             }
-            graph <http://reasoner.renci.org/ontology/closure> {
-                ?cellID rdfs:subClassOf CL:0000000 .
-            }
-            ?cellID rdfs:label ?cellLabel .
-        }
-
-        """
-        results = self.triplestore.query_template(
-            inputs = { 'anatomyID': anatomy_identifier }, \
-            outputs = [ 'cellID', 'cellLabel' ], \
-            template_text = text \
-        )
+            """
+            results[direction] += self.triplestore.query_template(
+                inputs = { 'input_id': identifier },
+                outputs = [ 'output_id', 'output_label', 'p', 'pLabel' ],
+                template_text = text
+            )
         return results
 
 
-    def cell_to_anatomy (self, cell_identifier):
-        """ Identify anatomy terms related to cells.
+    def anatomy_to_go (self, anatomy_identifier):
+        """ Identify process and functions related to anatomical terms (anatomy, cell, components).
 
-        :param cell: CL identifier for cell type 
-        """
-        text = """
-        prefix CL: <http://purl.obolibrary.org/obo/CL_>
-        prefix BFO: <http://purl.obolibrary.org/obo/BFO_>
-        prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
-        select distinct ?anatomyID ?anatomyLabel
-        from <http://reasoner.renci.org/nonredundant>
-        from <http://reasoner.renci.org/ontology>
-        where {
-            graph <http://reasoner.renci.org/redundant> {
-                $cellID BFO:0000050 ?anatomyID .
-            }
-            graph <http://reasoner.renci.org/ontology/closure> {
-                ?anatomyID rdfs:subClassOf UBERON:0001062 .
-            }
-            ?anatomyID rdfs:label ?anatomyLabel .
-        }
-        """
-        results = self.triplestore.query_template( 
-            inputs = { 'cellID': cell_identifier }, \
-            outputs = [ 'anatomyID', 'anatomyLabel' ], \
-            template_text = text \
-        )
-        return results
-
-    def cell_to_go (self, cell_identifier):
-        """ Identify anatomy terms related to cells.
-
-        :param cell: CL identifier for cell type
         """
         #This is a bit messy, but we need to do 4 things.  We are looking for go terms
         # that are either biological processes or activities and we are looking for predicates
         # that point either direction.
         results = {'subject': [], 'object': []}
         for goParent in ('GO:0008150','GO:0003674'):
-            for direction,query in(('subject','      $cellID ?p ?goID'),('object','        ?goID ?p $cellID')):
+            for direction,query in(('subject','      $anatID ?p ?goID'),('object','        ?goID ?p $anatID')):
                 text = """
-                prefix CL: <http://purl.obolibrary.org/obo/CL_>
-                prefix BFO: <http://purl.obolibrary.org/obo/BFO_>
                 prefix GO: <http://purl.obolibrary.org/obo/GO_>
                 select distinct ?goID ?goLabel ?p ?pLabel
                 from <http://reasoner.renci.org/nonredundant>
@@ -210,25 +191,24 @@ class UberonGraphKS(Service):
                 }
                 """
                 results[direction] += self.triplestore.query_template(
-                    inputs = { 'cellID': cell_identifier, 'goParent': goParent }, \
+                    inputs = { 'anatID': anatomy_identifier, 'goParent': goParent }, \
                     outputs = [ 'goID', 'goLabel', 'p', 'pLabel' ], \
                     template_text = text \
                 )
         return results
 
-    def go_to_cell (self, input_identifier):
-        """ Identify anatomy terms related to cells.
+    def go_to_anatomy (self, input_identifier):
+        """ Identify anatomy terms related to process/functions.
 
-        :param cell: CL identifier for cell type
+        :param input_identifier: identifier for anatomy (including cell and cellular component)
         """
         # we are looking for predicates that point either direction.
         results = {'subject': [], 'object': []}
-        for direction,query in(('subject','      ?cellID ?p $goID'),('object','        $goID ?p ?cellID')):
+        for direction,query in(('subject','      ?anatID ?p $goID'),('object','        $goID ?p ?anatID')):
             text = """
-            prefix CL: <http://purl.obolibrary.org/obo/CL_>
-            prefix BFO: <http://purl.obolibrary.org/obo/BFO_>
+            prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
             prefix GO: <http://purl.obolibrary.org/obo/GO_>
-            select distinct ?cellID ?cellLabel ?p ?pLabel
+            select distinct ?anatID ?anatLabel ?p ?pLabel
             from <http://reasoner.renci.org/nonredundant>
             from <http://reasoner.renci.org/ontology>
             where {
@@ -236,15 +216,15 @@ class UberonGraphKS(Service):
             """+ query + """
                 }
                 graph <http://reasoner.renci.org/ontology/closure> {
-                    ?cellID rdfs:subClassOf CL:0000000 .
+                    ?anatID rdfs:subClassOf UBERON:0001062 .
                 }
-                ?cellID rdfs:label ?cellLabel .
+                ?anatID rdfs:label ?anatLabel .
                 ?p rdfs:label ?pLabel
             }
             """
             results[direction] += self.triplestore.query_template(
                 inputs = { 'goID': input_identifier },
-                outputs = [ 'cellID', 'cellLabel', 'p', 'pLabel' ],
+                outputs = [ 'anatID', 'anatLabel', 'p', 'pLabel' ],
                 template_text = text
             )
         return results
@@ -280,7 +260,7 @@ class UberonGraphKS(Service):
         return results
 
     def phenotype_to_anatomy (self, hp_identifier):
-        """ Identify anatomy terms related to cells.
+        """ Identify anatomies related to phenotypes.
 
         :param cell: HP identifier for phenotype
         """
@@ -414,6 +394,7 @@ class UberonGraphKS(Service):
             outputs = ['go_id', 'predicate', 'predicate_label', 'go_label']
         )
         return results
+
     def disease_to_anatomy(self, disease_id):
         text = """
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -468,30 +449,6 @@ class UberonGraphKS(Service):
         )
         return results
 
-    def cellular_component_to_anantomical_entity(self, cellular_component_id):
-        text = """
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        PREFIX GO:  <http://purl.obolibrary.org/obo/GO_>
-        PREFIX anatomical_entity: <http://purl.obolibrary.org/obo/UBERON_0001062>
-        SELECT DISTINCT  ?predicate ?predicate_label ?anatomical_entity ?anatomical_label
-        FROM <http://reasoner.renci.org/ontology>
-        FROM <http://reasoner.renci.org/redundant>{
-            $cellular_component_id ?predicate ?anatomical_entity.
-            graph <http://reasoner.renci.org/ontology/closure> 
-            {
-                ?anatomical_entity rdfs:subClassOf anatomical_entity:.
-            }
-            ?predicate rdfs:label ?predicate_label .
-            ?anatomical_entity rdfs:label ?anatomical_label.
-        }
-        """
-        results = []
-        results = self.triplestore.query_template(
-            template_text = text,
-            outputs = ['predicate','predicate_label','anatomical_entity', 'anatomical_label'],
-            inputs = {'cellular_component_id': cellular_component_id}
-        )
-        return results
 
     def cellular_component_to_disease(self, cellular_component_id):
         text = """
@@ -543,26 +500,6 @@ class UberonGraphKS(Service):
         )
         return results
 
-    def get_anatomy_by_cell_graph (self, cell_node):
-        anatomies = self.cell_to_anatomy (cell_node.id)
-        results = []
-        predicate = LabeledID(identifier='BFO:0000050', label='part_of')
-        for r in anatomies:
-            anatomy_node = KNode (Text.obo_to_curie(r['anatomyID']), type=node_types.ANATOMICAL_ENTITY, name=r['anatomyLabel'] )
-            edge = self.create_edge(cell_node, anatomy_node, 'uberongraph.get_anatomy_by_cell_graph', cell_node.id, predicate)
-            results.append ( (edge, anatomy_node) )
-        return results
-
-    def get_cell_by_anatomy_graph (self, anatomy_node):
-        cells = self.anatomy_to_cell(anatomy_node.id)
-        results = []
-        predicate = LabeledID(identifier='BFO:0000050', label='part_of')
-        for r in cells:
-            cell_node = KNode (Text.obo_to_curie(r['cellID']), type=node_types.CELL, name=r['cellLabel'] )
-            edge = self.create_edge(cell_node, anatomy_node, 'uberongraph.get_cell_by_anatomy_graph', anatomy_node.id, predicate)
-            results.append ( (edge, cell_node) )
-        return results
-
     def create_phenotype_anatomy_edge(self, node_id, node_label, input_id ,phenotype_node):
         predicate = LabeledID(identifier='GAMMA:0000002', label='inverse of has phenotype affecting')
         anatomy_node = KNode ( Text.obo_to_curie(node_id), type=node_types.ANATOMICAL_ENTITY , name=node_label)
@@ -597,10 +534,10 @@ class UberonGraphKS(Service):
                     results.append ( (pedge, pnode) )
         return results
 
-    def get_process_or_activity_by_cell(self, cell_node):
+    def get_process_or_activity_by_anatomy(self, anatomy_node):
         returnresults = []
-        for curie in cell_node.get_synonyms_by_prefix('CL'):
-            results = self.cell_to_go(curie)
+        for curie in anatomy_node.get_synonyms():
+            results = self.anatomy_to_go(curie)
             for direction in ['subject','object']:
                 done = set()
                 for r in results[direction]:
@@ -610,17 +547,38 @@ class UberonGraphKS(Service):
                     predicate = LabeledID(Text.obo_to_curie(r['p']),r['pLabel'])
                     go_node = KNode(r['goID'],type=node_types.BIOLOGICAL_PROCESS_OR_ACTIVITY,name=r['goLabel'])
                     if direction == 'subject':
-                        edge = self.create_edge(cell_node, go_node, 'uberongraph.get_process_or_activity_by_cell', curie, predicate)
+                        edge = self.create_edge(anatomy_node, go_node, 'uberongraph.get_process_or_activity_by_anatomy', curie, predicate)
                     else:
-                        edge = self.create_edge(go_node, cell_node, 'uberongraph.get_process_or_activity_by_cell', curie, predicate)
+                        edge = self.create_edge(go_node, anatomy_node, 'uberongraph.get_process_or_activity_by_anatomy', curie, predicate)
                     done.add(key)
                     returnresults.append((edge,go_node))
         return returnresults
 
-    def get_cell_by_process_or_activity(self, go_node):
+    def get_anatomy_by_anatomy(self, anatomy_node):
+        returnresults = []
+        for curie in anatomy_node.get_synonyms():
+            results = self.anatomy_to_anatomy(curie)
+            for direction in ['subject','object']:
+                done = set()
+                for r in results[direction]:
+                    key = (r['p'],r['output_id'])
+                    if key in done:
+                        continue
+                    predicate = LabeledID(Text.obo_to_curie(r['p']),r['pLabel'])
+                    output_node = KNode(r['output_id'],type=node_types.ANATOMICAL_ENTITY,name=r['output_label'])
+                    if direction == 'object':
+                        edge = self.create_edge(anatomy_node, output_node, 'uberongraph.get_anatomy_by_anatomy', curie, predicate)
+                    else:
+                        edge = self.create_edge(output_node, anatomy_node, 'uberongraph.get_anatomy_by_anatomy', curie, predicate)
+                    done.add(key)
+                    returnresults.append((edge,output_node))
+        return returnresults
+
+
+    def get_anatomy_by_process_or_activity(self, go_node):
         returnresults = []
         for curie in go_node.get_synonyms_by_prefix('GO'):
-            results = self.go_to_cell(curie)
+            results = self.go_to_anatomy(curie)
             for direction in ['subject','object']:
                 done = set()
                 for r in results[direction]:
@@ -628,13 +586,13 @@ class UberonGraphKS(Service):
                     if key in done:
                         continue
                     predicate = LabeledID(Text.obo_to_curie(r['p']),r['pLabel'])
-                    cell_node = KNode(r['cellID'],type=node_types.CELL,name=r['cellLabel'])
+                    anat_node = KNode(r['anatID'],type=node_types.ANATOMICAL_ENTITY,name=r['anatLabel'])
                     if direction == 'object':
-                        edge = self.create_edge(go_node, cell_node, 'uberongraph.get_cell_by_process_or_activity', curie, predicate)
+                        edge = self.create_edge(go_node, anat_node, 'uberongraph.get_anatomy_by_process_or_activity', curie, predicate)
                     else:
-                        edge = self.create_edge(cell_node, go_node, 'uberongraph.get_cell_by_process_or_activity', curie, predicate)
+                        edge = self.create_edge(anat_node, go_node, 'uberongraph.get_anatomy_by_process_or_activity', curie, predicate)
                     done.add(key)
-                    returnresults.append((edge,cell_node))
+                    returnresults.append((edge,anat_node))
         return returnresults
 
     def get_process_or_activity_by_disease(self, disease_node):
@@ -731,22 +689,6 @@ class UberonGraphKS(Service):
                 response.append((edge, chemical_node))
         return response
 
-    def get_anatomical_entity_by_cellular_component(self, cellular_component_node):
-        response = []
-        for curie in cellular_component_node.get_synonyms_by_prefix('GO'):
-            results = self.cellular_component_to_anantomical_entity(curie)
-            for r in results :
-                anatomical_node = KNode(Text.obo_to_curie(r['anatomical_entity']), type= node_types.ANATOMICAL_ENTITY, name=r['anatomical_label'])
-                predicate = LabeledID(Text.obo_to_curie(r['predicate']), r['predicate_label'])
-                edge = self.create_edge(
-                    cellular_component_node,
-                    anatomical_node,
-                    'uberon.get_anatomical_entity_by_cellular_component',
-                    cellular_component_node.id,
-                    predicate
-                )
-                response.append((edge, anatomical_node))
-        return response
 
     def get_disease_by_cellular_component(self, cellular_component_node):
         response = []

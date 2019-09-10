@@ -51,7 +51,7 @@ def load_genetic_variants(rosetta=None):
 
 crawls = [
     (node_types.DISEASE, node_types.PHENOTYPIC_FEATURE),
-    (node_types.GENETIC_CONDITION, node_types.PHENOTYPIC_FEATURE),
+    #(node_types.GENETIC_CONDITION, node_types.PHENOTYPIC_FEATURE),
     (node_types.PHENOTYPIC_FEATURE, node_types.DISEASE),
     (node_types.DISEASE, node_types.GENE),
     (node_types.GENE, node_types.BIOLOGICAL_PROCESS_OR_ACTIVITY),

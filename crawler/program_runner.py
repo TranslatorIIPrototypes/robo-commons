@@ -40,9 +40,12 @@ def get_identifiers(input_type,rosetta):
         identifiers =  rosetta.core.mondo.get_ids()
         for ident in identifiers:
             if ident not in bad_idents:
-                label = rosetta.core.mondo.get_label(ident)
+                #label = rosetta.core.mondo.get_label(ident)
+                label = rosetta.core.uberongraph.get_label(ident)
+                print(ident,label)
                 if label is not None and not label.startswith('obsolete'):
                     lids.append(LabeledID(ident,label))
+        print("got labels") 
     if input_type == node_types.PHENOTYPIC_FEATURE:
         identifiers = rosetta.core.hpo.get_ids()
         for ident in identifiers:
@@ -95,6 +98,10 @@ def get_identifiers(input_type,rosetta):
             res = get_label(ident) #requests.get(f'https://onto.renci.org/label/{ident}/').json()
             lids.append(LabeledID(ident,res['label']))
     elif input_type == node_types.CHEMICAL_SUBSTANCE:
+        print('pull chem ids')
+        lids = [LabeledID(identifier="CHEBI:5931",label="insulin")]
+    #elif input_type == node_types.CHEMICAL_SUBSTANCE:
+    elif False:
         print('pull chem ids')
         identifiers = requests.get("https://onto.renci.org/descendants/CHEBI:23367").json()
         identifiers = [x for x in identifiers if 'CHEBI' in x]

@@ -84,8 +84,8 @@ class ChemicalAnnotator(Annotator):
         extracted = {keys_of_interest[key] : \
             self.convert_data_to_primitives(kegg_dict[key]) \
             for key in keys_of_interest if key in kegg_dict.keys()}
-        if len(keys_of_interest) != len(extracted.keys()):
-            logger.warn(f"All keys were not annotated for {kegg_dict['ENTRY']}")
+        #if len(keys_of_interest) != len(extracted.keys()):
+        #    logger.warn(f"All keys were not annotated for {kegg_dict['ENTRY']}")
         return extracted
 
     def parse_flat_file_to_dict(self, raw):

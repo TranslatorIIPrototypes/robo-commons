@@ -12,15 +12,17 @@ def pull_uniprot(repull=False):
         with open(xmlname,'w') as xmlfile:
             xmlfile.write(xmldata)
     seq_to_idlist = defaultdict(set)
+    #I only want the PRO sequences.  One day, I could get the -1 -2 sequences as well if
+    # there were a reason.
     with open(xmlname,'r') as unif:
         for record in SwissProt.parse(unif):
             uniprotid = f'UniProtKB:{record.accessions[0]}'
-            xrefs = [ f"{x[0]}:{x[1]}" for x in record.cross_references if x[0].lower() in ['mint','string','nextprot']]
-            xrefs.append( f'PR:{record.accessions[0]}' )
-            xrefs.append( uniprotid )
+            #xrefs = [ f"{x[0]}:{x[1]}" for x in record.cross_references if x[0].lower() in ['mint','string','nextprot']]
+            #xrefs.append( f'PR:{record.accessions[0]}' )
+            #xrefs.append( uniprotid )
             feats = [ f for f in record.features if f[4].startswith('PRO_') and isinstance(f[1],int) and isinstance(f[2],int) ]
             fseq = [(record.sequence[f[1]-1:f[2]],f[4]) for f  in feats ]
-            seq_to_idlist[record.sequence].update(xrefs)
+            #seq_to_idlist[record.sequence].update(xrefs)
             for fs,fn in fseq:
                 seq_to_idlist[fs].add(f'{uniprotid}#{fn}')
     return seq_to_idlist

@@ -46,7 +46,7 @@ def extract_from_chebi_sdf(chebi_parts):
         chebi_with_structure.add(cid)
         kk = 'keggcompounddatabaselinks'
         if kk in props:
-            chebi_kegg.append( (cid,f'KEGG:COMPOUND:{props[kk]}'))
+            chebi_kegg.append( (cid,f'KEGG.COMPOUND:{props[kk]}'))
         pk = 'pubchemdatabaselinks'
         if pk in props:
             v = props[pk]

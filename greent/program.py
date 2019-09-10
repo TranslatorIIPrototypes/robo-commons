@@ -191,6 +191,7 @@ class Program:
         to a particular concept in our query plan. We make sure that they're synonymized and then
         queue up their children
         """
+        logger.debug(f'process {node.id}')
         if edge is not None:
             is_source = node.id == edge.source_id
         self.rosetta.synonymizer.synonymize(node)
@@ -231,7 +232,7 @@ class Program:
                 exchange='',
                 routing_key='neo4j',
                 body=pickle.dumps({'nodes': [node], 'edges': []}))
-        #logger.debug(f"Sent node {node.id}")
+        logger.debug(f"Sent node {node.id}")
 
         # make sure the edge is queued for creation AFTER the node
         if edge:
@@ -272,7 +273,7 @@ class Program:
             links = self.transitions[source_id][target_id]
             #print("-"*len(history)+f"Destination: {target_id}")
             for link in links:
-                #print("-"*len(history)+"Executing: ", link['op'])
+                print("-"*len(history)+"Executing: ", link['op'])
                 self.process_op(link, node, history + [target_id])
 
     #CAN I SOMEHOW CAPTURE PATHS HERE>>>>

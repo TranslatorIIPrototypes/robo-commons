@@ -11,6 +11,11 @@ def uberon(rosetta):
     uberon = rosetta.core.uberongraph
     return uberon
 
+def test_label(uberon):
+    mondo = 'MONDO:0001876'
+    expected_label='renal artery atheroma'
+    actual_label = uberon.get_label(mondo)
+    assert actual_label == expected_label
 
 def test_name(uberon):
     cn ='CL:0000097'

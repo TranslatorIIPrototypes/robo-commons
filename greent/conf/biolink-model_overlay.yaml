@@ -42,7 +42,6 @@ classes:
       - CHEMBL
       - DRUGBANK
       - PUBCHEM
-      - UNIPROTKB
       - PR
       - MESH
       - HMDB
@@ -56,6 +55,7 @@ classes:
       - PHAROS.DRUG
       - DRUG.INTERACTION
       - CTD
+      - UNIPROTKB
       - METABOLON
 
   anatomical entity:
@@ -73,6 +73,7 @@ classes:
       - HGNC
       - NCBIGENE
       - ENSEMBL
+      - UNIPROTKB
       - EC
       - RNAcentral
       - MGI
@@ -80,14 +81,14 @@ classes:
       - HGNC.SYMBOL
       - IUPHAR
 
-  gene_family:
+  gene family:
     id_prefixes:
       - HGNC.FAMILY
-      - PATHER.FAMILY
+      - PANTHER.FAMILY
 
-  gene_product:
+  gene product:
     id_prefixes:
-      - UniProtKB
+      - UNIPROTKB
       - GTOPDB
       - PR
 
@@ -184,6 +185,13 @@ slots:
       - CTD:interacts_with
       - CTD:affects^binding
       - PHAROS:drug_targets
+      - GAMMA:interacts_with
+      - GAMMA:antibody_binding
+      - GAMMA:other
+      - GAMMA:pharmacological_chaperone
+      - GAMMA:releasing_agent
+      - GAMMA:kd
+      - GAMMA:kb
 
   #New CTD Stuff
   affects abundance of:
@@ -206,16 +214,38 @@ slots:
     mappings:
       - CTD:affects_activity_of
       - CTD:affects^activity
+      - GAMMA:allosteric_modulator
+      - GAMMA:modulator
 
   increases activity of:
     mappings:
       - CTD:increases_activity_of
       - CTD:increases^activity
+      - GAMMA:activator
+      - GAMMA:partial_agonist
+      - GAMMA:agonist
+      - GAMMA:opener
+      - GAMMA:positive_allosteric_modulator
+      - GAMMA:positive_modulator
+      - GAMMA:ec50
+      - GAMMA:inducer
+      - GAMMA:potentiator
 
   decreases activity of:
     mappings:
       - CTD:decreases_activity_of
       - CTD:decreases^activity
+      - GAMMA:allosteric_antagonist
+      - GAMMA:partial_antagonist
+      - GAMMA:antagonist
+      - GAMMA:weak_inhibitor
+      - GAMMA:inhibitor
+      - GAMMA:blocker
+      - GAMMA:inverse_agonist
+      - GAMMA:inactivator
+      - GAMMA:negative_allosteric_modulator
+      - GAMMA:ic50
+      - GAMMA:ki
 
   affects expression of:
     mappings:
@@ -396,11 +426,13 @@ slots:
     mappings:
       - CTD:increases_synthesis_of
       - CTD:increases^chemical synthesis
+      - GAMMA:product_of
 
   decreases synthesis of:
     mappings:
       - CTD:decreases_synthesis_of
       - CTD:decreases^chemical synthesis
+      - GAMMA:inhibition_of_synthesis
 
   affects degradation of:
     mappings:
@@ -415,6 +447,7 @@ slots:
       - CTD:increases^degradation
       - CTD:increases^cleavage
       - CTD:increases^hydrolysis
+      - GAMMA:substrate
 
   decreases degradation of:
     mappings:
@@ -497,6 +530,7 @@ slots:
       - CTD:increases_transport_of
       - CTD:increases^transport
       - RO:0002020
+      - GAMMA:carrier
 
   decreases transport of:
     mappings:
@@ -833,7 +867,7 @@ slots:
       holds between molecular entities that directly interact
     mappings:
       - CTD:molecularly_interacts_with
-  
+
   decreases molecular interaction:
     description: >-
       indicates that the source decreases the molecular interaction between the target and some other molecular entity

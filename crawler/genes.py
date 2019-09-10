@@ -37,9 +37,14 @@ def json_2_identifiers(gene_dict):
     idset = set([hgnc_id])
     if 'entrez_id' in gene_dict:
         idset.add( LabeledID(identifier=f"NCBIGENE:{gene_dict['entrez_id']}", label=symbol))
-    #We're going to move uniprots into gene products, not genes.
-    #if 'uniprot_ids' in gene_dict:
-    #    idset.update([LabeledID(identifier=f"UniProtKB:{uniprotkbid}", label=symbol) for uniprotkbid in gene_dict['uniprot_ids']])
+    #There's a strong debate to be had about whether UniProtKB id's belong with genes
+    # or with proteins.  In SwissProt, an identifier is meant to be 1:1 with a gene.
+    # In my mind, that makes it a gene.  So we will continue to group UniProtKB with them
+    #For individual protein sequences, or peptide sequences, we will make them gene_products.
+    #Also generate a PR identifier for each from the uniprot id (PR uses uniprot ids for uniprot things)
+    if 'uniprot_ids' in gene_dict:
+        idset.update([LabeledID(identifier=f"UniProtKB:{uniprotkbid}", label=symbol) for uniprotkbid in gene_dict['uniprot_ids']])
+        idset.update([LabeledID(identifier=f"PR:{uniprotkbid}", label=symbol) for uniprotkbid in gene_dict['uniprot_ids']])
     if 'ensembl_gene_id' in gene_dict:
         idset.add( LabeledID(identifier=f"ENSEMBL:{gene_dict['ensembl_gene_id']}", label=symbol))
     if 'iuphar' in gene_dict:

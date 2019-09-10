@@ -11,7 +11,7 @@ logger = LoggingUtil.init_logging(__name__, logging.DEBUG)
 class PharosMySQL(Service):
     def __init__(self, context):
         super(PharosMySQL, self).__init__("pharos_mysql", context)
-        self.db  = mysql.connector.connect(user='tcrd', host=self.url, database='tcrd520', buffered = True)
+        self.db  = mysql.connector.connect(user='tcrd', host=self.url, database='tcrd540', buffered = True)
 
     def gene_get_disease(self, gene_node):
         identifiers = gene_node.get_synonyms_by_prefix('HGNC')
@@ -28,19 +28,35 @@ class PharosMySQL(Service):
                 edge = self.create_edge(disease_node,gene_node, 'pharos.gene_get_disease',hgnc,predicate)
                 resolved_edge_nodes.append( (edge,disease_node) )
         return resolved_edge_nodes
- 
+
+    def grab_edge_props(self,result):
+        if result['pred'] is not None and len(result['pred']) > 1:
+            rel = Text.snakify(result['pred'])
+        else:
+            rel = 'interacts_with'
+        predicate = LabeledID(identifier=f'GAMMA:{rel}', label=rel)
+        if 'pubmed_ids' in result and result['pubmed_ids'] is not None:
+            pmids = [ f'PMID:{r}' for r in result['pubmed_ids'].split('|')]
+        else:
+            pmids = []
+        props = {}
+        if result['affinity'] is not None:
+            props['affinity'] = float(result['affinity'])
+            props['affinity_parameter'] = result['affinity_parameter']
+        return predicate, pmids, props
 
     def g2d(self,hgnc,query,chembls,resolved_edge_nodes,gene_node):
-        predicate = LabeledID(identifier='PHAROS:drug_targets', label='is_target')
+        prefixmap={'ChEMBL':'CHEMBL', 'Guide to Pharmacology':'GTOPDB'}
         cursor = self.db.cursor(dictionary = True, buffered = True)
         cursor.execute(query)
         for result in cursor:
             label = result['drug']
-            chemblid = f"CHEMBL:{result['cmpd_chemblid']}"
+            chemblid = f"{prefixmap[result['id_src']]}:{result['cid']}"
+            predicate,pmids,props = self.grab_edge_props(result)
             if chemblid not in chembls:
                 chembls.add(chemblid)
                 drug_node = KNode(chemblid, type=node_types.CHEMICAL_SUBSTANCE, name=label)
-                edge = self.create_edge(drug_node,gene_node, 'pharos.gene_get_drug',hgnc,predicate)
+                edge = self.create_edge(drug_node,gene_node, 'pharos.gene_get_drug',hgnc,predicate,publications=pmids,properties=props)
                 resolved_edge_nodes.append( (edge,drug_node) )
 
     def gene_get_drug(self, gene_node):
@@ -49,15 +65,25 @@ class PharosMySQL(Service):
         identifiers = gene_node.get_synonyms_by_prefix('HGNC')
         chembls = set()
         for hgnc in identifiers:
-            query1=f"select distinct da.drug, da.cmpd_chemblid from xref x, drug_activity da  where  x.protein_id = da.target_id and x.xtype='HGNC' and x.value = '{hgnc}';"
+            query1= \
+            f"""SELECT DISTINCT da.drug, da.cmpd_chemblid AS cid, 'ChEMBL' AS id_src, 
+            da.act_value AS affinity, da.act_type AS affinity_parameter, da.action_type AS pred
+            FROM xref x, drug_activity da  
+            WHERE  x.protein_id = da.target_id 
+            AND x.xtype='HGNC' 
+            AND x.value = '{hgnc}';"""
             self.g2d(hgnc,query1,chembls,resolved_edge_nodes,gene_node)
-            query2=f"select distinct da.cmpd_name_in_ref as drug, da.cmpd_chemblid from xref x, chembl_activity da  where  x.protein_id = da.target_id and x.xtype='HGNC' and x.value = '{hgnc}';"
+            query2=\
+            f"""SELECT DISTINCT da.cmpd_name_in_ref as drug, da.cmpd_id_in_src as cid, catype AS id_src,
+            da.act_value AS affinity, da.act_type as affinity_parameter, da.act_type AS pred,
+            da.pubmed_ids AS pubmed_ids
+            FROM xref x, cmpd_activity da  
+            WHERE  x.protein_id = da.target_id AND x.xtype='HGNC' AND x.value = '{hgnc}';"""
             self.g2d(hgnc,query2,chembls,resolved_edge_nodes,gene_node)
         return resolved_edge_nodes
 
     def d2g(self, drug_node, query, resolved_edge_nodes, chembl,hgncs):
         """ Get a gene from a drug. """
-        predicate = LabeledID(identifier='PHAROS:drug_targets', label='is_target')
         cursor = self.db.cursor(dictionary = True, buffered = True)
         cursor.execute(query)
         for result in cursor:
@@ -65,8 +91,9 @@ class PharosMySQL(Service):
             hgnc = result['value']
             if hgnc not in hgncs:
                 hgncs.add(hgnc)
+                predicate,pmids,props = self.grab_edge_props(result)
                 gene_node = KNode(hgnc, type=node_types.GENE, name=label)
-                edge = self.create_edge(drug_node,gene_node, 'pharos.drug_get_gene',chembl,predicate)
+                edge = self.create_edge(drug_node,gene_node, 'pharos.drug_get_gene',chembl,predicate,publications=pmids,properties=props)
                 resolved_edge_nodes.append( (edge,gene_node) )
 
     def drug_get_gene(self, drug_node):
@@ -76,9 +103,22 @@ class PharosMySQL(Service):
         predicate = LabeledID(identifier='PHAROS:drug_targets', label='is_target')
         hgncs = set()
         for chembl in identifiers:
-            query=f"select distinct x.value, p.sym from xref x, drug_activity da, protein p where da.target_id = x.protein_id and da.cmpd_chemblid='{Text.un_curie(chembl)}' and x.xtype='HGNC' and da.target_id = p.id;"
+            query=f"""SELECT DISTINCT x.value, p.sym,
+            da.act_value AS affinity, da.act_type AS affinity_parameter, da.action_type AS pred
+            FROM xref x, drug_activity da, protein p 
+            WHERE da.target_id = x.protein_id 
+            AND da.cmpd_chemblid='{Text.un_curie(chembl)}' 
+            AND x.xtype='HGNC' 
+            AND da.target_id = p.id;"""
             self.d2g(drug_node, query, resolved_edge_nodes, chembl,hgncs)
-            query=f"select distinct x.value, p.sym from xref x, chembl_activity da, protein p where da.target_id = x.protein_id and da.cmpd_chemblid='{Text.un_curie(chembl)}' and x.xtype='HGNC' and da.target_id = p.id;"
+            query=f"""SELECT DISTINCT x.value, p.sym, 
+            da.act_value AS affinity, da.act_type as affinity_parameter, da.act_type AS pred,
+            da.pubmed_ids AS pubmed_ids
+            FROM xref x, cmpd_activity da, protein p
+            WHERE da.target_id = x.protein_id 
+            AND da.cmpd_id_in_src='{Text.un_curie(chembl)}' 
+            AND x.xtype='HGNC' 
+            AND da.target_id = p.id;"""
             self.d2g(drug_node, query, resolved_edge_nodes, chembl,hgncs)
         return resolved_edge_nodes
 

@@ -1,7 +1,11 @@
 import os
 import itertools
+import logging
 from greent.util import Resource
+from greent.util import LoggingUtil
 from collections import defaultdict
+
+logger = LoggingUtil.init_logging(__name__, logging.DEBUG)
 
 #The biolink model is what we use to really understand types, and to figure out whether we can call
 # services and expect to get results back.
@@ -24,9 +28,10 @@ class ExportGraph:
 
     def add_type_labels(self,node):
         """Starting at a node, find the most child-ended type for it, then add all superclasses"""
-        leaf_type = self.get_leaf_type(node,node.node_type)
-        supers = set([leaf_type])
-        self.get_superclasses(leaf_type,supers)
+        leaf_types = self.get_leaf_type(node,node.type)
+        supers = set(leaf_types)
+        for leaf_type in leaf_types:
+            self.get_superclasses(leaf_type,supers)
         node.add_export_labels(supers)
 
     def nodeistype(self,node,ctype):
@@ -44,7 +49,10 @@ class ExportGraph:
         return False
 
     def get_leaf_type(self,node,current_type):
-        child_types = self.subs[current_type]
+        try:
+            child_types = self.subs[current_type]
+        except KeyError:
+            logger.error('oh dookie')
         trues = []
         for possible_child_type in child_types:
             if self.nodeistype(node,possible_child_type):

@@ -61,10 +61,9 @@ def pull_uniprot_chebi():
 #  2. Mesh is all "no structure".  We try to use a variety of sources to hook mesh id's to anything else
 #  3. Pull from chebi the sdf and db files, use them to link to things (KEGG) in the no inchi/no smiles cases
 #  4. Go to KEGG, and get sequences for peptides.
-#  5. Pull UniProt (swissprot) XML.  Create mint, nextprot, string, PR ids (for humans).  Keep sequences.
-#     Calculate sequences also for the sub-sequences (Uniprot_PRO)
-#  6. Use the sequences to merge UniProt with KEGG
-#  7. Read IUPHAR, discard things with INCHI, use things with sequence to match UniProt/PRO/KEGG
+#  5. Pull UniProt (swissprot) XML.  Calculate sequences for the sub-sequences (Uniprot_PRO)
+#  6. Use the sequences to merge UniProt_PRO with KEGG.
+#  7. Read IUPHAR, discard things with INCHI, use things with sequence to match UniProt_PRO/KEGG
 #     Use the hand-curated version of IUPHAR to match the un-sequenced stuff left over
 #  8. Use wikidata to get links between CHEBI and UniProt_PRO
 #  9. glom across sequence and chemical stuff
@@ -99,13 +98,13 @@ def load_chemicals(rosetta, refresh=False):
     glom(concord, kegg_chebi_pairs)
     # 4. Go to KEGG, and get sequences for peptides.
     sequence_concord = rosetta.core.kegg.pull_sequences()
-    # 5. Pull UniProt (swissprot) XML.  Create mint, nextprot, string, PR ids (for humans).  Keep sequences.
-    # Calculate sequences also for the sub-sequences (Uniprot_PRO)
+    # 5. Pull UniProt (swissprot) XML.
+    # Calculate sequences for the sub-sequences (Uniprot_PRO)
     sequence_to_uniprot = pull_uniprot()
     # 6. Use the sequences to merge UniProt with KEGG
     for s,v in sequence_to_uniprot.items():
         sequence_concord[s].update(v)
-    # 7. Read IUPHAR, discard things with INCHI, use things with sequence to match UniProt/PRO/KEGG
+    # 7. Read IUPHAR, discard things with INCHI, use things with sequence to match UniProt_PRO/KEGG
     #     Use the hand-curated version of IUPHAR to match the un-sequenced stuff left over
     sequence_to_iuphar, iuphar_glom = pull_iuphar()
     for s,v in sequence_to_iuphar.items():

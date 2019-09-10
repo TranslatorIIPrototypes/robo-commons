@@ -36,35 +36,31 @@
 
 '@operators':
   anatomical_entity:
-    cell:
-       - link : anatomy_to_cell_type
-         op   : uberongraph.get_cell_by_anatomy_graph
+    anatomical_entity:
+      - link : anatomy_to_anatomy_type
+        op   : uberongraph.get_anatomy_by_anatomy_graph
     gene:
       - link : anatomy_to_gene
         op   : hetio.anatomy_to_gene
     phenotypic_feature:
        - link : anatomy_to_phenotype
          op   : uberongraph.get_phenotype_by_anatomy_graph
-  cell:
-    anatomical_entity:
-      - link : cell_type_to_anatomy
-        op   : uberongraph.get_anatomy_by_cell_graph
     biological_process_or_activity:
+       - link : bio_process_anatomical_entity
+         op   : uberongraph.get_process_or_activity_by_anatomy
+  #cell:
+  #  biological_process_or_activity:
     #   - link : bio_process_cell_type
     #     op   : quickgo.cell_to_go_term_annotation_extensions
-       - link : bio_process_cell_type
-         op   : uberongraph.get_process_or_activity_by_cell
+  #     - link : bio_process_cell_type
+  #       op   : uberongraph.get_process_or_activity_by_cell
   biological_process_or_activity:
     gene:
       - link : bio_process_gene
         op   : quickgo.go_term_to_gene_annotation
-    cell:
-    #  - link : bio_process_cell_type
-    #    op   : quickgo.go_term_to_cell_xontology_relationships
-    #  - link : bio_process_cell_type
-    #    op   : quickgo.go_term_to_cell_annotation_extensions
-      - link : bio_process_cell_type
-        op   : uberongraph.get_cell_by_process_or_activity
+    anatomical_entity:
+      - link : bio_process_anatomy
+        op   : uberongraph.get_anatomy_by_process_or_activity
     chemical_substance:
       - link : bio_process_chemical_substance
         op   : uberongraph.get_chemical_entity_by_process_or_activity
@@ -72,8 +68,6 @@
     gene:
       - link  : chemical_targets_gene
         op    : chembio.graph_pubchem_to_ncbigene
-#      - link  : drug_to_gene
-#        op    : ctd.drug_to_gene #Going away eventually, but not yet
       - link  : drug_to_gene
         op    : ctd.drug_to_gene_expanded
       - link  : drug_to_enzyme
@@ -142,9 +136,6 @@
     anatomical_entity:
       - link  : gene_to_anatomy
         op    : hetio.gene_to_anatomy
-    #cellular_component:
-    #  - link  : gene_to_cellular_component
-    #    op    : hetio.gene_to_cellular_component
     disease:
       - link  : gene_to_disease
         op    : biolink.gene_get_disease
@@ -221,9 +212,6 @@
     chemical_substance:
       - link  : cellular_component_to_chemical_substance
         op    : uberongraph.get_chemical_substance_by_cellular_component  
-    anatomical_entity:
-      - link  : cellular_component_to_anatomical_entity
-        op    : uberongraph.get_anatomical_entity_by_cellular_component
     disease:
       - link  : cellular_component_to_disease
         op    : uberongraph.get_disease_by_cellular_component
