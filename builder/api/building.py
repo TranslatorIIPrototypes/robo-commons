@@ -2,6 +2,7 @@
 
 """Flask REST API server for builder"""
 
+from collections import defaultdict
 import sys
 import os
 import json
@@ -17,7 +18,6 @@ from neo4j.v1 import GraphDatabase, basic_auth
 
 from greent.annotators import annotator_factory
 from builder.api.setup import app, api
-from builder.api.tasks import update_kg
 import builder.api.logging_config
 import greent.node_types as node_types
 from greent.synonymization import Synonymizer
@@ -36,39 +36,6 @@ node_props_file = os.path.join(os.path.dirname(__file__), "..", "..", "greent", 
 
 logger = LoggingUtil.init_logging(__name__, level=logging.DEBUG)
 
-class UpdateKG(Resource):
-    def post(self):
-        """
-        Update the cached knowledge graph 
-        ---
-        tags: [build]
-        requestBody:
-            name: question
-            description: The machine-readable question graph.
-            content:
-                application/json:
-                    schema:
-                        $ref: '#/definitions/Question'
-            required: true
-        responses:
-            202:
-                description: Update started...
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            required:
-                            - task id
-                            properties:
-                                task id:
-                                    type: string
-                                    description: task ID to poll for KG update status
-        """
-        task = update_kg.apply_async(args=[request.json])
-        logger.info(f"KG update task start with id {task.id}")
-        return {'task_id': task.id}, 202
-
-api.add_resource(UpdateKG, '/')
 
 class Synonymize(Resource):
     def post(self, node_id, node_type):
@@ -301,86 +268,6 @@ class Annotator(Resource):
 api.add_resource(Annotator, '/annotate/<node_id>/<node_type>/')
 
 
-class TaskStatus(Resource):
-    def get(self, task_id):
-        """
-        Get the status of a task
-        ---
-        tags: [tasks]
-        parameters:
-          - in: path
-            name: task_id
-            description: "ID of the task"
-            schema:
-                type: string
-            required: true
-        responses:
-            200:
-                description: Task status
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            required:
-                            - task-id
-                            - state
-                            - result
-                            properties:
-                                task_id:
-                                    type: string
-                                status:
-                                    type: string
-                                    description: Short task status
-                                result:
-                                    type: ???
-                                    description: Result of completed task OR intermediate status message
-                                traceback:
-                                    type: string
-                                    description: Traceback, in case of task failure
-        """
-
-        r = redis.Redis(
-            host=os.environ['RESULTS_HOST'],
-            port=os.environ['RESULTS_PORT'],
-            db=os.environ['BUILDER_RESULTS_DB'],
-            password=os.environ['RESULTS_PASSWORD']
-        )
-        value = r.get(f'celery-task-meta-{task_id}')
-        if value is None:
-            return 'Task not found', 404
-        result = json.loads(value)
-        return result, 200
-
-api.add_resource(TaskStatus, '/task/<task_id>/')
-
-class TaskLog(Resource):
-    def get(self, task_id):
-        """
-        Get activity log for a task
-        ---
-        tags: [util]
-        parameters:
-          - in: path
-            name: task_id
-            description: ID of task
-            schema:
-                type: string
-            required: true
-        responses:
-            200:
-                description: text
-        """
-
-        task_log_file = os.path.join(os.environ['ROBOKOP_HOME'], 'logs','builder_task_logs', f'{task_id}.log')
-        if os.path.isfile(task_log_file):
-            with open(task_log_file, 'r') as log_file:
-                log_contents = log_file.read()
-            return log_contents, 200
-        else:
-            return 'Task ID not found', 404
-
-api.add_resource(TaskLog, '/task/<task_id>/log/')
-
 class Operations(Resource):
     def get(self):
         """
@@ -449,26 +336,26 @@ class Predicates(Resource):
         driver = GraphDatabase.driver(f"bolt://{os.environ['NEO4J_HOST']}:{os.environ['NEO4J_BOLT_PORT']}",
             auth=basic_auth("neo4j", os.environ['NEO4J_PASSWORD']))
         with driver.session() as session:
-            result = session.run('match (a)-[x]->(b) return distinct type(x), labels(a), labels(b)')
+            result = session.run("""
+                match (a)-[x]->(b) with
+                filter(la in labels(a) where not la in ['named_thing', 'Concept']) as las,
+                filter(lb in labels(b) where not lb in ['named_thing', 'Concept']) as lbs,
+                type(x) as predicate
+                unwind las as la unwind lbs as lb
+                return distinct predicate, la, lb
+            """)
             records = [list(r) for r in result]
 
         # Reformat predicate list into a dict of dicts with first key as
         # source_type, 2nd key as target_type, and value as a list of all 
         # supported predicates for the source-target pairing
-        type_black_list = ['Concept', 'named_thing']
-        pred_dict = dict()
+        pred_dict = defaultdict(lambda: defaultdict(list))
         for row in records:
             predicate = row[0]
-            sourceTypes = [r for r in row[1] if r not in type_black_list]
-            targetTypes = [r for r in row[2] if r not in type_black_list]
-
-            for s in sourceTypes:
-                for t in targetTypes:
-                    if s not in pred_dict:
-                        pred_dict[s] = dict()
-                    if t not in pred_dict[s]:
-                        pred_dict[s][t] = []
-                    pred_dict[s][t].append(predicate)
+            source_type = row[1]
+            target_type = row[2]
+            logger.debug(predicate, source_type, target_type)
+            pred_dict[source_type][target_type].append(predicate)
 
         with open(predicates_file, 'w') as f:
             json.dump(pred_dict, f, indent=2)
@@ -685,44 +572,6 @@ class Concepts(Resource):
         return concepts
 
 api.add_resource(Concepts, '/concepts/')
-
-
-class OperationPath(Resource):
-
-    def post(self):
-        """
-        Transpiles question graph to cypher and returns query operations path.
-        ---
-        tags: [build]
-        requestBody:
-            name: question
-            description: The machine-readable question graph.
-            content:
-                application/json:
-                    schema:
-                        $ref: '#/definitions/Question'
-            required: true
-        responses:
-            200:
-                description: Concept based path graph
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            required:
-                            - task id
-                            properties:
-                                task id:
-                                    type: string
-                                    description: task ID to poll for KG update status
-        """
-        q = Question(request.json)
-        r = rossetta_setup_default()
-
-        return q.get_edge_op_paths(r.type_graph)
-
-
-api.add_resource(OperationPath, '/operationpath/')
 
 
 if __name__ == '__main__':
