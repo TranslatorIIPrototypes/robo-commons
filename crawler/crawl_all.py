@@ -19,8 +19,8 @@ def poolrun(type1,type2,rosetta):
 def load_synonyms(rosetta=None,refresh_chemicals=False):
     if rosetta is None:
         rosetta = Rosetta()
-    load_genes(rosetta)
-    load_chemicals(rosetta,refresh=refresh_chemicals)
+#    load_genes(rosetta)
+#    load_chemicals(rosetta,refresh=refresh_chemicals)
     load_diseases_and_phenotypes(rosetta)
 
 def load_genetic_variants(rosetta=None):
@@ -51,28 +51,26 @@ def load_genetic_variants(rosetta=None):
 
 crawls = [
     (node_types.DISEASE, node_types.PHENOTYPIC_FEATURE),
-    #(node_types.GENETIC_CONDITION, node_types.PHENOTYPIC_FEATURE),
-    (node_types.PHENOTYPIC_FEATURE, node_types.DISEASE),
-    (node_types.DISEASE, node_types.GENE),
-    (node_types.GENE, node_types.BIOLOGICAL_PROCESS_OR_ACTIVITY),
-    (node_types.ANATOMICAL_ENTITY, node_types.PHENOTYPIC_FEATURE),
-    (node_types.ANATOMICAL_ENTITY, node_types.CELL),
-    (node_types.CELL, node_types.BIOLOGICAL_PROCESS_OR_ACTIVITY),
     (node_types.DISEASE, node_types.BIOLOGICAL_PROCESS_OR_ACTIVITY),
     (node_types.DISEASE, node_types.CHEMICAL_SUBSTANCE),
+    (node_types.DISEASE, node_types.GENE),
+    (node_types.DISEASE, node_types.ANATOMICAL_ENTITY),
+    (node_types.ANATOMICAL_ENTITY, node_types.PHENOTYPIC_FEATURE),
+    (node_types.ANATOMICAL_ENTITY, node_types.ANATOMICAL_ENTITY),
+    (node_types.ANATOMICAL_ENTITY, node_types.BIOLOGICAL_PROCESS_OR_ACTIVITY),
+    (node_types.ANATOMICAL_ENTITY, node_types.CHEMICAL_SUBSTANCE),
+    (node_types.ANATOMICAL_ENTITY, node_types.DISEASE),
     (node_types.CHEMICAL_SUBSTANCE, node_types.DISEASE),
     (node_types.CHEMICAL_SUBSTANCE, node_types.PHENOTYPIC_FEATURE),
     (node_types.CHEMICAL_SUBSTANCE, node_types.CHEMICAL_SUBSTANCE),
-    (node_types.GENE, node_types.CHEMICAL_SUBSTANCE),
-    (node_types.BIOLOGICAL_PROCESS_OR_ACTIVITY, node_types.CHEMICAL_SUBSTANCE),
-    (node_types.PHENOTYPIC_FEATURE, node_types.BIOLOGICAL_PROCESS_OR_ACTIVITY),
-    (node_types.DISEASE, node_types.ANATOMICAL_ENTITY),
     (node_types.CHEMICAL_SUBSTANCE, node_types.GENE),
+    (node_types.GENE, node_types.CHEMICAL_SUBSTANCE),
+    (node_types.GENE, node_types.BIOLOGICAL_PROCESS_OR_ACTIVITY),
     (node_types.GENE, node_types.GENE_FAMILY),
-    (node_types.CELLULAR_COMPONENT, node_types.CHEMICAL_SUBSTANCE),
-    (node_types.CELLULAR_COMPONENT, node_types.ANATOMICAL_ENTITY),
-    (node_types.CELLULAR_COMPONENT, node_types.DISEASE),
-    (node_types.CELLULAR_COMPONENT, node_types.CELL),
+    (node_types.BIOLOGICAL_PROCESS_OR_ACTIVITY, node_types.CHEMICAL_SUBSTANCE),
+    (node_types.PHENOTYPIC_FEATURE, node_types.CHEMICAL_SUBSTANCE),
+    (node_types.PHENOTYPIC_FEATURE, node_types.DISEASE),
+    (node_types.PHENOTYPIC_FEATURE, node_types.BIOLOGICAL_PROCESS_OR_ACTIVITY),
     (node_types.GENE_FAMILY, node_types.CELLULAR_COMPONENT),
     (node_types.GENE_FAMILY, node_types.GENE),
     (node_types.GENE_FAMILY, node_types.PATHWAY),

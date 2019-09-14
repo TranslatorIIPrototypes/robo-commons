@@ -53,16 +53,21 @@ def glom(conc_set, newgroups, unique_prefixes=[]):
             conc_set[element] = newset
 
 def dump_cache(concord,rosetta,outf=None):
-    for element in concord:
-        if isinstance(element,LabeledID):
-            element_id = element.identifier
-        else:
-            element_id = element
-        key = f"synonymize({Text.upper_curie(element_id)})"
-        value = concord[element]
-        if outf is not None:
-            outf.write(f'{key}: {value}\n')
-        rosetta.cache.set(key,value)
+    with rosetta.cache.get_pipeline() as pipe:
+        ecount = 0
+        for element in concord:
+            if isinstance(element,LabeledID):
+                element_id = element.identifier
+            else:
+                element_id = element
+            key = f"synonymize({Text.upper_curie(element_id)})"
+            value = concord[element]
+            if outf is not None:
+                outf.write(f'{key}: {value}\n')
+            rosetta.cache.set(key,value,pipe)
+            ecount += 1
+            if ecount >= 1000:
+                pipe.execute()
 
 
 ############

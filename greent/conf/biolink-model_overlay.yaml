@@ -188,10 +188,18 @@ slots:
       - GAMMA:interacts_with
       - GAMMA:antibody_binding
       - GAMMA:other
+      - GAMMA:other/unknown
       - GAMMA:pharmacological_chaperone
       - GAMMA:releasing_agent
       - GAMMA:kd
       - GAMMA:kb
+      - GAMMA:binder
+      - GAMMA:binding
+      - GAMMA:ligand
+      - GAMMA:cofactor
+      - GAMMA:potency
+      - GAMMA:none
+      - GAMMA:multitarget
 
   #New CTD Stuff
   affects abundance of:
@@ -230,8 +238,10 @@ slots:
       - GAMMA:positive_allosteric_modulator
       - GAMMA:positive_modulator
       - GAMMA:ec50
+      - GAMMA:ac50
       - GAMMA:inducer
       - GAMMA:potentiator
+      - GAMMA:stimulator
 
   decreases activity of:
     mappings:
@@ -242,10 +252,15 @@ slots:
       - GAMMA:antagonist
       - GAMMA:weak_inhibitor
       - GAMMA:inhibitor
+      - GAMMA:channel_blocker
+      - GAMMA:gating_inhibitor
       - GAMMA:blocker
       - GAMMA:inverse_agonist
       - GAMMA:inactivator
+      - GAMMA:downregulator
+      - GAMMA:negative_modulator
       - GAMMA:negative_allosteric_modulator
+      - GAMMA:inhibitory_allosteric_modulator
       - GAMMA:ic50
       - GAMMA:ki
 
@@ -303,6 +318,7 @@ slots:
     mappings:
       - CTD:affects_metabolic_processing_of
       - CTD:affects^metabolic processing
+      - GAMMA:catalytic_activity
 
   increases metabolic processing of:
     mappings:
@@ -383,6 +399,7 @@ slots:
       - CTD:increases^oxidation
       - CTD:increases^reduction
       - CTD:increases^carboxylation
+      - GAMMA:acetylation
 
   decreases molecular modification of:
     mappings:
@@ -418,6 +435,7 @@ slots:
       - CTD:decreases^oxidation
       - CTD:decreases^reduction
       - CTD:decreases^carboxylation
+      - GAMMA:deoxidizer
 
   affects synthesis of:
     mappings:
@@ -533,6 +551,7 @@ slots:
       - CTD:increases^transport
       - RO:0002020
       - GAMMA:carrier
+      - GAMMA:transporter
 
   decreases transport of:
     mappings:

@@ -39,8 +39,10 @@ def pull_iuphar_by_hand():
         for line in iupf:
             if line.startswith('#'):
                 continue
-            x = set(line.strip().split(','))
-            conc.append(x)
+            y = line.strip().split(',')
+            #x = set(y)
+            conc.append(tuple(y))
+    print(conc)
     return conc
 
 def pull_iuphar_by_structure():
@@ -53,7 +55,7 @@ def pull_iuphar_by_structure():
             continue
         if not 'Human' in x[2]:
             continue
-        if len(x[14]) > 0:
+        if len(x[14]) > 2: #it has "" even if nothing else :(
             seq = x[14][1:-1]
             seq3 = x[15][1:-1]
             iuid = f'GTOPDB:{x[0][1:-1]}'

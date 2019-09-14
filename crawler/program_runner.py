@@ -102,11 +102,11 @@ def get_identifiers(input_type,rosetta):
                 continue
             res = get_label(ident) #requests.get(f'https://onto.renci.org/label/{ident}/').json()
             lids.append(LabeledID(ident,res['label']))
+#    elif input_type == node_types.CHEMICAL_SUBSTANCE:
+#        print('pull chem ids')
+#        lids = [LabeledID(identifier="CHEBI:5931",label="insulin")]
     elif input_type == node_types.CHEMICAL_SUBSTANCE:
-        print('pull chem ids')
-        lids = [LabeledID(identifier="CHEBI:5931",label="insulin")]
-    #elif input_type == node_types.CHEMICAL_SUBSTANCE:
-    elif False:
+#    elif False:
         print('pull chem ids')
         identifiers = requests.get("https://onto.renci.org/descendants/CHEBI:23367").json()
         identifiers = [x for x in identifiers if 'CHEBI' in x]
@@ -151,6 +151,17 @@ def get_identifiers(input_type,rosetta):
             except KeyError:
                 res = get_label(ident) #requests.get(f'https://onto.renci.org/label/{ident}/').json()
                 lids.append(LabeledID(ident,res['label']))
+
+        print('pull GTOPDB')
+        gtopdb_ligands = requests.get('https://www.guidetopharmacology.org/services/ligands').json()
+        n=0
+        for gtopdb_ligand in gtopdb_ligands:
+            try:
+                lids.append(LabeledID(f"GTOPDB:{gtopdb_ligand['ligandId']}",gtopdb_ligand['name']))
+                n+=1
+            except:
+                print(gtopdb_ligand)
+        print(n,len(gtopdb_ligands))
 
     elif input_type == node_types.BIOLOGICAL_PROCESS_OR_ACTIVITY:
         # pull Biological process decendants

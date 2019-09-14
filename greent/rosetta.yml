@@ -48,6 +48,12 @@
     biological_process_or_activity:
        - link : bio_process_anatomical_entity
          op   : uberongraph.get_process_or_activity_by_anatomy
+    disease:
+       - link : anatomy_to_disease
+         op   : uberongraph.get_disease_by_anatomy_graph
+    biological_process_or_activity:
+       - link : anatomy_to_biological_process_or_activity
+         op   : uberongraph.get_process_or_activity_by_anatomy
   #cell:
   #  biological_process_or_activity:
     #   - link : bio_process_cell_type
@@ -84,6 +90,8 @@
     chemical_substance:
       - link  : chemical_to_chemical_class
         op    : uberongraph.get_chemical_to_chemical
+      - link  : complex_to_part
+        op    : gtopdb.complex_to_part
   disease_or_phenotypic_feature:
     chemical_substance:
       - link  : exposures
@@ -91,6 +99,9 @@
       - link  : disease_to_chemical
         op    : ctd.disease_to_chemical
   disease:
+    chemical_substance:
+      - link  : uber_disease_to_chemical
+        op    : uberongraph.get_chemical_by_disease
     phenotypic_feature:
       - link  : disease_to_phenotype
         op    : biolink.disease_get_phenotype
@@ -187,6 +198,9 @@
     biological_process_or_activity:
       - link  : phenotype_to_biological_process_or_activity
         op    : uberongraph.get_process_or_activity_by_phenotype
+    chemical_substance:
+      - link  : phenotype_to_chemical_substance
+        op    : uberongraph.get_chemical_by_phenotype
   sequence_variant:
     gene:
       - link  : sequence_variant_to_gene

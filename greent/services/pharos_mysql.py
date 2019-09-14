@@ -31,7 +31,7 @@ class PharosMySQL(Service):
 
     def grab_edge_props(self,result):
         if result['pred'] is not None and len(result['pred']) > 1:
-            rel = Text.snakify(result['pred'])
+            rel = Text.snakify(result['pred']).lower()
         else:
             rel = 'interacts_with'
         predicate = LabeledID(identifier=f'GAMMA:{rel}', label=rel)

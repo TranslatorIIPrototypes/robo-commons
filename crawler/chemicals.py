@@ -115,7 +115,7 @@ def load_chemicals(rosetta, refresh=False):
     glom(concord, unichebi)
     #  9. glom across sequence and chemical stuff
     new_groups = sequence_concord.values()
-    glom(concord,new_groups)
+    glom(concord,new_groups,unique_prefixes=['GTOPDB'])
     # 10. Drop PRO only sequences.
     to_remove = []
     for eq_id_set in concord:
@@ -132,10 +132,12 @@ def load_chemicals(rosetta, refresh=False):
     label_chebis(concord)
     label_chembls(concord)
     label_meshes(concord)
+    print('dumping')
     #Dump
     with open('chemconc.txt','w') as outf:
         dump_cache(concord,rosetta,outf)
     dump_cache(concord,rosetta)
+    print('done')
 
 def get_chebi_label(ident):
     res = requests.get(f'https://uberonto.renci.org/label/{ident}/').json()
@@ -356,7 +358,7 @@ def annotate_from_chebi(rosetta):
         
     if len(result_buffer) != 0 :
         #deal with the last pieces left in the buffer
-        chebi_role_data = loop.run_until_complete(result_buffer.keys())
+        chebi_role_data = loop.run_until_complete(make_uberon_role_queries(result_buffer.keys(),chemical_annotator))
         for entry in merge_roles_and_annotations(chebi_role_data, result_buffer):
             rosetta.cache.set(f'annotation({Text.upper_curie(entry[0])})', entry[1])
     logger.debug('done caching chebi annotations...')
@@ -417,5 +419,6 @@ def load_annotations_chemicals(rosetta):
     annotate_from_chembl(rosetta)
 
 if __name__ == '__main__':
-    x = pull_uniprot_chebi()
-    print(x)
+    #x = pull_uniprot_chebi()
+    #print(x)
+    load_chemicals()

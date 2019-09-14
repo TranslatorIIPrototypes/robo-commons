@@ -1,4 +1,5 @@
-from aiosparql.client import SPARQLClient
+import time
+from aiosparql.client import SPARQLClient, SPARQLRequestFailed
 from greent.triplestore import TripleStore 
 import logging
 from string import Template
@@ -15,7 +16,16 @@ class TripleStoreAsync(TripleStore):
         Always returns JSON response.
         """
         async with SPARQLClient(self.host_name) as client:
-            result = await client.query(query)
+            complete = False
+            tries = 0
+            maxtries = 10
+            while not complete and tries < maxtries:
+                try:
+                    result = await client.query(query)
+                    complete = True
+                except:
+                    time.sleep(0.5)
+                    tries += 1
         return result
 
     async def async_query(self, query_text, outputs, flat= False, post = False):
