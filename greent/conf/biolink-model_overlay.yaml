@@ -176,6 +176,15 @@ slots:
       - hetio:DOWNREGULATES_AdG
       - hetio:DOWNREGULATES_DdG
 
+  homologous to:
+    mappings:
+      - RO:0002158
+      - RO:0002159
+      - core#sexually:homologous:to
+
+
+
+
   directly interacts with:
     description: >-
       Holds between molecular entities that phyically and directly interact with each other
@@ -200,6 +209,11 @@ slots:
       - GAMMA:potency
       - GAMMA:none
       - GAMMA:multitarget
+      - GAMMA:chaperone
+      - GAMMA:component
+      - GAMMA:adduct
+      - GAMMA:antibody
+
 
   #New CTD Stuff
   affects abundance of:
@@ -226,6 +240,7 @@ slots:
       - CTD:affects^activity
       - GAMMA:allosteric_modulator
       - GAMMA:modulator
+      - GAMMA:regulator
 
   increases activity of:
     mappings:
@@ -263,6 +278,9 @@ slots:
       - GAMMA:inhibitory_allosteric_modulator
       - GAMMA:ic50
       - GAMMA:ki
+      - GAMMA:aggregation_inhibitor
+      - GAMMA:conversion_inhibitor
+      - GAMMA:suppressor
 
   affects expression of:
     mappings:
@@ -301,6 +319,7 @@ slots:
       - CTD:affects_localization_of
       - CTD:affects^localization
       - RO:0002313
+      - GAMMA:storage
 
   increases localization of:
     mappings:
@@ -400,6 +419,7 @@ slots:
       - CTD:increases^reduction
       - CTD:increases^carboxylation
       - GAMMA:acetylation
+      - GAMMA:oxidizer
 
   decreases molecular modification of:
     mappings:
@@ -505,6 +525,7 @@ slots:
     mappings:
       - CTD:decreases_response_to
       - CTD:decreases^response to substance
+      - GAMMA:desensitize_the_target
 
   affects splicing of:
     mappings:
@@ -605,6 +626,49 @@ slots:
   coexists with:
     mappings:
       - RO:0002325  # colocalizes_with
+      - BSPO:0000096 #anterior to
+      - BSPO:0000097 #distal to
+      - BSPO:0000098 #dorsal to
+      - BSPO:0000099 #posterior to
+      - BSPO:0000100 #proximal to
+      - BSPO:0000102 #ventral to
+      - BSPO:0000104 #approximately perpendicular to
+      - BSPO:0015001 #finshes axis
+      - BSPO:0015002 #follows axis
+      - BSPO:0015003 #has axis
+      - BSPO:0015005 #orthogonal to
+      - BSPO:0015007 #starts axis
+      - BSPO:0015008 #surface of
+      - BSPO:0015014 #immdiately superficial to
+      - RO:0000300   #in neural circuit with
+      - RO:0000302   #downstream in neural circuit with
+      - RO:0002002   #has boundary
+      - RO:0002120   #synapsed to
+      - RO:0002150   #continuous with
+      - RO:0002170   #connected to
+      - RO:0002176   #connects
+      - RO:0002177   #attaches to part of
+      - RO:0002177   #attaches to part of
+      - RO:0002178   #supplies
+      - RO:0002179   #drains
+      - RO:0002371   #attached to
+      - core#anastomes:with
+      - core#anteriorly:connected:to
+      - core#channel:for
+      - core#channels:from
+      - core#channels:into
+      - core#conduit:for
+      - core#distally:connected:to
+      - core#extends:fibers:into
+      - core#filtered:through
+      - core#indirectly:supplies
+      - core#proximally:connected:to
+      - core#synapsed:by
+      - core#transitively:anteriorly:connected:to
+      - core#transitively:connected:to
+      - core#transitively:distally:connected:to
+      - core#transitively:proximally:connected:to
+
 
     #In translator_minimal now, here for hetio
   expresses:
@@ -614,6 +678,21 @@ slots:
       - RO:0002292
       - hetio:EXPRESSES_AeG
 
+  derives into:
+    mappings:
+      - RO:0001001
+
+
+  location of:
+    mappings:  
+      - RO:0001015
+      - BFO:0000067 #contains process
+      - RO:0001019  #contains
+      - RO:0002005  #innervated by
+      - RO:0002103  #synapsed by
+      - RO:0002221  #surrounds
+
+
   located in:
     mappings:
       - GO:regulates_o_occurs_in
@@ -622,7 +701,31 @@ slots:
       - RO:0004026
       - RO:0004027
       - RO:0001018
+      - RO:0002100 #has soma location
+      - RO:0002102 #axon synapses in
+      - RO:0002113 #has presynaptic terminal in
+      - RO:0002130 #has presynaptic terminal in
+      - RO:0002134  #innervates
       - quick_go:is_active_in
+      - BSPO:0000107 #deep to
+      - BSPO:0000108 #superficial to
+      - BSPO:0000120 #in left side of
+      - BSPO:0000121 #in right side of
+      - BSPO:0000122 #in posterior side of
+      - BSPO:0000123 #in anterior side of
+      - BSPO:0000124 #in proximal side of
+      - BSPO:0000125 #in distal side of
+      - BSPO:0000126 #in lateral side of
+      - BSPO:0001100 #in superficial part of
+      - BSPO:0001101 #in deep part of
+      - BSPO:0001107 #immediately deep to
+      - BSPO:0015101 #in dorsal side of
+      - BSPO:0015102 #in ventral side of
+      - BSPO:0015202 #aboral to
+      - RO:0002219   #surrounded by
+      - core#in:central:side:of
+      - core#in:innermost:side:of
+      - core#in:outermost:side:of
 
   contributes to:
     mappings:
@@ -681,6 +784,30 @@ slots:
       - RO:0002254
       - RO:0002202
       - RO:0002258
+      - RO:0002203 # develops into
+      - RO:0002207 # develops from
+      - RO:0002225 # develops from part of
+      - RO:0002226 # develops in
+      - RO:0002255 # developmentally contributes to
+      - RO:0002256 # developmentally induced by
+      - RO:0002285 # developmentally replaces
+      - RO:0002286 # developmentally succeeded by
+      - RO:0002320 # evolutionarily related to
+      - RO:0002156 #derived by descent from
+      - RO:0002372 # has muscle origin
+      - RO:0002373 # has muscle insertion
+      - RO:0002374 # derived from ancestral fusion of
+      - RO:0002374 # derived from ancestral fusion of
+      - RO:0002375 # in branching relationship with
+      - RO:0002384 # has developmental potential involving
+      - RO:0002385 # has potential do developmentally contribute
+      - RO:0002387 # has potential to develop into
+      - RO:0002388 # has potential to directly develop into
+      - RO:0002433 # contributes to morphology of
+      - RO:0002494 # transformation of
+      - RO:0002495 # immediate transformation of
+      - RO:0002567 # biomechanically related to
+      - core#protects
 
   disrupts:
     mappings:
@@ -855,6 +982,7 @@ slots:
       - RO:0002344
       - RO:0002479
       - RO:0002232
+      - core#site:of
 
   regulates:
     description: >-
@@ -904,10 +1032,29 @@ slots:
   part of:
     mappings:
       - RO:0002007
+      - BSPO:0001113 # preaxialmost_part_of
+      - RO:0002376 # tributary of
+      - RO:0002380 # branching part of
+      - RO:0002571 # lumen of
+      - RO:0002572 # luminal space of
+      - RO:0002576 # skeleton of
+      - core#layer:part:of
+      - core#subdivision:of
+      - core#trunk:part:of
+
+  has part:
+    mappings:
+      - RO:0002104 #has plasma membrane part
+      - RO:0002180 # has component
+      - RO:0002351 # has member
+      - RO:0002473 # composed primarily of
+      - RO:0002551 # has skeleton 
+      - RO:0002568 # has muscle antagonist 
   
   overlaps:
     mappings:
       - RO:0002220
+      - BSPO:0005001 # intersects midsagittal plane of
 
   spatially disjoint from:
     description: >-
@@ -915,8 +1062,28 @@ slots:
     mappings:
       - RO:0002163
 
+  produced by:
+    is_a: related to
+    mappings:
+      - RO:0003001
+
+
   in linkage disequilibrium with:
     description: >-
       holds between two sequence variants, the presence of which are correlated in a population
     mappings:
       - NCIT:C16798
+
+  has increased amount:
+    mappings:
+      - cl#has:high:plasma:membrane:amount
+
+  has decreased amount:
+    mappings:
+      - cl#has:low:plasma:membrane:amount
+
+  lacks part:
+    mappings:
+      - cl#lacks:part
+      - cl#lacks:plasma:membrane:part
+
