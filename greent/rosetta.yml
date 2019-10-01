@@ -36,6 +36,9 @@
 
 '@operators':
   anatomical_entity:
+    anatomical_entity:
+       - link : anatomical_entity_ontological_class_relation
+         op   : onto.get_ontological_subclass
     cell:
        - link : anatomy_to_cell_type
          op   : uberongraph.get_cell_by_anatomy_graph
@@ -46,6 +49,9 @@
        - link : anatomy_to_phenotype
          op   : uberongraph.get_phenotype_by_anatomy_graph
   cell:
+    cell: 
+      - link : cell_ontological_class_relation
+        op   : onto.get_ontological_subclass
     anatomical_entity:
       - link : cell_type_to_anatomy
         op   : uberongraph.get_anatomy_by_cell_graph
@@ -55,6 +61,9 @@
        - link : bio_process_cell_type
          op   : uberongraph.get_process_or_activity_by_cell
   biological_process_or_activity:
+    biological_process_or_activity:
+      - link : bio_process_or_activity_ontological_class_relation
+        op   : onto.get_ontological_subclass
     gene:
       - link : bio_process_gene
         op   : quickgo.go_term_to_gene_annotation
@@ -69,6 +78,9 @@
       - link : bio_process_chemical_substance
         op   : uberongraph.get_chemical_entity_by_process_or_activity
   chemical_substance:
+    chemical_substance:
+      - link : chemical_substance_ontological_relation
+        op   : onto.get_ontological_subclass
     gene:
       - link  : chemical_targets_gene
         op    : chembio.graph_pubchem_to_ncbigene
@@ -91,12 +103,18 @@
       - link  : chemical_to_chemical_class
         op    : uberongraph.get_chemical_to_chemical
   disease_or_phenotypic_feature:
+    disease_or_phenotypic_feature:
+      - link : disease_or_phenotypic_feature_ontological_relation
+        op   : onto.get_ontological_subclass
     chemical_substance:
       - link  : exposures
         op    : ctd.disease_to_exposure
       - link  : disease_to_chemical
         op    : ctd.disease_to_chemical
   disease:
+    disease:
+      - link : disease_ontological_relation
+        op   : onto.get_ontological_subclass
     phenotypic_feature:
       - link  : disease_to_phenotype
         op    : biolink.disease_get_phenotype
@@ -117,10 +135,16 @@
       - link  : disease_to_anatomical_entity
         op    : uberongraph.get_anatomy_by_disease
   drug:
+    drug:
+      - link : drug_ontological_relation
+        op   : onto.get_ontological_subclass
     gene:
       - link  : drug_to_gene
         op    : pharos.drug_get_gene
   metabolite:
+    metabolite:
+      - link : metabolite_ontological_relation
+        op   : onto.get_ontological_subclass
     gene:
       - link  : metabolite_to_gene
         op    : hmdb.metabolite_to_enzyme
@@ -136,6 +160,9 @@
       - link  : metabolite_to_metabolite
         op    : kegg.chemical_get_chemical
   gene:
+    gene:
+      - link : gene_ontological_relation
+        op   : onto.get_ontological_subclass
     anatomical_entity:
       - link  : gene_to_anatomy
         op    : hetio.gene_to_anatomy
@@ -180,6 +207,9 @@
       - link  : gene_get_phenotype
         op    : biolink.gene_get_phenotype
   pathway:
+    pathway:
+      - link : pathway_ontological_relation
+        op   : onto.get_ontological_subclass
     gene:
       - link  : pathway_to_gene
         op    : biolink.pathway_get_gene
@@ -187,6 +217,9 @@
       - link  : pathway_to_metabolite
         op    : hmdb.pathway_to_metabolite
   phenotypic_feature:
+    phenotypic_feature:
+      - link : phenotypic_feature_ontological_relation
+        op   : onto.get_ontological_subclass
     anatomical_entity:
       - link  : phenotype_to_anatomy
         op    : uberongraph.get_anatomy_by_phenotype_graph
@@ -197,6 +230,9 @@
       - link  : phenotype_to_biological_process_or_activity
         op    : uberongraph.get_process_or_activity_by_phenotype
   sequence_variant:
+    sequence_variant:
+      - link : sequence_variant_ontological_relation
+        op   : onto.get_ontological_subclass
     gene:
       - link  : sequence_variant_to_gene
         op    : myvariant.sequence_variant_to_gene
@@ -211,6 +247,9 @@
       - link  : sequence_variant_to_sequence_variant
         op    : ensembl.sequence_variant_to_sequence_variant
   cellular_component:
+    cellular_component:
+      - link : cellular_component_ontological_relation
+        op   : onto.get_ontological_subclass
     chemical_substance:
       - link  : cellular_component_to_chemical_substance
         op    : uberongraph.get_chemical_substance_by_cellular_component  
