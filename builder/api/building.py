@@ -37,7 +37,64 @@ node_props_file = os.path.join(os.path.dirname(__file__), "..", "..", "greent", 
 logger = LoggingUtil.init_logging(__name__, level=logging.DEBUG)
 
 
+def synonymize(node_id, node_type=node_types.NAMED_THING):
+    """Return synonymized node."""
+    greent_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..')
+    sys.path.insert(0, greent_path)
+    rosetta = setup(os.path.join(greent_path, 'greent', 'greent.conf'))
+    node = KNode(id=node_id, type=node_type, name='')
+    rosetta.synonymizer.synonymize(node)
+    result = {
+        'id': node.id,
+        'name': node.name,
+        'type': node.type,
+        'synonyms': list(node.synonyms)
+    }
+    return result
+
+
 class Synonymize(Resource):
+    def post(self, node_id):
+        """
+        Return the best identifier for a concept, and its known synonyms
+        ---
+        tags: [util]
+        parameters:
+          - in: path
+            name: node_id
+            description: curie of the node
+            schema:
+                type: string
+            required: true
+            default: MONDO:0005737
+        responses:
+            200:
+                description: Synonymized node
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                id:
+                                    type: string
+                                name:
+                                    type: string
+                                type:
+                                    type: string
+                                synonyms:
+                                    type: array
+                                    items:
+                                        type: string
+        """
+        try:
+            result = synonymize(node_id)
+        except Exception as e:
+            logger.error(e)
+            return e.message, 500
+        return result, 200
+api.add_resource(Synonymize, '/synonymize/<node_id>/')
+
+class SynonymizeDeprecated(Resource):
     def post(self, node_id, node_type):
         """
         Return the best identifier for a concept, and its known synonyms
@@ -58,6 +115,7 @@ class Synonymize(Resource):
                 type: string
             required: true
             default: disease
+        deprecated: true
         responses:
             200:
                 description: Synonymized node
@@ -77,28 +135,14 @@ class Synonymize(Resource):
                                     items:
                                         type: string
         """
-        greent_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..')
-        sys.path.insert(0, greent_path)
-        rosetta = setup(os.path.join(greent_path, 'greent', 'greent.conf'))
-
-        node = KNode(id=node_id, type=node_type, name='')
-
+        #TODO: remove this 
         try:
-            #synonymizer = Synonymizer(rosetta.type_graph.concept_model, rosetta)
-            rosetta.synonymizer.synonymize(node)
+            result = synonymize(node_id, node_type)
         except Exception as e:
             logger.error(e)
             return e.message, 500
-
-        result = {
-            'id': node.id,
-            'name': node.name,
-            'type': node.type,
-            'synonyms': list(node.synonyms)
-        }
         return result, 200
-
-api.add_resource(Synonymize, '/synonymize/<node_id>/<node_type>/')
+api.add_resource(SynonymizeDeprecated, '/synonymize/<node_id>/<node_type>/')
 
 def rossetta_setup_default():
     greent_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..')
