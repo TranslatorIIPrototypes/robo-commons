@@ -45,21 +45,15 @@
     phenotypic_feature:
        - link : anatomy_to_phenotype
          op   : uberongraph.get_phenotype_by_anatomy_graph
-    biological_process_or_activity:
+    biological_process:
        - link : bio_process_anatomical_entity
-         op   : uberongraph.get_process_or_activity_by_anatomy
+         op   : uberongraph.get_process_by_anatomy
     disease:
        - link : anatomy_to_disease
          op   : uberongraph.get_disease_by_anatomy_graph
-    biological_process_or_activity:
+    molecular_activity:
        - link : anatomy_to_biological_process_or_activity
-         op   : uberongraph.get_process_or_activity_by_anatomy
-  #cell:
-  #  biological_process_or_activity:
-    #   - link : bio_process_cell_type
-    #     op   : quickgo.cell_to_go_term_annotation_extensions
-  #     - link : bio_process_cell_type
-  #       op   : uberongraph.get_process_or_activity_by_cell
+         op   : uberongraph.get_activity_by_anatomy
   biological_process_or_activity:
     gene:
       - link : bio_process_gene
@@ -215,16 +209,6 @@
     sequence_variant:
       - link  : sequence_variant_to_sequence_variant
         op    : ensembl.sequence_variant_to_sequence_variant
-  cellular_component:
-    chemical_substance:
-      - link  : cellular_component_to_chemical_substance
-        op    : uberongraph.get_chemical_substance_by_cellular_component  
-    disease:
-      - link  : cellular_component_to_disease
-        op    : uberongraph.get_disease_by_cellular_component
-    cell:
-      - link  : cellular_component_to_cell
-        op    : uberongraph.get_cell_by_cellular_component
   gene_family:
     gene:
       - link  : gene_family_to_gene

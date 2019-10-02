@@ -135,14 +135,17 @@ class UberonGraphKS(Service):
         return results
 
     def get_neighbor(self,input_id,output_type,subject=True):
-        parents = {node_types.ANATOMICAL_ENTITY:"<http://purl.obolibrary.org/obo/UBERON_0001062",
+        parents = {node_types.ANATOMICAL_ENTITY:"<http://purl.obolibrary.org/obo/UBERON_0001062>",
                    node_types.DISEASE: "<http://purl.obolibrary.org/obo/MONDO_0000001>",
                    node_types.MOLECULAR_ACTIVITY: "<http://purl.obolibrary.org/obo/GO_0003674>",
                    node_types.BIOLOGICAL_PROCESS: "<http://purl.obolibrary.org/obo/GO_0008150>",
                    node_types.CHEMICAL_SUBSTANCE: "<http://purl.obolibrary.org/obo/CHEBI_24431>",
                    node_types.PHENOTYPIC_FEATURE: "<http://purl.obolibrary.org/obo/HP_0000118>"}
+        pref=Text.get_curie(input_id)
+        obo_prefix = f'PREFIX {pref}: <http://purl.obolibrary.org/obo/{pref}_>' 
         text="""
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        """+obo_prefix+"""
         select distinct ?output_id ?output_label ?p ?pLabel 
         from <http://reasoner.renci.org/nonredundant>
         from <http://reasoner.renci.org/ontology>
@@ -152,8 +155,8 @@ class UberonGraphKS(Service):
         if subject:
             text+='	 $input_id ?p ?output_id .'
         else:
-            text+='  $output_id ?p ?input_id .'
-        text += """"
+            text+='  ?output_id ?p $input_id .'
+        text += """
             }
             graph <http://reasoner.renci.org/ontology/closure> {
                 ?output_id rdfs:subClassOf $parent .
@@ -163,8 +166,8 @@ class UberonGraphKS(Service):
         }
         """
         results = self.triplestore.query_template(
-            inputs = { 'input_id': input_id },
-            outputs = [ 'output_id', 'output_id', 'p', 'pLabel' ],
+            inputs = { 'input_id': input_id, 'parent': parents[output_type] },
+            outputs = [ 'output_id', 'output_label', 'p', 'pLabel' ],
             template_text = text
         )
         return results
@@ -569,7 +572,7 @@ class UberonGraphKS(Service):
                     continue
                 predicate = LabeledID(Text.obo_to_curie(r['p']),r['pLabel'])
                 output_node = KNode(r['output_id'],type=output_type,name=r['output_label'])
-                if direction == 'object':
+                if direction == 'subject':
                     edge = self.create_edge(input_node, output_node, caller, curie, predicate)
                 else:
                     edge = self.create_edge(output_node, input_node, caller , curie, predicate)
@@ -581,7 +584,7 @@ class UberonGraphKS(Service):
     # and who is the object) and which of them we are querying by.  We want to query
     # independent of direction i.e. let the input node be either the subject or the object.
 
-    def get_anatomy_by_anatomy(self, anatomy_node):
+    def get_anatomy_by_anatomy_graph(self, anatomy_node):
         return self.get_out_by_in(anatomy_node,node_types.ANATOMICAL_ENTITY,['UBERON','CL','GO'])
 
     def get_phenotype_by_anatomy_graph (self, anatomy_node):
@@ -593,10 +596,10 @@ class UberonGraphKS(Service):
     def get_process_by_anatomy(self, anatomy_node):
         return self.get_out_by_in(anatomy_node,node_types.BIOLOGICAL_PROCESS,['UBERON','CL','GO'])
 
-    def get_function_by_anatomy(self, anatomy_node):
-        return self.get_out_by_in(anatomy_node,node_types.MOLECULAR_FUNCTION,['UBERON','CL','GO'])
+    def get_activity_by_anatomy(self, anatomy_node):
+        return self.get_out_by_in(anatomy_node,node_types.MOLECULAR_ACTIVITY,['UBERON','CL','GO'])
 
-    def get_disease_by_anatomy(self, anatomy_node):
+    def get_disease_by_anatomy_graph(self, anatomy_node):
         return self.get_out_by_in(anatomy_node,node_types.DISEASE,['UBERON','CL','GO'])
 
     def get_anatomy_by_process_or_activity(self, go_node):
@@ -609,7 +612,7 @@ class UberonGraphKS(Service):
         return self.get_out_by_in(disease_node,node_types.BIOLOGICAL_PROCESS,['MONDO'])
 
     def get_activity_by_disease(self,disease_node):
-        return self.get_out_by_in(disease_node,node_types.MOLECULAR_FUNCTION,['MONDO'])
+        return self.get_out_by_in(disease_node,node_types.MOLECULAR_ACTIVITY,['MONDO'])
 
     def get_anatomy_by_disease(self,disease_node):
         return self.get_out_by_in(disease_node,node_types.ANATOMICAL_ENTITY,['MONDO'])
@@ -624,7 +627,7 @@ class UberonGraphKS(Service):
         return self.get_out_by_in(pheno_node,node_types.CHEMICAL_SUBSTANCE,['HP'])
 
     def get_activity_by_phenotype(self, pheno_node):
-        return self.get_out_by_in(pheno_node,node_types.MOLECULAR_FUNCTION,['HP'])
+        return self.get_out_by_in(pheno_node,node_types.MOLECULAR_ACTIVITY,['HP'])
 
     def get_anatomy_by_phenotype_graph (self, pheno_node):
         return self.get_out_by_in(pheno_node,node_types.ANATOMICAL_ENTITY,['HP'])

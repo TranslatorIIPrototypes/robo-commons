@@ -124,11 +124,6 @@ def export_edge_chunk(tx,edgelist,edgelabel):
             )
             """
 
-    logger.debug('YOYO')
-    for edge in edgelist:
-        logger.debug(edge.properties)
-    logger.debug('YAYA')
-
     batch = [ {'source_id': edge.source_id,
                'target_id': edge.target_id,
                'provided_by': edge.provided_by,

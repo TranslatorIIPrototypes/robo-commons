@@ -72,8 +72,12 @@ def get_identifiers(input_type,rosetta):
         identifiers = requests.get("https://onto.renci.org/descendants/UBERON:0001062").json()
         for ident in identifiers:
             if ident not in bad_idents:
-                res = get_label(ident) #requests.get(f'https://onto.renci.org/label/{ident}').json()
-                lids.append(LabeledID(ident,res['label']))
+                if ident.split(':')[0] in ['UBERON','CL','GO']:
+                    #res = get_label(ident) #requests.get(f'https://onto.renci.org/label/{ident}').json()
+                    #lids.append(LabeledID(ident,res['label']))
+                    print(ident)
+                    label = rosetta.core.uberongraph.get_label(ident)
+                    lids.append(LabeledID(ident,label))
     elif input_type == node_types.CELL:
         identifiers = requests.get("https://onto.renci.org/descendants/CL:0000000").json()
         for ident in identifiers:

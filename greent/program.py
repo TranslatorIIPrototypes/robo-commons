@@ -124,8 +124,9 @@ class Program:
         for k in self.transitions:
             logstring+=f' {k}: {self.transitions[k]}\n'
         total_transitions = len(self.transitions.keys())
-        if  total_transitions < 20:
-            logger.debug(logstring)
+        #if  total_transitions < 20:
+        #    logger.debug(logstring)
+        logger.debug(logstring)
         logger.debug(f'total transitions : {total_transitions}')
 
     def initialize_instance_nodes(self):
@@ -195,6 +196,10 @@ class Program:
         if edge is not None:
             is_source = node.id == edge.source_id
         self.rosetta.synonymizer.synonymize(node)
+        #Our excluded ids are e.g. uberons, but we might have gotten something else like a CARO
+        # so we need to synonymize and then cehck for identifiers
+        if node.id in self.excluded_identifiers:
+            return
         try:
             result = annotate_shortcut(node, self.rosetta)
             if type(result) == type(None):

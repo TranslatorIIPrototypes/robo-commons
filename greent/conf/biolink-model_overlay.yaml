@@ -114,6 +114,25 @@ classes:
       - REACT
       - KEGG-path
 
+  biological process:
+    id_prefixes:
+      - GO
+      - Reactome
+
+  biological process or molecular activity:
+    id_prefixes:
+      - GO
+      - Reactome
+
+  molecular activity:
+    id_prefixes:
+      - GO
+      - Reactome
+
+  cellular component:
+    id_prefixes:
+      - GO
+
 slots:
 
   id:
@@ -122,7 +141,6 @@ slots:
 
   gene associated with condition:
     mappings:
-      - BIOLINK:0000001 # Minting id for this
       - GENO:0000840 # pathogenic_for_condition
       - GENO:0000841 # likely_pathogenic_for_condition
 
@@ -320,6 +338,7 @@ slots:
       - CTD:affects^localization
       - RO:0002313
       - GAMMA:storage
+      - GOREL:0002003 # results in distribution of
 
   increases localization of:
     mappings:
@@ -488,6 +507,9 @@ slots:
       - CTD:increases^cleavage
       - CTD:increases^hydrolysis
       - GAMMA:substrate
+      - RO:0002586 # results in breakdown of
+      - RO:0002590 # results in disassembly of
+      - GOREL:0002004 # results in fission of
 
   decreases degradation of:
     mappings:
@@ -641,6 +663,7 @@ slots:
       - BSPO:0015008 #surface of
       - BSPO:0015014 #immdiately superficial to
       - RO:0000300   #in neural circuit with
+      - RO:0000301   #upstream in neural circuit with
       - RO:0000302   #downstream in neural circuit with
       - RO:0002002   #has boundary
       - RO:0002120   #synapsed to
@@ -648,12 +671,12 @@ slots:
       - RO:0002170   #connected to
       - RO:0002176   #connects
       - RO:0002177   #attaches to part of
-      - RO:0002177   #attaches to part of
       - RO:0002178   #supplies
       - RO:0002179   #drains
       - RO:0002371   #attached to
-      - core#anastomes:with
+      - core#anastomoses:with
       - core#anteriorly:connected:to
+      - core#posteriorly:connected:to
       - core#channel:for
       - core#channels:from
       - core#channels:into
@@ -746,6 +769,8 @@ slots:
   participates in:
     mappings:
       - GO:mediated_by
+      - BFO:0000056
+        
 
   has participant:
     mappings:
@@ -761,12 +786,20 @@ slots:
       - RO:0002329 #part of something that is capable of
       - biolink:gene_get_function            # biolink returns no relation_id or an identifier that is not a curie
       - RO:0002584
+        
   causes:
     mappings:
       - RO:0002595  #Actually causally relates entity to process, while causes is supposed to be entity to entity...
       - RO:0002500  #Actually causally relates entity to process, and is only causally involved in
       - mondo#disease:triggers
       - RO:0003303
+      - RO:0002411 # causally upstream of
+      - RO:0002418 # causally upstream of or within
+      - RO:0004047 # causally upstream of or within, positive effect
+      - RO:0004046 # causally upstream of or within, negative  effect
+      - RO:0002304 # causally upstream of, positive  effect
+      - RO:0002305 # causally upstream of, negative  effect
+      - RO:0002418 # causally upstream of or within
 
   related to:
     mappings:
@@ -808,6 +841,14 @@ slots:
       - RO:0002495 # immediate transformation of
       - RO:0002567 # biomechanically related to
       - core#protects
+      - RO:0002592 # results in organization of (ubergraph)
+      - RO:0002488 # existence starts during
+      - RO:0002490 # existence overlaps
+      - RO:0002492 # existence ends during
+      - GOREL:0002005 # results in fusion of
+      - RO:0002222 # temporally related to
+      - GOREL:0012006 # results in maintenance of
+      - RO:0002501 #causal relation between processes
 
   disrupts:
     mappings:
@@ -983,6 +1024,9 @@ slots:
       - RO:0002479
       - RO:0002232
       - core#site:of
+      - RO:0002342 #results in transport across
+      - RO:0002341 #results in transport along
+      - RO:0002021 #occurs across
 
   regulates:
     description: >-
@@ -1032,7 +1076,10 @@ slots:
   part of:
     mappings:
       - RO:0002007
+      - BSPO:0001106 # proximalmost_part_of
+      - BSPO:0001108 # distalmost_part_of
       - BSPO:0001113 # preaxialmost_part_of
+      - BSPO:0001115 # postaxialmost_part_of
       - RO:0002376 # tributary of
       - RO:0002380 # branching part of
       - RO:0002571 # lumen of
@@ -1066,6 +1113,7 @@ slots:
     is_a: related to
     mappings:
       - RO:0003001
+      - RO:0002353 # output of
 
 
   in linkage disequilibrium with:
