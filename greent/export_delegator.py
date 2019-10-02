@@ -61,16 +61,16 @@ class WriterDelegator:
             self.buffered_writer.write_node(node)
             
         def write_edge(self, edge, force_create=False):
-        if self.channel is not None:
-            write_message = {'nodes': [], 'edges': [edge]}
-            if force_create:
-                write_message['force'] = True
-            self.channel.basic_publish(
-                exchange='',
-                routing_key='neo4j',
-                body=pickle.dumps(write_message))
-        else:
-            self.buffered_writer.write_edge(edge, force_create)
+            if self.channel is not None:
+                write_message = {'nodes': [], 'edges': [edge]}
+                if force_create:
+                    write_message['force'] = True
+                self.channel.basic_publish(
+                    exchange='',
+                    routing_key='neo4j',
+                    body=pickle.dumps(write_message))
+            else:
+                self.buffered_writer.write_edge(edge, force_create)
 
     def flush(self):
         if self.connection and self.connection.is_open:
