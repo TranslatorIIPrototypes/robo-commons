@@ -22,8 +22,8 @@ def load_synonyms(rosetta=None,refresh_chemicals=False):
     if rosetta is None:
         rosetta = Rosetta()
 #    load_genes(rosetta)
-#    load_chemicals(rosetta,refresh=refresh_chemicals)
-    load_diseases_and_phenotypes(rosetta)
+    load_chemicals(rosetta,refresh=refresh_chemicals)
+#    load_diseases_and_phenotypes(rosetta)
 
 def load_genetic_variants(rosetta=None):
     if rosetta is None:
@@ -87,8 +87,8 @@ crawls = [
 ]
 
 def crawl_all(rosetta):
-    #load_synonyms(rosetta)
-    #create_omnicache(rosetta)
+    load_synonyms(rosetta)
+    create_omnicache(rosetta)
     for (source,target) in crawls:
         poolrun(source,target,rosetta)
 

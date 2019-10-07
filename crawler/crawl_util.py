@@ -18,7 +18,8 @@ def pull_via_ftp(ftpsite, ftpdir, ftpfile):
     ftp.quit()
     return binary
 
-def glom(conc_set, newgroups, unique_prefixes=[]):
+#def glom(conc_set, newgroups, unique_prefixes=[]):
+def glom(conc_set, newgroups, unique_prefixes=['INCHI']):
     """We want to construct sets containing equivalent identifiers.
     conc_set is a dictionary where the values are these equivalent identifier sets and
     the keys are all of the elements in the set.   For each element in a set, there is a key
@@ -42,6 +43,17 @@ def glom(conc_set, newgroups, unique_prefixes=[]):
         setok = True
         for up in unique_prefixes:
             if len([1 for e in newset if e.startswith(up)]) > 1:
+                print('------')
+                print('up')
+                print(up)
+                print([e for e in newset if e.startswith(up)])
+                print('group')
+                print(group)
+                print('existing_sets')
+                print(existing_sets)
+                print('newset')
+                print(newset)
+                print('------')
                 setok = False
                 break
         if not setok:

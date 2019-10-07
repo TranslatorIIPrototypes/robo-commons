@@ -65,16 +65,19 @@ class PharosMySQL(Service):
         identifiers = gene_node.get_synonyms_by_prefix('HGNC')
         chembls = set()
         for hgnc in identifiers:
+            #Note that there are nulls in at least cmpd_chemblid (?!?!)
+            #Have not fully checked all the other columns/tables.
             query1= \
             f"""SELECT DISTINCT da.drug, da.cmpd_chemblid AS cid, 'ChEMBL' AS id_src, 
             da.act_value AS affinity, da.act_type AS affinity_parameter, da.action_type AS pred
             FROM xref x, drug_activity da  
             WHERE  x.protein_id = da.target_id 
+            AND da.cmpd_chemblid IS NOT NULL
             AND x.xtype='HGNC' 
             AND x.value = '{hgnc}';"""
             self.g2d(hgnc,query1,chembls,resolved_edge_nodes,gene_node)
             query2=\
-            f"""SELECT DISTINCT da.cmpd_name_in_ref as drug, da.cmpd_id_in_src as cid, catype AS id_src,
+            f"""SELECT DISTINCT da.cmpd_name_in_src as drug, da.cmpd_id_in_src as cid, catype AS id_src,
             da.act_value AS affinity, da.act_type as affinity_parameter, da.act_type AS pred,
             da.pubmed_ids AS pubmed_ids
             FROM xref x, cmpd_activity da  
