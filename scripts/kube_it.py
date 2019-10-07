@@ -35,7 +35,7 @@ def make_kube_files(docker_compose_config, out_put_file):
 
 def docker_config(docker_compose_file, file_name, env_file = ''):
     if env_file:
-        command = f'source {env_file} && docker-compose -f {docker_compose_file} config > {file_name}'
+        command = f'export $(cat {env_file} | grep -v ^# | xargs) && docker-compose -f {docker_compose_file} config > {file_name}'
     else:
         command = f'docker-compose -f {docker_compose_file} config > {file_name}'
     run_command(command)
@@ -72,7 +72,7 @@ def convert_every_one(robokop_root, out_dir,tmp_file):
         #interfaces --- begin
         'cache': 'robokop-interfaces/deploy/cache/',
         'knowledgegraph':'robokop-interfaces/deploy/graph/',
-        'interfaces': 'robokop-interfaces/deploy',
+        'interfaces': 'robokop-interfaces/deploy/',
         #interfaces --- end
         #messenger --- being
         'messenger': 'robokop-messenger/',
