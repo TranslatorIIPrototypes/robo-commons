@@ -15,7 +15,7 @@ def tweak_kube_files(out_file):
             # and remove the load_balancer feature
             print(f"Changing config for service: `{item['metadata']['name']}`")
             #this is to avoid changing the type to node port when ports are not actually there for the container,
-            contains_headless = reduce(lambda x, y : x or y['target'] == 0, item['spec']['ports'], False)
+            contains_headless = reduce(lambda x, y : x or y['targetPort'] == 0, item['spec']['ports'], False)
             if not contains_headless:
                 item['spec']['type'] = 'NodePort'
             if 'status' in item :
