@@ -14,7 +14,9 @@ def tweak_kube_files(out_file):
             # so we will make the port a node port 
             # and remove the load_balancer feature
             print(f"Changing config for service: `{item['metadata']['name']}`")
-            item['spec']['type'] = 'NodePort'
+            #this is to avoid changing the type to node port when ports are not actually there for the container,
+            if 'ports' in item['spec']:
+                item['spec']['type'] = 'NodePort'
             if 'status' in item :
                 del item['status']
     with open(out_file, 'w') as kube_file:
