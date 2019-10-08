@@ -31,6 +31,9 @@ class ChemicalAnnotator(Annotator):
         suffix = Text.un_curie(chembl_id)
         url_part = f'{suffix}.json'
         response_json = await self.async_get_json(conf['url'] + url_part)
+        #There are some chembl id's that 404, leading to an empty response
+        if len(response_json) == 0:
+            return response_json
         return self.extract_chembl_data(response_json, keys_of_interest)
         
     def extract_chembl_data(self, chembl_raw, keys_of_interest=[]):

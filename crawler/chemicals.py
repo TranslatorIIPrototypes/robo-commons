@@ -172,7 +172,7 @@ def load_chemicals(rosetta, refresh=False):
     glom(concord, unichebi)
     #  9. glom across sequence and chemical stuff
     new_groups = sequence_concord.values()
-    glom(concord,new_groups,unique_prefixes=['GTOPDB'])
+    glom(concord,new_groups,unique_prefixes=['GTOPDB','INCHI'])
     # 10. Drop PRO only sequences.
     to_remove = []
     for eq_id_set in concord:
