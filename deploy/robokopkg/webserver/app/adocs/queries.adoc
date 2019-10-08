@@ -136,7 +136,6 @@ match (c:chemical_substance)-[e1]-(d:disease {id:"MONDO:0002909"})-[e2]-(b:biolo
 ----
 ++++
 </p>
-++++
 <p>
 Given a HGNC gene identifier, find the sequence variants that have some effect on the gene's expression on a human tissue.
 ++++
