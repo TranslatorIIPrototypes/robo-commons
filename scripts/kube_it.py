@@ -46,6 +46,7 @@ def convert_single_compose_file(in_file, out_file, tmp_file = '~tmp.yml' ,env_fi
         docker_config(in_file, tmp_file, env_file)
     else:
         docker_config(in_file, tmp_file)
+    correct_service_names(tmp_file)
     print(f'Making kube file {out_file}')
     #make kube files
     make_kube_files(tmp_file,out_file)
@@ -56,6 +57,23 @@ def convert_single_compose_file(in_file, out_file, tmp_file = '~tmp.yml' ,env_fi
     print(f'Tweaking {out_file}')
     tweak_kube_files(out_file)
     print('Done')
+
+def correct_service_names(docker_config_file):
+    with open(tmp_file) as tmp_f:
+        docker_cnf = yaml.load(tmp_f, Loader= yaml.FullLoader)    
+    services = docker_cnf['services']
+    for service in services:
+        service_new_name = service
+        if '_' in service:
+            service_new_name = ''.join(service.split('_'))
+        if 'container_name' in services[service]:
+            container_name = services[service]['container_name']
+            services[service]['container_name'] = ''.join(container_name.split('_'))
+        if service_new_name != service:
+            services[service_new_name] = services[service]
+            del services[service]
+    with open(docker_config_file,'w') as out:
+        yaml.dump(docker_cnf, out)
 
 def convert_every_one(robokop_root, out_dir,tmp_file):
     # converts multiple 
