@@ -57,6 +57,9 @@ def crawl_genetic_variants(rosetta=None):
     poolrun(node_types.SEQUENCE_VARIANT, node_types.GENE, rosetta)
 
 crawls = [
+    (node_types.GENE, node_types.CHEMICAL_SUBSTANCE),
+    (node_types.CHEMICAL_SUBSTANCE, node_types.CHEMICAL_SUBSTANCE),
+    (node_types.CHEMICAL_SUBSTANCE, node_types.GENE),
     (node_types.ANATOMICAL_ENTITY, node_types.BIOLOGICAL_PROCESS_OR_ACTIVITY),
     (node_types.ANATOMICAL_ENTITY, node_types.DISEASE),
     (node_types.ANATOMICAL_ENTITY, node_types.PHENOTYPIC_FEATURE),
@@ -71,7 +74,6 @@ crawls = [
 #    (node_types.CHEMICAL_SUBSTANCE, node_types.PHENOTYPIC_FEATURE),
 #    (node_types.CHEMICAL_SUBSTANCE, node_types.CHEMICAL_SUBSTANCE),
 #    (node_types.CHEMICAL_SUBSTANCE, node_types.GENE),
-#    (node_types.GENE, node_types.CHEMICAL_SUBSTANCE),
 #    (node_types.GENE, node_types.BIOLOGICAL_PROCESS_OR_ACTIVITY),
 #    (node_types.GENE, node_types.GENE_FAMILY),
 #    (node_types.BIOLOGICAL_PROCESS_OR_ACTIVITY, node_types.CHEMICAL_SUBSTANCE),
