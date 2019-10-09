@@ -122,7 +122,7 @@ def pull_uniprot_chebi():
 #  8. Use wikidata to get links between CHEBI and UniProt_PRO
 #  9. glom across sequence and chemical stuff
 # 10. Drop PRO only sequences.
-def load_chemicals(rosetta, refresh=False):
+def load_chemicals(rosetta, refresh=True):
     # Build if need be
     if refresh:
         refresh_mesh_pubchem(rosetta)
@@ -396,10 +396,10 @@ def uci_key(row):
 #########################
 def load_unichem(working_dir: str = '', xref_file: str = None, struct_file: str = None) -> dict:
     #FOR TESTING
-    upname = os.path.join(os.path.dirname(__file__), 'unichem.pickle')
-    with open(upname,'rb') as up:
-        synonyms=pickle.load(up)
-    return synonyms
+    #upname = os.path.join(os.path.dirname(__file__), 'unichem.pickle')
+    #with open(upname,'rb') as up:
+    #    synonyms=pickle.load(up)
+    #return synonyms
     #DONE TESTING
     logger.info(f'Start of Unichem loading. Working directory: {working_dir}')
 
