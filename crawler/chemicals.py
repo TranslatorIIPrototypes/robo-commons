@@ -157,7 +157,7 @@ def load_chemicals(rosetta, refresh=True):
     sequence_concord = rosetta.core.kegg.pull_sequences()
     # 5. Pull UniProt (swissprot) XML.
     # Calculate sequences for the sub-sequences (Uniprot_PRO)
-    sequence_to_uniprot = pull_uniprot()
+    sequence_to_uniprot = pull_uniprot(refresh)
     # 6. Use the sequences to merge UniProt with KEGG
     for s,v in sequence_to_uniprot.items():
         sequence_concord[s].update(v)
@@ -187,7 +187,7 @@ def load_chemicals(rosetta, refresh=True):
     #Add labels to CHEBIs, CHEMBLs, MESHes
     print('LABEL')
     label_chebis(concord)
-    label_chembls(concord)
+    label_chembls(concord, refresh= refresh)
     label_meshes(concord)
     print('dumping')
     #Dump
@@ -260,13 +260,14 @@ def process_chunk(lines, label_dict):
         label_dict[chemblid] = label
 
 
-def label_chembls(concord):
+def label_chembls(concord, refresh = False):
     print('READ CHEMBL')
-    fname = 'chembl_24.1_molecule.ttl.gz'
+    fname = 'chembl_25.0_molecule.ttl.gz'
     # uncomment if you need a new one
-    # data=pull_via_ftp('ftp.ebi.ac.uk', '/pub/databases/chembl/ChEMBL-RDF/24.1/',fname)
-    # with open(fname,'wb') as outf:
-    #    outf.write(data)
+    if refresh:
+        data=pull_via_ftp('ftp.ebi.ac.uk', '/pub/databases/chembl/ChEMBL-RDF/25.0/',fname)
+        with open(fname,'wb') as outf:
+            outf.write(data)
     chembl_labels = {}
     chunk = []
     with GzipFile(fname, 'r') as inf:
