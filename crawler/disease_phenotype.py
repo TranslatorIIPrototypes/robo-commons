@@ -81,7 +81,7 @@ def build_sets(o):
         #FWIW, ICD codes tend to be mapped to multiple MONDO identifiers, leading to mass confusion. So we
         #just excise them here.  It's possible that we'll want to revisit this decision in the future.  If so,
         #then we probably will want to set a 'glommable' and 'not glommable' set.
-        dbx = set([Text.upper_curie(x['id']) for x in o.get_xrefs(mid) if not x['id'].startswith('ICD')])
+        dbx = set([Text.upper_curie(x) for x in o.get_xrefs(mid) if not x.startswith('ICD')])
         dbx = set([norm(x) for x in dbx])
         label = o.get_label(mid)
         mid = Text.upper_curie(mid)
