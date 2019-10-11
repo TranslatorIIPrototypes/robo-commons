@@ -42,7 +42,8 @@ def glom(conc_set, newgroups, unique_prefixes=['INCHI']):
         #make sure we didn't combine anything we want to keep separate
         setok = True
         for up in unique_prefixes:
-            if len([1 for e in newset if e.startswith(up)]) > 1:
+            idents = [e if type(e)==str else e.identifier for e in newset]
+            if len([1 for e in idents if e.startswith(up)]) > 1:
                 print('------')
                 print('up')
                 print(up)
