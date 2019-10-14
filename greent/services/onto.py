@@ -21,7 +21,7 @@ class Onto(CachedService):
     def get_label(self,identifier):
         """ Get the label for an identifier. """
         obj = self.get(f"{self.url}/label/{identifier}")
-        return obj['label'] if 'label' in obj else None
+        return obj['label'] if obj and 'label' in obj else None
     def search(self,name,is_regex=False, full=False):
         """ Search ontologies for a term. """
         obj = self.get(f"{self.url}/search/{name}/?regex={'true' if is_regex else 'false'}")
