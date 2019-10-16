@@ -1,9 +1,11 @@
 import yaml 
 import argparse
-import os 
+import os , sys
 from functools import reduce
 
-def tweak_kube_files(out_file): 
+def tweak_kube_files(out_file):
+    """ Adjustments for the kubernetes file.
+    """
     print(out_file)
     with open(out_file) as kube_file:
         kube_config = yaml.load(kube_file, Loader=yaml.FullLoader)
@@ -25,6 +27,8 @@ def tweak_kube_files(out_file):
 
 
 def run_command(cmd):
+    """ Runs command.
+    """
     try:
         os.system(cmd)
     except Exception as e: 
@@ -33,23 +37,32 @@ def run_command(cmd):
         exit()
 
 def make_kube_files(docker_compose_config, out_put_file):
+    """ Creates the kube config based off of a docker compose file.
+    """
     command = f'kompose convert -f {docker_compose_config} -o {out_put_file}'
     run_command(command)    
 
 def docker_config(docker_compose_file, file_name, env_file = ''):
+    """ Creates docker-compose file with values filled out of the env_file. 
+    """
     if env_file:
-        command = f'export $(cat {env_file} | grep -v ^# | xargs) && docker-compose -f {docker_compose_file} config > {file_name}'
-    else:
-        command = f'docker-compose -f {docker_compose_file} config > {file_name}'
+        with open(env_file) as file:
+            for line in file.readlines():                
+                line = line.strip()                
+                if line.startswith('#') or line == None or line == '':
+                    continue
+                else:
+                    key, value = line.split('=')
+                    os.environ[key] = value
+    command = f'docker-compose -f {docker_compose_file} config > {file_name}'
     run_command(command)
 
 def convert_single_compose_file(in_file, out_file, tmp_file = '~tmp.yml' ,env_file = ''):
+    """ Converts a single docker-compose file to a self contained kubernets.
+    """
     print(f'Filling configs {in_file} and saving to {tmp_file}')
-    if env_file:
-        docker_config(in_file, tmp_file, env_file)
-    else:
-        docker_config(in_file, tmp_file)
-    correct_service_names(tmp_file)
+    docker_config(in_file, tmp_file, env_file)
+    docker_config_tweaking(tmp_file)
     print(f'Making kube file {out_file}')
     #make kube files
     make_kube_files(tmp_file,out_file)
@@ -61,10 +74,46 @@ def convert_single_compose_file(in_file, out_file, tmp_file = '~tmp.yml' ,env_fi
     tweak_kube_files(out_file)
     print('Done')
 
-def correct_service_names(docker_config_file):
-    with open(tmp_file) as tmp_f:
+def docker_config_tweaking(docker_config_file):
+    """ Applies some configs.
+    """
+    with open(docker_config_file) as tmp_f:
         docker_cnf = yaml.load(tmp_f, Loader= yaml.FullLoader)    
-    services = docker_cnf['services']
+    # Make sure to normalize service names to something kubernets.
+    docker_cnf = correct_service_names(docker_cnf)
+    # Make sure that the images are in a docker repository. 
+    docker_cnf = correct_images(docker_cnf)
+    with open(docker_config_file,'w') as out:
+        yaml.dump(docker_cnf, out)
+
+
+def correct_images (config):
+    """
+    Corrects docker images names for local builds.
+    """
+    # this is a step to convert some of the built images to point docker hub ones
+    services = config['services']
+    # Images to service mapping. Map out pre built images out in a docker repo. 
+    #@TODO these are to change to a more central location.
+    image_maps = {
+        'knowledgegraph': 'yaphetkg/knowledgegraph',
+        'manager': 'yaphetkg/manager',
+        'messenger': 'yaphetkg/messenger',
+        'rank': 'yaphetkg/robokop_rank',
+        'interfaces': 'yaphetkg/robokop_builder'
+    }
+    for service in services:    
+        if service in image_maps:
+            services[service]['image'] = image_maps[service]
+    return config
+
+
+
+def correct_service_names(config):
+    """
+    Normalizes service names of docker containers so they turn out fine on kubernetes.
+    """
+    services = config['services']
     for service in services:
         service_new_name = service
         if '_' in service:
@@ -75,15 +124,14 @@ def correct_service_names(docker_config_file):
         if service_new_name != service:
             services[service_new_name] = services[service]
             del services[service]
-    with open(docker_config_file,'w') as out:
-        yaml.dump(docker_cnf, out)
+    return config
 
 def convert_every_one(robokop_root, out_dir,tmp_file):
     # converts multiple 
     ## lets have a map of where our docker-compose.yml files are
     ##
-    run_command(f'source {robokop_root}/shared/robokop.env')
-
+    ## Add new docker compose files here. 
+    ##
     docker_yml_map = {
         #manager things ---begin
         'backend': 'robokop/deploy/backend/',
