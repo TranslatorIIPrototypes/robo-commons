@@ -208,7 +208,7 @@ class GTExBuilder:
                             self.gtu.write_new_association(graph_writer, variant_node, gtex_node, self.variant_gtex_label, hyper_edge_id, None, True)
 
                             # associate the gene node with an edge to the gtex anatomy node
-                            self.gtu.write_new_association(graph_writer, gene_node, gtex_node, self.gene_gtex_label, None, None, False)
+                            self.gtu.write_new_association(graph_writer, gene_node, gtex_node, self.gene_gtex_label, 0, None, False)
 
                             # associate the sequence variant node with an edge to the gene node. also include the GTEx properties
                             self.gtu.write_new_association(graph_writer, variant_node, gene_node, predicate, hyper_edge_id, edge_properties, True)
@@ -232,18 +232,18 @@ class GTExBuilder:
 #######
 # Main - Stand alone entry point for testing
 #######
-if __name__ == '__main__':
-    # create a new builder object
-    gtb = GTExBuilder(Rosetta())
-
-    # directory with GTEx data to process
-    working_data_directory = '.'
-    # working_data_directory = '/projects/stars/var/GTEx/stage/smartBag/example/GTEx/GTEx_data'
-
-    # load up all the GTEx data
-    rv = gtb.load(working_data_directory, out_file_name='gtex_sample.csv', process_raw_data=False, process_for_cache=False, process_for_graph=True)
-
-    # check the return, output error if found
-    if rv is not None:
-        logger.error(rv)
-        raise rv
+# if __name__ == '__main__':
+#     # create a new builder object
+#     gtb = GTExBuilder(Rosetta())
+#
+#     # directory with GTEx data to process
+#     working_data_directory = '.'
+#     # working_data_directory = '/projects/stars/var/GTEx/stage/smartBag/example/GTEx/GTEx_data'
+#
+#     # load up all the GTEx data
+#     rv = gtb.load(working_data_directory, out_file_name='gtex_sample.csv', process_raw_data=False, process_for_cache=False, process_for_graph=True)
+#
+#     # check the return, output error if found
+#     if rv is not None:
+#         logger.error(rv)
+#         raise rv
