@@ -492,6 +492,10 @@ class GTExUtils:
         else:
             props = {}
 
+        # force the hyper edge id to none if 0
+        if hyper_edge_id == 0:
+            hyper_edge_id = None
+
         # get a timestamp
         c_time = time.time()
 
