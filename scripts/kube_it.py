@@ -152,7 +152,7 @@ def get_pv_configs(tmp_file, out_dir, root_dir):
                     'mountPath': mount_path
                 })
             print(f'\t {_dir}')
-        with open(f'{out_dir}robokop-{srvc}-persitance.yml', 'w') as pv_config_file:
+        with open(f'{out_dir}/robokop-{srvc}-persitance.yml', 'w') as pv_config_file:
             yaml.dump(volume_configs, pv_config_file)
     return mount_points
 
