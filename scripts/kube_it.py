@@ -54,7 +54,7 @@ def get_pv_configs(tmp_file, out_dir, root_dir):
     make_pv_claim = lambda name, storage_size, pv_name, private=True:\
         {
             'apiVersion': 'v1',
-            'kind': 'PersistenctVolume',
+            'kind': 'PersistentVolumeClaim',
             'metadata': {
                 'name': name
             },
