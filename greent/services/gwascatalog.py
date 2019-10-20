@@ -4,7 +4,7 @@ from greent import node_types
 from greent.graph_components import KNode, LabeledID
 from greent.service import Service
 from greent.util import Text, LoggingUtil
-import logging,json,pickle,re, os
+import logging,json,pickle,re,os,sys
 from collections import defaultdict
 
 logger = LoggingUtil.init_logging("robokop-interfaces.services.gwascatalog", logging.DEBUG, format='medium', logFilePath=f'{os.environ["ROBOKOP_HOME"]}/logs/')
@@ -57,6 +57,8 @@ class GWASCatalog(Service):
                 try:
                     pubmed_id = line[pub_med_index]
                     p_value = float(line[p_value_index])
+                    if p_value == 0:
+                        p_value = sys.float_info.min
                    
                     trait_uris = trait_uri_pattern.findall(line[trait_ids_index])
                     snps = snp_pattern.findall(line[snps_index])
@@ -173,7 +175,7 @@ class GWASCatalog(Service):
                             pass
 
                     if traits and variant_nodes:
-                        props = {'pvalue' : p_value}
+                        props = {'p_value' : p_value}
                         for variant_node in variant_nodes:
                             for trait_id in traits:
                                 variant_to_pheno_cache[variant_node].add(self.create_variant_to_phenotype_components(
