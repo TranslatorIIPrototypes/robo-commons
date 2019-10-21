@@ -222,7 +222,7 @@ def load_all(input_type,output_type,rosetta,poolsize,identifier_list=None):
     print( f'Chunksize: {chunksize}')
     single_program_size = chunksize  if chunksize > 0 else 1 # nodes sent to a program
     identifier_chunks = [identifiers[i: i + single_program_size] for i in range(0, len(identifiers), single_program_size)]
-    # pool.map_async(partial_do_one, identifier_chunks)# chunksize=chunksize)
-    # pool.close()
-    # pool.join()
-    do_one(input_type, output_type, identifiers)
+    pool.map_async(partial_do_one, identifier_chunks)# chunksize=chunksize)
+    pool.close()
+    pool.join()
+    # do_one(input_type, output_type, identifiers)

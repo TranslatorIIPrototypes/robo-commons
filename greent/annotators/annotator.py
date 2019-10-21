@@ -29,8 +29,9 @@ class Annotator:
         if not self.config:
             logger.error(f' No config found for {class_name}')
             raise RuntimeWarning(f' No config found for {class_name}')
-        for prefix in self.config['prefixes']:
-            self.config[prefix]['keys'] = self.remap_source_keys_to_dict(self.config[prefix]['keys'])
+        if 'prefixes' in self.config:
+            for prefix in self.config['prefixes']:
+                self.config[prefix]['keys'] = self.remap_source_keys_to_dict(self.config[prefix]['keys'])
 
          
     def get_prefix_config(self, prefix):
@@ -67,7 +68,7 @@ class Annotator:
         loop = asyncio.new_event_loop()
         logger.debug(f'Got the event loop')
         loop.set_debug(True) # 
-        node.properties = loop.run_until_complete(self.merge_property_data(synonym_basket))
+        node.properties.update(loop.run_until_complete(self.merge_property_data(synonym_basket)))
         loop.close()
         logger.debug(f"Updated node {node} : added {len(node.properties.keys())} properties")
         return node
