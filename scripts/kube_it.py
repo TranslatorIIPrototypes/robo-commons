@@ -132,8 +132,8 @@ def get_pv_configs(tmp_file, out_dir, root_dir):
             if _dir not in pv_configs_for_services:
                 continue
             pv_config = pv_configs_for_services[_dir]
-            pv_name = f'robokop-{_dir}-pv'
-            pvc_name = f'robokop-{_dir}-pvc' 
+            pv_name = f'robokop.{_dir}.pv'
+            pvc_name = f'robokop.{_dir}.pvc' 
             is_shared = _dir in shared_dirs
             #the following are the ones that we'd like to write
             pvc_config_instance = make_pv_claim(pvc_name, pv_config['size'],pv_name,)
@@ -148,11 +148,11 @@ def get_pv_configs(tmp_file, out_dir, root_dir):
             mount_points[srvc].append( # these are going to be used to modify our final kuberenetes generated file
                 {
                     'name': _dir,
-                    'persistanceVolumeClaim': pvc_config_instance['metadata']['name'],
+                    'persistenceVolumeClaim': pvc_config_instance['metadata']['name'],
                     'mountPath': mount_path
                 })
             print(f'\t {_dir}')
-        with open(f'{out_dir}/robokop-{srvc}-persitance.yml', 'w') as pv_config_file:
+        with open(f'{out_dir}/robokop-{srvc}-persitence.yml', 'w') as pv_config_file:
             yaml.dump(volume_configs, pv_config_file)
     return mount_points
 
@@ -177,7 +177,7 @@ def tweak_deployment_kube_config(item, mount_points):
                 container['volumeMounts'] = volumeMounts
         item['spec']['template']['spec']['volumes'] = list(map(lambda mount: {
             'name': mount['name'],
-            'persistantVolumeClaim':{
+            'persistentVolumeClaim':{
                 'claimName': mount['persistanceVolumeClaim']
             }
         }, mount_points[service_name]))
