@@ -44,7 +44,7 @@ def get_pv_configs(tmp_file, out_dir, root_dir):
                 },
                 'accessModes': ['ReadWriteOnce'] if private == True else ['ReadWriteMany'] ,
                 'persistentVolumeReclaimPolicy': 'Retain',
-                'storageClassName': f'robokop_pv_{name}',
+                'storageClassName': name,
                 'nfs': {
                     'server': server_address,
                     'path': f'{root_dir}/{dir_name}'
@@ -178,7 +178,7 @@ def tweak_deployment_kube_config(item, mount_points):
         item['spec']['template']['spec']['volumes'] = list(map(lambda mount: {
             'name': mount['name'],
             'persistentVolumeClaim':{
-                'claimName': mount['persistanceVolumeClaim']
+                'claimName': mount['persistenceVolumeClaim']
             }
         }, mount_points[service_name]))
     return item
