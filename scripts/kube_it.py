@@ -133,9 +133,9 @@ def get_pv_configs(tmp_file, out_dir, root_dir):
             if _dir not in pv_configs_for_services:
                 continue
             pv_config = pv_configs_for_services[_dir]
-            _dir_fixed = _dir.replace('_','.')
-            pv_name = f'robokop.{_dir_fixed}.pv'
-            pvc_name = f'robokop.{_dir_fixed}.pvc' 
+            _dir_fixed = _dir.replace('_','-')
+            pv_name = f'robokop-{_dir_fixed}-pv'
+            pvc_name = f'robokop-{_dir_fixed}-pvc' 
             is_shared = _dir in shared_dirs
             #the following are the ones that we'd like to write            
             pvc_config_instance = make_pv_claim(pvc_name, pv_config['size'],pv_name,)
@@ -154,7 +154,7 @@ def get_pv_configs(tmp_file, out_dir, root_dir):
             volume_configs['items'].append(pvc_config_instance)
             mount_points[srvc].append( # these are going to be used to modify our final kuberenetes generated file
                 {
-                    'name': f'{_dir_fixed}.volume',
+                    'name': f'{_dir_fixed}-volume',
                     'persistenceVolumeClaim': pvc_config_instance['metadata']['name'],
                     'mountPath': mount_path,
                     'container_name': container_name
