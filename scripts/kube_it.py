@@ -47,7 +47,7 @@ def get_pv_configs(tmp_file, out_dir, root_dir):
                 'storageClassName': name,
                 'nfs': {
                     'server': server_address,
-                    'path': f'{root_dir}/{dir_name}'
+                    'path': f'{dir_name}'
                 }
             }
         }
@@ -132,12 +132,18 @@ def get_pv_configs(tmp_file, out_dir, root_dir):
             if _dir not in pv_configs_for_services:
                 continue
             pv_config = pv_configs_for_services[_dir]
-            pv_name = f'robokop.{_dir}.pv'
-            pvc_name = f'robokop.{_dir}.pvc' 
+            _dir_fixed = _dir.replace('_','.')
+            pv_name = f'robokop.{_dir_fixed}.pv'
+            pvc_name = f'robokop.{_dir_fixed}.pvc' 
             is_shared = _dir in shared_dirs
-            #the following are the ones that we'd like to write
+            #the following are the ones that we'd like to write            
             pvc_config_instance = make_pv_claim(pvc_name, pv_config['size'],pv_name,)
             pv_config_instance = make_pv(pv_name, pv_config['size'],host_path, private= not is_shared)
+
+            print('**************************************')
+            print(host_path)
+            print(pv_name)            
+            print('**************************************')
             if is_shared:
                 # we would want to define the claims shared among services once                                
                 with open(f'{out_dir}{pv_name}.yml','w') as pv_file:
