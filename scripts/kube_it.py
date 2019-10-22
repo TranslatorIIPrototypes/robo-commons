@@ -153,7 +153,7 @@ def get_pv_configs(tmp_file, out_dir, root_dir):
             volume_configs['items'].append(pvc_config_instance)
             mount_points[srvc].append( # these are going to be used to modify our final kuberenetes generated file
                 {
-                    'name': _dir,
+                    'name': f'{_dir_fixed}.volume',
                     'persistenceVolumeClaim': pvc_config_instance['metadata']['name'],
                     'mountPath': mount_path
                 })
