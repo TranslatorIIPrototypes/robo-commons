@@ -115,8 +115,9 @@ def get_pv_configs(tmp_file, out_dir, root_dir):
     mount_points = {} 
     for srvc in services:
         volume_configs = {'apiVersion': 'v1', 'kind': 'List', 'items': [] }# we will collect our PV and PVCs here and dump them
-        mount_points[srvc] = []
         service = services[srvc]
+        container_name = service['container_name'] if 'container_name' in service else srvc        
+        mount_points[srvc] = []
         if not 'volumes' in service:
             continue
         print(f'Found volume declarations for docker-service: {srvc}')
@@ -155,7 +156,8 @@ def get_pv_configs(tmp_file, out_dir, root_dir):
                 {
                     'name': f'{_dir_fixed}.volume',
                     'persistenceVolumeClaim': pvc_config_instance['metadata']['name'],
-                    'mountPath': mount_path
+                    'mountPath': mount_path,
+                    'container_name': container_name
                 })
             print(f'\t {_dir}')
         with open(f'{out_dir}/robokop-{srvc}-persitence.yml', 'w') as pv_config_file:
@@ -173,14 +175,16 @@ def tweak_deployment_kube_config(item, mount_points):
         service_mounts = mount_points[service_name]
         containers = item['spec']['template']['spec']['containers']
         for container in containers:
-            volumeMounts = []
-            if container['name'] == service_name:
-                for mount in service_mounts:
+            volumeMounts = []            
+            for mount in service_mounts: 
+                # incase the container name is different from the service name in docker this becomes an issue.
+                container_name = mount['container_name']
+                if container['name'] == container_name:                
                     volumeMounts.append({
                         'name': mount['name'],
                         'mountPath': mount['mountPath']
                     })
-                container['volumeMounts'] = volumeMounts
+            container['volumeMounts'] = volumeMounts
         item['spec']['template']['spec']['volumes'] = list(map(lambda mount: {
             'name': mount['name'],
             'persistentVolumeClaim':{
