@@ -75,7 +75,7 @@ class Onto(CachedService):
         for parent_curie, lbl in node.synonyms:
             response = self.get_children(parent_curie)
             results = []
-            predicate = LabeledID(identifier="GAMMA:0000003", label="is_a")        
+            predicate = LabeledID(identifier="rdfs:subClassOf", label="is_a")        
             for curie in response:
                 name = self.get_label(curie)
                 new_node = KNode(curie, type = node.type, name = name)                        
