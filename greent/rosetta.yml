@@ -36,35 +36,31 @@
 
 '@operators':
   anatomical_entity:
-    cell:
-       - link : anatomy_to_cell_type
-         op   : uberongraph.get_cell_by_anatomy_graph
+    anatomical_entity:
+      - link : anatomy_to_anatomy_type
+        op   : uberongraph.get_anatomy_by_anatomy_graph
     gene:
       - link : anatomy_to_gene
         op   : hetio.anatomy_to_gene
     phenotypic_feature:
        - link : anatomy_to_phenotype
          op   : uberongraph.get_phenotype_by_anatomy_graph
-  cell:
-    anatomical_entity:
-      - link : cell_type_to_anatomy
-        op   : uberongraph.get_anatomy_by_cell_graph
-    biological_process_or_activity:
-    #   - link : bio_process_cell_type
-    #     op   : quickgo.cell_to_go_term_annotation_extensions
-       - link : bio_process_cell_type
-         op   : uberongraph.get_process_or_activity_by_cell
+    biological_process:
+       - link : bio_process_anatomical_entity
+         op   : uberongraph.get_process_by_anatomy
+    disease:
+       - link : anatomy_to_disease
+         op   : uberongraph.get_disease_by_anatomy_graph
+    molecular_activity:
+       - link : anatomy_to_biological_process_or_activity
+         op   : uberongraph.get_activity_by_anatomy
   biological_process_or_activity:
     gene:
       - link : bio_process_gene
         op   : quickgo.go_term_to_gene_annotation
-    cell:
-    #  - link : bio_process_cell_type
-    #    op   : quickgo.go_term_to_cell_xontology_relationships
-    #  - link : bio_process_cell_type
-    #    op   : quickgo.go_term_to_cell_annotation_extensions
-      - link : bio_process_cell_type
-        op   : uberongraph.get_cell_by_process_or_activity
+    anatomical_entity:
+      - link : bio_process_anatomy
+        op   : uberongraph.get_anatomy_by_process_or_activity
     chemical_substance:
       - link : bio_process_chemical_substance
         op   : uberongraph.get_chemical_entity_by_process_or_activity
@@ -72,8 +68,6 @@
     gene:
       - link  : chemical_targets_gene
         op    : chembio.graph_pubchem_to_ncbigene
-#      - link  : drug_to_gene
-#        op    : ctd.drug_to_gene #Going away eventually, but not yet
       - link  : drug_to_gene
         op    : ctd.drug_to_gene_expanded
       - link  : drug_to_enzyme
@@ -90,6 +84,8 @@
     chemical_substance:
       - link  : chemical_to_chemical_class
         op    : uberongraph.get_chemical_to_chemical
+      - link  : complex_to_part
+        op    : gtopdb.complex_to_part
     food:
       - link  : chemical_substance_to_food
         op    : foodb.food_to_chemical_substance
@@ -100,6 +96,9 @@
       - link  : disease_to_chemical
         op    : ctd.disease_to_chemical
   disease:
+    chemical_substance:
+      - link  : uber_disease_to_chemical
+        op    : uberongraph.get_chemical_by_disease
     phenotypic_feature:
       - link  : disease_to_phenotype
         op    : biolink.disease_get_phenotype
@@ -142,9 +141,6 @@
     anatomical_entity:
       - link  : gene_to_anatomy
         op    : hetio.gene_to_anatomy
-    #cellular_component:
-    #  - link  : gene_to_cellular_component
-    #    op    : hetio.gene_to_cellular_component
     disease:
       - link  : gene_to_disease
         op    : biolink.gene_get_disease
@@ -199,6 +195,9 @@
     biological_process_or_activity:
       - link  : phenotype_to_biological_process_or_activity
         op    : uberongraph.get_process_or_activity_by_phenotype
+    chemical_substance:
+      - link  : phenotype_to_chemical_substance
+        op    : uberongraph.get_chemical_by_phenotype
   sequence_variant:
     gene:
       - link  : sequence_variant_to_gene
@@ -213,19 +212,6 @@
     sequence_variant:
       - link  : sequence_variant_to_sequence_variant
         op    : ensembl.sequence_variant_to_sequence_variant
-  cellular_component:
-    chemical_substance:
-      - link  : cellular_component_to_chemical_substance
-        op    : uberongraph.get_chemical_substance_by_cellular_component  
-    anatomical_entity:
-      - link  : cellular_component_to_anatomical_entity
-        op    : uberongraph.get_anatomical_entity_by_cellular_component
-    disease:
-      - link  : cellular_component_to_disease
-        op    : uberongraph.get_disease_by_cellular_component
-    cell:
-      - link  : cellular_component_to_cell
-        op    : uberongraph.get_cell_by_cellular_component
   gene_family:
     gene:
       - link  : gene_family_to_gene
@@ -251,6 +237,14 @@
   genetic_condition: mondo.is_genetic_disease
   molecular_activity: go.is_molecular_function
   biological_process: go.is_biological_process
+  cellular_component: go.is_cellular_component
   cell: typecheck.is_cell
   disease: typecheck.is_disease
   phenotypic_feature: typecheck.is_phenotypic_feature
+  gene_family: typecheck.is_gene_family
+  gene_product: typecheck.is_gene_product
+  gene: typecheck.is_gene
+  anatomical_entity: uberon.is_anatomical_entity
+  sequence_variant: typecheck.is_sequence_variant
+  pathway: typecheck.is_pathway
+  chemical_substance: typecheck.is_chemical

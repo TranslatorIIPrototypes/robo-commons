@@ -5,7 +5,7 @@ import logging
 logger = LoggingUtil.init_logging(__name__, level=logging.DEBUG, format='long')
 
 def synonymize(node, gt):
-    synonyms = get_synonyms(node,gt)
+    synonyms = get_synonyms(node,gt,distance=1)
     '''
     Canning this, because we're not relying on chemotext any more
     # do we have any MeSH ids?   If not, we want to dig deeper and get some so that chemotext will work

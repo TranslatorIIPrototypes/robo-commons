@@ -106,8 +106,9 @@ class Program:
         for k in self.transitions:
             logstring+=f' {k}: {self.transitions[k]}\n'
         total_transitions = len(self.transitions.keys())
-        if  total_transitions < 20:
-            logger.debug(logstring)
+        #if  total_transitions < 20:
+        #    logger.debug(logstring)
+        logger.debug(logstring)
         logger.debug(f'total transitions : {total_transitions}')
 
     def initialize_instance_nodes(self):
@@ -173,9 +174,21 @@ class Program:
         to a particular concept in our query plan. We make sure that they're synonymized and then
         queue up their children
         """
+        logger.debug(f'process {node.id}')
         if edge is not None:
             is_source = node.id == edge.source_id
         self.rosetta.synonymizer.synonymize(node)
+        #Our excluded ids are e.g. uberons, but we might have gotten something else like a CARO
+        # so we need to synonymize and then cehck for identifiers
+        if node.id in self.excluded_identifiers:
+            return
+        try:
+            result = annotate_shortcut(node, self.rosetta)
+            if type(result) == type(None):
+                logger.debug(f'No annotator found for {node}')
+        except Exception as e:
+            logger.error(e)
+            logger.error(traceback.format_exc())
         if edge is not None:
             if is_source:
                 edge.source_id = node.id
@@ -233,7 +246,7 @@ class Program:
             links = self.transitions[source_id][target_id]
             #print("-"*len(history)+f"Destination: {target_id}")
             for link in links:
-                #print("-"*len(history)+"Executing: ", link['op'])
+                print("-"*len(history)+"Executing: ", link['op'])
                 self.process_op(link, node, history + [target_id])
 
     #CAN I SOMEHOW CAPTURE PATHS HERE>>>>

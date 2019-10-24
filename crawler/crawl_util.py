@@ -1,4 +1,6 @@
 from ftplib import FTP
+from gzip import decompress
+
 from greent.util import Text
 from builder.question import LabeledID
 from io import BytesIO
@@ -16,7 +18,8 @@ def pull_via_ftp(ftpsite, ftpdir, ftpfile):
     ftp.quit()
     return binary
 
-def glom(conc_set, newgroups, unique_prefixes=[]):
+#def glom(conc_set, newgroups, unique_prefixes=[]):
+def glom(conc_set, newgroups, unique_prefixes=['INCHI']):
     """We want to construct sets containing equivalent identifiers.
     conc_set is a dictionary where the values are these equivalent identifier sets and
     the keys are all of the elements in the set.   For each element in a set, there is a key
@@ -39,7 +42,19 @@ def glom(conc_set, newgroups, unique_prefixes=[]):
         #make sure we didn't combine anything we want to keep separate
         setok = True
         for up in unique_prefixes:
-            if len([1 for e in newset if e.startswith(up)]) > 1:
+            idents = [e if type(e)==str else e.identifier for e in newset]
+            if len([1 for e in idents if e.startswith(up)]) > 1:
+                print('------')
+                print('up')
+                print(up)
+                print([e for e in newset if e.startswith(up)])
+                print('group')
+                print(group)
+                print('existing_sets')
+                print(existing_sets)
+                print('newset')
+                print(newset)
+                print('------')
                 setok = False
                 break
         if not setok:
@@ -51,16 +66,21 @@ def glom(conc_set, newgroups, unique_prefixes=[]):
             conc_set[element] = newset
 
 def dump_cache(concord,rosetta,outf=None):
-    for element in concord:
-        if isinstance(element,LabeledID):
-            element_id = element.identifier
-        else:
-            element_id = element
-        key = f"synonymize({Text.upper_curie(element_id)})"
-        value = concord[element]
-        if outf is not None:
-            outf.write(f'{key}: {value}\n')
-        rosetta.cache.set(key,value)
+    with rosetta.cache.get_pipeline() as pipe:
+        ecount = 0
+        for element in concord:
+            if isinstance(element,LabeledID):
+                element_id = element.identifier
+            else:
+                element_id = element
+            key = f"synonymize({Text.upper_curie(element_id)})"
+            value = concord[element]
+            if outf is not None:
+                outf.write(f'{key}: {value}\n')
+            rosetta.cache.set(key,value,pipe)
+            ecount += 1
+            if ecount >= 1000:
+                pipe.execute()
 
 
 ############
@@ -94,3 +114,8 @@ def query_the_graph(rosetta: Rosetta, query: str, limit: int = None) -> list:
     # return the simple array to the caller
     return return_list
 
+
+def pull_and_decompress(location, directory, filename):
+    data = pull_via_ftp(location, directory, filename)
+    rdf = decompress(data).decode()
+    return rdf

@@ -157,6 +157,7 @@ class ConceptModel:
         parents = set( [concept.is_a for name,concept in self.by_name.items()] )
         return list(filter( lambda x: x is not None and x.is_a is None, parents))
 
+    #Note that this assumes a tree.  OK for biolink model, but not if we append e.g. a gene_product is_a chemical_substance
     def get_parent(self,concept_name):
         """Return the parent of a concept"""
         return self.get(concept_name).is_a.name

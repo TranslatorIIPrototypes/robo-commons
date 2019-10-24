@@ -1,10 +1,9 @@
 from greent.util import LoggingUtil, Text
 from greent.graph_components import LabeledID
 from crawler.mesh_unii import refresh_mesh_pubchem
-from crawler.crawl_util import glom, dump_cache, pull_via_ftp
+from crawler.crawl_util import glom, pull_via_ftp, pull_and_decompress, dump_cache
 import greent.annotators.util.async_client as async_client
 from greent.annotators.chemical_annotator import ChemicalAnnotator
-
 from gzip import decompress, GzipFile
 from functools import partial
 import logging
@@ -12,17 +11,23 @@ import os
 import pickle
 import requests
 import asyncio
+from greent.annotators.chemical_annotator import ChemicalAnnotator
+from crawler.chebi import pull_chebi, chebi_sdf_entry_to_dict
+from crawler.pullers import pull_uniprot
+from crawler.pullers import pull_iuphar
 import ftplib
 import pandas
 import urllib
 import gzip
+from crawler.big_gz_sort import batch_sort
+from collections import defaultdict
 
-logger = LoggingUtil.init_logging("robokop-interfaces.crawler.chemicals", logging.INFO, format='medium', logFilePath=f'{os.environ["ROBOKOP_HOME"]}/logs/')
+logger = LoggingUtil.init_logging("robokop-interfaces.crawler.chemicals", logging.DEBUG, format='medium', logFilePath=f'{os.environ["ROBOKOP_HOME"]}/logs/')
 
-def pull(location, directory, filename):
-    data = pull_via_ftp(location, directory, filename)
-    rdf = decompress(data).decode()
-    return rdf
+#def pull(location, directory, filename):
+#    data = pull_via_ftp(location, directory, filename)
+#    rdf = decompress(data).decode()
+#    return rdf
 
 def make_mesh_id(mesh_uri):
     return f"mesh:{mesh_uri.split('/')[-1][:-1]}"
@@ -34,20 +39,100 @@ def pull_mesh_chebi():
     pairs = [(f'MESH:{r["mesh"]["value"]}', f'CHEBI:{r["chebi"]["value"]}')
              for r in results['results']['bindings']
              if not r['mesh']['value'].startswith('M')]
+    #Wikidata is great, except when it sucks.   One thing it likes to do is to
+    # have multiple CHEBIs for a concept, say ignoring stereochemistry or 
+    # the like.  No good.   It's easy enough to filter these out, but then 
+    # we wouldn't have the mesh associated with anything. A spot check makes it seem like
+    # cases of this type usually also have a UNII.  So we can perhaps remove ugly pairs without
+    # a problem.
+    m2c = defaultdict(list)
+    for m,c in pairs:
+        m2c[m].append(c)
+    fpairs = []
+    for m,clist in m2c.items():
+        if len(clist) == 1:
+            fpairs.append( (m,clist[0]) )
     with open('mesh_chebi.txt', 'w') as outf:
-        for m, c in pairs:
+        for m, c in fpairs:
             outf.write(f'{m}\t{c}\n')
+    return fpairs
+
+def pull_uniprot_chebi():
+    url = 'https://query.wikidata.org/sparql?format=json&query=SELECT DISTINCT ?c ?s WHERE { ?compound wdt:P683 ?c. ?compound p:P352 ?statement . ?statement pq:P2888 ?s. }'
+    results = requests.get(url).json()
+    pairs = [ (f'UniProtKB:{r["s"]["value"].split("/")[-1]}',f'CHEBI:{r["c"]["value"]}')
+             for r in results['results']['bindings'] ]
+    #with open('uniprot_chebi.txt','w') as outf:
+    #    for m,c in pairs:
+    #        outf.write(f'{m}\t{c}\n')
     return pairs
 
+##
+# Here's a pointless rant about chemical synonymization.
+#
+#                         IT SHOULD BE EASY
+#
+# Chemicals are defined structures!  Inchikeys! SMILES! It isn't rocket science!
+# If it has the same strucrture, it's the same! If it doesn't, it isn't!
+# 
+# Here's the problem - some vocabularies use chemicals, but not based on
+# structures.  These are usually bullshit vocabularies like MeSH (It's, like,
+# just a concept, dude) that occasionally just assert that they're the same
+# as something that does have a structure, like a UNII.  On the whole if 
+# one of these ding-dong vocabularies gives us that information, we should
+# use it because it's the only objective statement about the identity of the
+# term that will ever exist.
+#
+# Anybody who asserts that things with different structures are the same should
+# be brought up on charges at the Haag.  I'm looking at you, wikidata, and your
+# willingness to identify e.g. hydrous and anhydrous CHEBIs in the same entry
+#
+# Also, it would be great if UNII could figure out how to assign inchis
+# correctly.  Both Stibine (antimony with hydrogen atoms) and Antimony 
+# (elemental) end up wth the same inchikey erroneously, which causes all
+# sorts of downstream problems, because other stuff links to them separately
+# and sort of correctly if you don't pay attention to the keys and just to the 
+# name, which apparently is what people do even in our advanced civilization.
+#
+##
 
-def load_chemicals(rosetta, refresh=False):
+###
+#
+# Chemical synonymization includes both small molecules and large molecules (peptides and proteins)
+# In many cases these don't intersect, but in some they do, and we need to handle that
+#
+# Chemicals can be described 4 ways:
+# 1. InchiKey - the most specific.  For chemicals with ik's, UniChem has a concordance.
+# 2. SMILES - everything with an IK has a smiles, but not vice versa: can handle things like R-groups
+# 3. AA sequence - Peptides e.g. can be described with a smiles, but AA sequence is more succinct.  Sometimes
+#                  this can get ugly, because something might be made up of 2 sequences hooked together.
+# 4. Nothing - We can have a name for something without any information about the structure.
+#
+# Each source can contain a mix. So e.g. chebi contains some with inchi, some with smiles, and some with nothing
+#
+# Synonymization process:
+#  1. Handle all the stuff that has an InchiKey using unichem
+#  2. Mesh is all "no structure".  We try to use a variety of sources to hook mesh id's to anything else
+#  3. Pull from chebi the sdf and db files, use them to link to things (KEGG) in the no inchi/no smiles cases
+#  4. Go to KEGG, and get sequences for peptides.
+#  5. Pull UniProt (swissprot) XML.  Calculate sequences for the sub-sequences (Uniprot_PRO)
+#  6. Use the sequences to merge UniProt_PRO with KEGG.
+#  7. Read IUPHAR, discard things with INCHI, use things with sequence to match UniProt_PRO/KEGG
+#     Use the hand-curated version of IUPHAR to match the un-sequenced stuff left over
+#  8. Use wikidata to get links between CHEBI and UniProt_PRO
+#  9. glom across sequence and chemical stuff
+# 10. Drop PRO only sequences.
+def load_chemicals(rosetta, refresh=True):
     # Build if need be
     if refresh:
         refresh_mesh_pubchem(rosetta)
-    # Get all the simple stuff
+    #Get all the simple stuff
+    # 1. Handle all the stuff that has an InchiKey using unichem
+    # 2. Mesh is all "no structure".  We try to use a variety of sources to hook mesh id's to anything else
     print('UNICHEM')
     concord = load_unichem()
-    # DO MESH/UNII
+    # 2. Mesh is all "no structure".  We try to use a variety of sources to hook mesh id's to anything else
+    #DO MESH/UNII
     print('MESH/UNII')
     mesh_unii_file = os.path.join(os.path.dirname(__file__), 'mesh_to_unii.txt')
     mesh_unii_pairs = load_pairs(mesh_unii_file, 'UNII')
@@ -60,18 +145,56 @@ def load_chemicals(rosetta, refresh=False):
     # DO MESH/CHEBI, but don't combine any chebi's into a set with it
     print('MESH/CHEBI')
     mesh_chebi = pull_mesh_chebi()
-    glom(concord, mesh_chebi, ['CHEBI'])
-    # Add labels to CHEBIs, CHEMBLs, and MESHes
+    #Merging CHEBIS can be ok because of primary/secondary chebis.  Really we 
+    # don't want to merge INCHIs
+    #glom(concord, mesh_chebi,['INCHI'])
+    glom(concord, mesh_chebi)
+    # 3. Pull from chebi the sdf and db files, use them to link to things (KEGG) in the no inchi/no smiles cases
+    pubchem_chebi_pairs, kegg_chebi_pairs = pull_chebi()
+    glom(concord, pubchem_chebi_pairs)
+    glom(concord, kegg_chebi_pairs)
+    # 4. Go to KEGG, and get sequences for peptides.
+    sequence_concord = rosetta.core.kegg.pull_sequences()
+    # 5. Pull UniProt (swissprot) XML.
+    # Calculate sequences for the sub-sequences (Uniprot_PRO)
+    sequence_to_uniprot = pull_uniprot(refresh)
+    # 6. Use the sequences to merge UniProt with KEGG
+    for s,v in sequence_to_uniprot.items():
+        sequence_concord[s].update(v)
+    # 7. Read IUPHAR, discard things with INCHI, use things with sequence to match UniProt_PRO/KEGG
+    #     Use the hand-curated version of IUPHAR to match the un-sequenced stuff left over
+    sequence_to_iuphar, iuphar_glom = pull_iuphar()
+    for s,v in sequence_to_iuphar.items():
+        sequence_concord[s].update(v)
+    glom(concord,iuphar_glom)
+    #  8. Use wikidata to get links between CHEBI and UniProt_PRO
+    unichebi = pull_uniprot_chebi()
+    glom(concord, unichebi)
+    #  9. glom across sequence and chemical stuff
+    new_groups = sequence_concord.values()
+    glom(concord,new_groups,unique_prefixes=['GTOPDB','INCHI'])
+    # 10. Drop PRO only sequences.
+    to_remove = []
+    for eq_id_set in concord:
+        if len(eq_id_set) > 1:
+            continue
+        print(eq_id_set)
+        item = iter(eq_id_set).next()
+        if '#PRO_' in item:
+            to_remove.add(eq_id_set)
+    for eids in to_remove:
+        concord.remove(eids)
+    #Add labels to CHEBIs, CHEMBLs, MESHes
     print('LABEL')
     label_chebis(concord)
-    label_chembls(concord)
+    label_chembls(concord, refresh= refresh)
     label_meshes(concord)
-    # Dump
-    with open('chemconc.txt', 'w') as outf:
-        for key in concord:
-            outf.write(f'{key}\t{concord[key]}\n')
-    # dump_cache(concord,rosetta)
-
+    print('dumping')
+    #Dump
+    with open('chemconc.txt','w') as outf:
+        dump_cache(concord,rosetta,outf)
+    #dump_cache(concord,rosetta)
+    print('done')
 
 def get_chebi_label(ident):
     res = requests.get(f'https://uberonto.renci.org/label/{ident}/').json()
@@ -91,7 +214,10 @@ def get_dict_label(ident, labels):
 
 
 def get_mesh_label(ident, labels):
-    return labels[Text.un_curie(ident)]
+    try:
+        return labels[Text.un_curie(ident)]
+    except KeyError:
+        return ""
 
 
 ###
@@ -134,13 +260,14 @@ def process_chunk(lines, label_dict):
         label_dict[chemblid] = label
 
 
-def label_chembls(concord):
+def label_chembls(concord, refresh = False):
     print('READ CHEMBL')
-    fname = 'chembl_24.1_molecule.ttl.gz'
+    fname = 'chembl_25.0_molecule.ttl.gz'
     # uncomment if you need a new one
-    # data=pull_via_ftp('ftp.ebi.ac.uk', '/pub/databases/chembl/ChEMBL-RDF/24.1/',fname)
-    # with open(fname,'wb') as outf:
-    #    outf.write(data)
+    if refresh:
+        data=pull_via_ftp('ftp.ebi.ac.uk', '/pub/databases/chembl/ChEMBL-RDF/25.0/',fname)
+        with open(fname,'wb') as outf:
+            outf.write(data)
     chembl_labels = {}
     chunk = []
     with GzipFile(fname, 'r') as inf:
@@ -244,10 +371,13 @@ def load_unichem_deprecated():
             prefix_j = prefixes[kj]
             dr = f'pub/databases/chembl/UniChem/data/wholeSourceMapping/src_id{ki}'
             fl = f'src{ki}src{kj}.txt.gz'
-            pairs = pull('ftp.ebi.ac.uk', dr, fl)
-            uni_glom(pairs, prefix_i, prefix_j, chemcord)
+            pairs = pull_and_decompress('ftp.ebi.ac.uk', dr, fl)
+            uni_glom(pairs,prefix_i,prefix_j,chemcord)
     return chemcord
 
+def uci_key(row):
+    #print(row)
+    return int(row.split(b'\t')[0])
 
 #########################
 # load_unichem() - Loads a dict object with targeted chemical substance curies for synonymization
@@ -266,6 +396,12 @@ def load_unichem_deprecated():
 # return: dict - The cross referenced curies ready for inserting into the the redis cache
 #########################
 def load_unichem(working_dir: str = '', xref_file: str = None, struct_file: str = None) -> dict:
+    #FOR TESTING
+    #upname = os.path.join(os.path.dirname(__file__), 'unichem.pickle')
+    #with open(upname,'rb') as up:
+    #    synonyms=pickle.load(up)
+    #return synonyms
+    #DONE TESTING
     logger.info(f'Start of Unichem loading. Working directory: {working_dir}')
 
     # init the returned list
@@ -285,24 +421,58 @@ def load_unichem(working_dir: str = '', xref_file: str = None, struct_file: str 
             logger.info(f'Target unichem FTP URL: {target_uc_url}')
 
             # get the files
-            xref_file = download_uc_file(target_uc_url, 'UC_XREF.txt.gz', working_dir)
+            xref_file = download_uc_file(target_uc_url, 'UC_XREF.txt.gz', working_dir, decompress=False)
             struct_file = download_uc_file(target_uc_url, 'UC_STRUCTURE.txt.gz', working_dir)
 
         logger.info(f'Using decompressed UniChem XREF file: {xref_file} and STRUCTURE file: {struct_file}')
         logger.info(f'Start of data pre-processing.')
 
-        # get an iterator to loop through the xref data
-        xref_iter = pandas.read_csv(xref_file, dtype={"uci": int, "src_id": int, "src_compound_id": str},
-                                    sep='\t', header=None, usecols=[0, 1, 2], names=['uci', 'src_id', 'src_compound_id'], iterator=True, chunksize=100000)
-        logger.debug(f'XREF iterator created. Loading xrefs data frame, filtering by source type...')
+        logger.debug('filter xrefs by srcid')
+        srcfiltered_xref_file='UC_XREF.srcfiltered.txt'
+        srclist = [ str(k) for k in data_sources.keys()]
+        with gzip.open(xref_file,'rt') as inf, open(srcfiltered_xref_file,'w') as outf:
+            for line in inf:
+                x = line.split('\t')
+                if x[1] in srclist and x[3] == '1':
+                    outf.write(line)
 
-        # parse the records, creating a data frame with only the wanted source types
-        df_source_xrefs: pandas.DataFrame = pandas.concat(xref_element[xref_element['src_id'].isin(list(data_sources.keys()))] for xref_element in xref_iter)
-        logger.debug(f'XREF data frame filtered by source type created. {len(df_source_xrefs)} records found, filtering out singleton XREFs...')
+        sorted_xref_file='UC_XREF.sorted.txt'
+        logger.debug(f'sort xrefs {xref_file}=>{sorted_xref_file}')
+        with open(srcfiltered_xref_file,'rb',64*1024) as inf, open(sorted_xref_file,'wb') as outf:
+            batch_sort(inf,outf,key=uci_key,tempdirs='.')
+        logger.debug('.. done ..')
 
-        # filter out the singleton records
-        df_filtered_xrefs: pandas.DataFrame = df_source_xrefs[df_source_xrefs.groupby(by=['uci'])['uci'].transform('count').gt(1)]
-        logger.debug(f'XREF data frame filtered by non-singletons created. {len(df_filtered_xrefs)} records found, adding curie column...')
+        logger.debug('remove singletons')
+        filtered_xref_file='UC_XREF.filtered.txt'
+        srclist = [ str(k) for k in data_sources.keys()]
+        #There's a particular problem with UNII (src id 14). Because they can't
+        #seem to generate inchikeys nicely, there are sometimes 2 UNIIs per key
+        # if we leave them, it's bad.  And we don't know which we should use, so
+        # take them out. 
+        with open(sorted_xref_file,'r') as inf, open(filtered_xref_file,'w') as outf:
+            lines = []
+            uniilines = []
+            lastuci = ''
+            for line in inf:
+                x = line.split('\t')
+                if x[0] != lastuci:
+                    if len(uniilines) == 1:
+                        lines.append(uniilines[0])
+                    if len(lines) > 1:
+                        for wline in lines:
+                            outf.write(wline)
+                    lines=[]
+                    uniilines=[]
+                    lastuci=x[0]
+                if x[1] == '14':
+                    uniilines.append(line)
+                else:
+                    lines.append(line)
+        logger.debug('.. done ..')
+
+        logger.debug('read filtered')
+        df_filtered_xrefs = pandas.read_csv(filtered_xref_file, dtype={"uci": int, "src_id": int, "src_compound_id": str}, sep='\t', header=None, usecols=[0, 1, 2], names=['uci', 'src_id', 'src_compound_id'])
+        logger.debug('..done..')
 
         # note: this is an alternate way to add a curie column to each record in one shot. takes about 10 minutes.
         df_filtered_xrefs = df_filtered_xrefs.assign(curie=df_filtered_xrefs[['src_id', 'src_compound_id']].apply(lambda x: f'{data_sources[x[0]]}:{x[1]}', axis=1))
@@ -343,10 +513,14 @@ def load_unichem(working_dir: str = '', xref_file: str = None, struct_file: str 
             # output some feedback for the user
             if (chem_counter % 250000) == 0:
                 logger.info(f'Processed {chem_counter} unichem chemicals...')
-    except Exception as e:
+    except KeyError as e:
+    #except Exception as e:
         logger.error(f'Exception caught. Exception: {e}')
 
     logger.info(f'Load complete. Processed a total of {chem_counter} unichem chemicals.')
+    upname = os.path.join(os.path.dirname(__file__), 'unichem.pickle')
+    with open(upname,'wb') as up:
+        pickle.dump(synonyms,up)
 
     # return the resultant list set to the caller
     return synonyms
@@ -360,11 +534,11 @@ def load_unichem(working_dir: str = '', xref_file: str = None, struct_file: str 
 # working_dir: str - the place where files are going to be stored
 # returns: str - the output file name
 #########################
-def download_uc_file(url: str, in_file_name: str, working_dir: str) -> str:
+def download_uc_file(url: str, in_file_name: str, working_dir: str, decompress = True) -> str:
     # get the output file name, derived from the input file name
-    out_file_name = working_dir + in_file_name[:-3]
+    out_file_name = working_dir + in_file_name
 
-    logger.debug(f'Downloading: {url}{in_file_name}, compressed file: {in_file_name}, decompressing into: {out_file_name}')
+    logger.debug(f'Downloading: {url}{in_file_name}, compressed file: {in_file_name}')
 
     # get a handle to the ftp file
     handle = urllib.request.urlopen(url + in_file_name)
@@ -383,17 +557,19 @@ def download_uc_file(url: str, in_file_name: str, working_dir: str) -> str:
             # write out the data to the output file
             compressed_file.write(data)
 
-    logger.debug(f'Compressed file downloaded, decompressing into {out_file_name}.')
+    if decompress:
+        out_file_name = out_file_name[:-3]
+        logger.debug(f'Compressed file downloaded, decompressing into {out_file_name}.')
 
-    # create the output text file
-    with open(out_file_name, 'w') as output_file:
-        # open the compressed file
-        with gzip.open(working_dir + in_file_name, 'rt') as compressed_file:
-            for line in compressed_file:
-                # write the data to the output file
-                output_file.write(line)
+        # create the output text file
+        with open(out_file_name, 'w') as output_file:
+            # open the compressed file
+            with gzip.open(working_dir + in_file_name, 'rt') as compressed_file:
+                for line in compressed_file:
+                    # write the data to the output file
+                    output_file.write(line)
 
-    logger.debug(f'Decompression complete.')
+        logger.debug(f'Decompression complete.')
 
     # return the filename to the caller
     return out_file_name
@@ -458,7 +634,7 @@ def merge_roles_and_annotations(chebi_role_data, chebi_annotation_data):
 
 
 def annotate_from_chebi(rosetta):
-    chebisdf = pull('ftp.ebi.ac.uk', '/pub/databases/chebi/SDF/', 'ChEBI_complete_3star.sdf.gz')
+    chebisdf = pull_and_decompress('ftp.ebi.ac.uk', '/pub/databases/chebi/SDF/', 'ChEBI_complete_3star.sdf.gz')
     chunk = []
     logger.debug('caching chebi annotations')
     # grab a bunch of them to make use of concurrent execution for fetching roles from Uberon
@@ -487,15 +663,14 @@ def annotate_from_chebi(rosetta):
             if line != '\n':
                 line = line.strip('\n')
                 chunk += [line]
-
-    if len(result_buffer) != 0:
-        # deal with the last pieces left in the buffer
-        chebi_role_data = loop.run_until_complete(result_buffer.keys())
+        
+    if len(result_buffer) != 0 :
+        #deal with the last pieces left in the buffer
+        chebi_role_data = loop.run_until_complete(make_uberon_role_queries(result_buffer.keys(),chemical_annotator))
         for entry in merge_roles_and_annotations(chebi_role_data, result_buffer):
             rosetta.cache.set(f'annotation({Text.upper_curie(entry[0])})', entry[1])
     logger.debug('done caching chebi annotations...')
     loop.close()
-
 
 def chebi_sdf_entry_to_dict(sdf_chunk, interesting_keys={}):
     """
@@ -574,14 +749,16 @@ def load_annotations_chemicals(rosetta):
     annotate_from_chebi(rosetta)
     annotate_from_chembl(rosetta)
 
+#if __name__ == '__main__':
+#    load_chemicals()
 
 #######
 # Main - Stand alone entry point for testing
 #######
-# if __name__ == '__main__':
-#     # load_unichem_deprecated()
-#     import sys
-#
+if __name__ == '__main__':
+    load_unichem(working_dir='.',xref_file='UC_XREF.txt.gz',struct_file='UC_STRUCTURE.txt')
+    # load_unichem_deprecated()
+#   import sys
 #     the_list = load_unichem('c:\\temp\\')
 #     #the_list = load_unichem('', sys.argv[1], sys.argv[2])
 #

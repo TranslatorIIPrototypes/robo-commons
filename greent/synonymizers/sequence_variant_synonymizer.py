@@ -3,7 +3,6 @@ from greent.graph_components import LabeledID
 from greent.util import Text
 
 def synonymize(node,gt):
-      
     synonyms = set()
     caids = node.get_synonyms_by_prefix('CAID')
     if (caids):

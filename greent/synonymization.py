@@ -6,6 +6,7 @@ from greent.graph_components import LabeledID
 from greent.util import Text, LoggingUtil
 from greent.synonymizers import cell_synonymizer
 from greent.synonymizers import hgnc_synonymizer
+from greent.synonymizers import uniprot_synonymizer
 from greent.synonymizers import oxo_synonymizer
 from greent.synonymizers import substance_synonymizer
 from greent.synonymizers import disease_synonymizer
@@ -13,7 +14,7 @@ from greent.synonymizers import sequence_variant_synonymizer
 from builder.question import LabeledID
 
 
-logger = LoggingUtil.init_logging(__name__, level=logging.INFO, format='medium')
+logger = LoggingUtil.init_logging(__name__, level=logging.DEBUG, format='medium')
 
 class Synonymizer:
 
@@ -21,6 +22,9 @@ class Synonymizer:
         self.rosetta = rosetta
         self.concepts = concepts
         self.fixed_synonymizers = {
+            #This doesn't allow unificiation of gp and chemicals very easily, but that's very complicated to do
+            # on the fly
+            node_types.GENE_PRODUCT:set([uniprot_synonymizer]),
             node_types.GENE:set([hgnc_synonymizer]),
             node_types.DISEASE:set([disease_synonymizer]),
             node_types.CHEMICAL_SUBSTANCE:set([substance_synonymizer]),
@@ -61,7 +65,7 @@ class Synonymizer:
 
     def synonymize(self, node):
         """Given a node, determine its type and dispatch it to the correct synonymizer"""
-        # logger.debug('syn {} {}'.format(node.id, node.type))
+        logger.debug('syn {} {}'.format(node.id, node.type))
         key = f"synonymize({Text.upper_curie(node.id)})"
         #check the cache. If it's not in there, try to generate it
         try:
@@ -140,4 +144,5 @@ class Synonymizer:
             if prefix == None or prefix.upper() not in uc:
                 bad_synonyms.add(synonym)
         for bs in bad_synonyms:
+            logger.debug(f'REMOVE {bs}')
             node.synonyms.remove(bs)

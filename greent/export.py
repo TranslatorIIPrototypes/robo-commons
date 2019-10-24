@@ -2,6 +2,7 @@ from greent import node_types
 from greent.util import LoggingUtil,Text
 from neo4j.v1 import GraphDatabase
 from collections import defaultdict, deque
+from greent.export_type_graph import ExportGraph
 import calendar
 import logging
 from datetime import datetime
@@ -26,6 +27,7 @@ class BufferedWriter():
 
     def __init__(self,rosetta):
         self.rosetta = rosetta
+        self.export_graph = ExportGraph(self.rosetta)
         self.written_nodes = set()
         self.written_edges = defaultdict(lambda: defaultdict( set ) )
         self.node_queues = defaultdict(list)
@@ -44,8 +46,9 @@ class BufferedWriter():
             return
         if node.name is None or node.name == '':
             logger.warning(f"Node {node.id} is missing a label")
+        self.export_graph.add_type_labels(node)
         self.written_nodes.add(node.id)
-        typednodes = self.node_queues[node.type]
+        typednodes = self.node_queues[node.export_labels]
         typednodes.append(node)
         if len(typednodes) >= self.node_buffer_size:
             self.flush()
@@ -148,12 +151,13 @@ def sort_nodes_by_label(nodes):
     return nl
 
 
-def export_node_chunk(tx,nodelist,label):
+def export_node_chunk(tx,nodelist,labels):
     cypher = f"""UNWIND $batches as batch
-                MERGE (a:{node_types.ROOT_ENTITY} {{id: batch.id}})
-                set a:{label}
-                set a += batch.properties
-                """
+                MERGE (a:{node_types.ROOT_ENTITY} {{id: batch.id}})\n"""
+    for label in labels:
+        cypher += f"set a:{label}\n"
+    cypher += """set a += batch.properties\n"""
+
     batch = []
     for n in nodelist:
         n.properties['equivalent_identifiers'] = [s.identifier for s in n.synonyms]

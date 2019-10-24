@@ -8,8 +8,8 @@ from greent import node_types
 logger = LoggingUtil.init_logging(__name__)
 
 #TODO: LOOKUP all the terms that map to this... or use an ancestor call that doesn't require such stuff (i.e. that handles this)
-GENETIC_DISEASE=('MONDO:0021198', 'DOID:630', 'EFO:0000508', 'MONDO:0003847')
-MONOGENIC_DISEASE='DOID:0050177'
+GENETIC_DISEASE=('MONDO:0020573', 'MONDO:0003847')
+MONOGENIC_DISEASE='MONDO:0000275'
 
 #class Mondo(Service):
 class Mondo2(Onto):

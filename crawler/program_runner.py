@@ -41,9 +41,12 @@ def get_identifiers(input_type,rosetta):
         identifiers =  rosetta.core.mondo.get_ids()
         for ident in identifiers:
             if ident not in bad_idents:
-                label = rosetta.core.mondo.get_label(ident)
+                #label = rosetta.core.mondo.get_label(ident)
+                label = rosetta.core.uberongraph.get_label(ident)
+                print(ident,label)
                 if label is not None and not label.startswith('obsolete'):
                     lids.append(LabeledID(ident,label))
+        print("got labels") 
     if input_type == node_types.PHENOTYPIC_FEATURE:
         # filtering to avoid things like 
         # "C0341110" http://www.orpha.net/ORDO/Orphanet:73247
@@ -70,8 +73,12 @@ def get_identifiers(input_type,rosetta):
         identifiers = requests.get("https://onto.renci.org/descendants/UBERON:0001062").json()
         for ident in identifiers:
             if ident not in bad_idents:
-                res = get_label(ident) #requests.get(f'https://onto.renci.org/label/{ident}').json()
-                lids.append(LabeledID(ident,res['label']))
+                if ident.split(':')[0] in ['UBERON','CL','GO']:
+                    #res = get_label(ident) #requests.get(f'https://onto.renci.org/label/{ident}').json()
+                    #lids.append(LabeledID(ident,res['label']))
+                    print(ident)
+                    label = rosetta.core.uberongraph.get_label(ident)
+                    lids.append(LabeledID(ident,label))
     elif input_type == node_types.CELL:
         identifiers = requests.get("https://onto.renci.org/descendants/CL:0000000").json()
         for ident in identifiers:
@@ -90,13 +97,21 @@ def get_identifiers(input_type,rosetta):
     elif input_type == node_types.CELLULAR_COMPONENT:
         print('Pulling cellular compnent descendants')
         identifiers = requests.get("https://onto.renci.org/descendants/GO:0005575").json()
-        # for now trying with exclusive descendants of cellular component 
+        # for now trying with exclusive descendants of cellular component
+        # "cell" is a cellular component, and therefore every type of cell is a cellular component.
+        # For querying neo4j, this is confusing, so let's subset to not include things in CL here.
         for ident in identifiers:
-            if ident not in bad_idents:
-                res = get_label(ident) #requests.get(f'https://onto.renci.org/label/{ident}/').json()
-                lids.append(LabeledID(ident,res['label']))
-
+            if ident.startswith('CL:'):
+                continue
+            if ident in bad_idents:
+                continue
+            res = get_label(ident) #requests.get(f'https://onto.renci.org/label/{ident}/').json()
+            lids.append(LabeledID(ident,res['label']))
+#    elif input_type == node_types.CHEMICAL_SUBSTANCE:
+#        print('pull chem ids')
+#        lids = [LabeledID(identifier="CHEBI:5931",label="insulin")]
     elif input_type == node_types.CHEMICAL_SUBSTANCE:
+#    elif False:
         print('pull chem ids')
         identifiers = requests.get("https://onto.renci.org/descendants/CHEBI:23367").json()
         identifiers = [x for x in identifiers if 'CHEBI' in x]
@@ -141,6 +156,17 @@ def get_identifiers(input_type,rosetta):
             except KeyError:
                 res = get_label(ident) #requests.get(f'https://onto.renci.org/label/{ident}/').json()
                 lids.append(LabeledID(ident,res['label']))
+
+        print('pull GTOPDB')
+        gtopdb_ligands = requests.get('https://www.guidetopharmacology.org/services/ligands').json()
+        n=0
+        for gtopdb_ligand in gtopdb_ligands:
+            try:
+                lids.append(LabeledID(f"GTOPDB:{gtopdb_ligand['ligandId']}",gtopdb_ligand['name']))
+                n+=1
+            except:
+                print(gtopdb_ligand)
+        print(n,len(gtopdb_ligands))
 
     elif input_type == node_types.BIOLOGICAL_PROCESS_OR_ACTIVITY:
         # pull Biological process decendants
@@ -196,7 +222,6 @@ def load_all(input_type,output_type,rosetta,poolsize,identifier_list=None):
     print( f'Chunksize: {chunksize}')
     single_program_size = chunksize  if chunksize > 0 else 1 # nodes sent to a program
     identifier_chunks = [identifiers[i: i + single_program_size] for i in range(0, len(identifiers), single_program_size)]
-    # pool.map_async(partial_do_one, identifier_chunks)# chunksize=chunksize)
-    # pool.close()
-    # pool.join()
-    do_one(input_type, output_type, identifiers)
+    pool.map_async(partial_do_one, identifier_chunks)# chunksize=chunksize)
+    pool.close()
+    pool.join()

@@ -1,0 +1,85 @@
+#The biolink model defines the semantics of the elements in our database, and because it is very general, it can
+# be used in a variety of contexts.  However, we may want extra constraints on which parts of the model are used
+# and which are not.  This yaml file describes the particular set of types that will get into our neo4j, and the
+# relationships between them.
+# Differences between this and biolink-model:
+# 1. There are many elements in the biolink-model hierarchy that we are not interested in attaching as labels at this
+#    time.  For instance, between named_thing and  gene_or_gene_product are "biological_entity","molecular_entity",
+#    and "genetic entity".  There's nothing wrong with them from a modeling standpoint, but for robokop, they're clutter.
+#    This happens at the leaf side as well: biolink model contains separate classes for drug, metabolite, etc, but
+#    we don't want them.
+# 2. Adding multiple descent constraints.   We want to assert that every gene product is also a chemical_substance.
+#    Biolink-model does not have any such relationship asserted, and is in fact, a tree, making it difficult to do
+#    so, if you also want to keep the relationship to gene_or_gene_product.
+
+named_thing:
+  comment: Root node. In the real model, there are many things between this and the other types of interest
+
+gene_family:
+  is_a:
+    - named_thing
+
+anatomical_entity:
+  is_a:
+    - named_thing
+
+cell:
+  is_a:
+    - anatomical_entity
+
+cellular_component:
+  is_a:
+    - anatomical_entity
+
+disease_or_phenotypic_feature:
+  is_a:
+    - named_thing
+
+disease:
+  is_a:
+    - disease_or_phenotypic_feature
+
+phenotypic_feature:
+  is_a:
+    - disease_or_phenotypic_feature
+
+genetic_condition:
+  is_a:
+    - disease
+
+chemical_substance:
+  is_a:
+    - named_thing
+
+gene_or_gene_product:
+  is_a:
+    - named_thing
+
+gene_product:
+  is_a:
+    - chemical_substance
+    - gene_or_gene_product
+
+gene:
+  is_a:
+    - gene_or_gene_product
+
+sequence_variant:
+  is_a:
+    - named_thing
+
+biological_process_or_activity:
+  is_a:
+    - named_thing
+
+biological_process:
+  is_a:
+    - biological_process_or_activity
+
+molecular_activity:
+  is_a:
+    - biological_process_or_activity
+
+pathway:
+  is_a:
+    - biological_process

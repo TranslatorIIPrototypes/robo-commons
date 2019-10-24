@@ -32,6 +32,19 @@ class UniProt(Service):
                 time.sleep(wait_time)
         return None
 
+
+    ###
+    #
+    #  Originally, we were identifiying proteins and genes together.  But we don't want to do that.  Instead, we
+    #  only want to get other protein identifiers.   Now, at the moment, we're only dealing with top-level UniProt
+    #  identifiers (not isoforms, or subsequences like PRO markers).  We've decided on a list of identifiers that
+    #  UniProt provides that map nicely to those things: MINT, neXtPROT, STRING.  Also, the protein ontology uses
+    #  UniProt ids (different prefix) for SwissProt, but not for Trembl (those annoying A0A0 things)
+    #
+    #  So uniprot_2_hgnc and uniprot_2_ensembl are deprecated in terms of calculating synonyms, but we might want to
+    #  build gene/protein relationships from them.
+    #
+    ##
     def uniprot_2_hgnc(self, identifier):
         """Some services, like quickgo, return uniprot identifiers that other services have a hard time
         interpreting.  Things like UniProtKB:A0A0A0MR54
@@ -64,8 +77,24 @@ class UniProt(Service):
         answerparts = [ f'NCBIGene:{x.strip().split()[-1]}' for x in answerlines ]
         return answerparts
 
+    def uniprot_2_something(self,identifier,something):
+        #A map going from the uniprot query to our prefix for that
+        smap = {'STRING':'STRING','neXtProt':'neXtProt'}
+        identifier_parts = identifier.split(':')
+        upkb = identifier_parts[1]
+        data = {'from'  : 'ACC+ID',
+                'to'    : 'something',
+                'format': 'tab',
+                'query' : upkb }
+        r = self.query(self.url, data=data)
+        lines = r.text.split("\n")
+        answerlines = list(filter( lambda x: x.startswith(upkb), lines))
+        answerparts = [ f'{smap[something]}:{x.strip().split()[-1]}' for x in answerlines ]
+        return answerparts
+
+
     def get_synonyms(self,identifier):
-        s = self.uniprot_2_hgnc(identifier)
-        if len(s) == 0:
-            s = self.uniprot_2_ncbi(identifier)
-        return s
+        s = self.uniprot_2_something(identifier,'STRING')
+        s += self.uniprot_2_something(identifier,'neXtProt')
+        # Would really like to get MINT and PR here also, but this interface doesn't handle them :<
+        return set(s)
