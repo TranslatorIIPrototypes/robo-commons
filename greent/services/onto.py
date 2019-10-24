@@ -1,6 +1,8 @@
 import json
 from greent.cachedservice import CachedService
 from greent.util import LoggingUtil
+from greent.graph_components import KNode, KEdge, LabeledID
+
 
 logger = LoggingUtil.init_logging(__name__)
 
@@ -57,3 +59,31 @@ class Onto(CachedService):
     def lookup(self,identifier):
         obj = self.get(f"{self.url}/lookup/{identifier}")
         return [ ref["id"] for ref in obj['refs'] ] if 'refs' in obj else []
+
+    def get_anscestors(self, identifier):
+        return self.get(f"{self.url}/superterms/{identifier}")
+    
+    def get_parents(self, identifier):
+        return self.get(f"{self.url}/parents/{identifier}")['parents']
+
+    def get_children(self, identifier):
+        return self.get(f"{self.url}/children/{identifier}")
+
+        
+    def get_ontological_subclass(self, node):
+        #Ideally our ancestory list would be same as our query node
+        for parent_curie, lbl in node.synonyms:
+            response = self.get_children(parent_curie)
+            results = []
+            predicate = LabeledID(identifier="rdfs:subClassOf", label="is_a")        
+            for curie in response:
+                name = self.get_label(curie)
+                new_node = KNode(curie, type = node.type, name = name)                        
+                results.append((
+                    self.create_edge(
+                        new_node,
+                        node,
+                        'onto.get_onthological_children',
+                        node.id,
+                        predicate), new_node))
+        return results
