@@ -225,4 +225,3 @@ def load_all(input_type,output_type,rosetta,poolsize,identifier_list=None):
     pool.map_async(partial_do_one, identifier_chunks)# chunksize=chunksize)
     pool.close()
     pool.join()
-    # do_one(input_type, output_type, identifiers)

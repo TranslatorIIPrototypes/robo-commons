@@ -873,6 +873,13 @@ slots:
     mappings:
       - RO:0004009 #has primary input
 
+<<<<<<< HEAD
+=======
+  is a:
+    mappings:
+      - rdfs:subClassOf
+
+>>>>>>> master
   #the following are not in the original biolink model
 
   affects expression in:
