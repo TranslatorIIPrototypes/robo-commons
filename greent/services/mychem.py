@@ -200,16 +200,16 @@ class MyChem(Service):
                 if 'enzymes' in results['drugbank']:
                     # maybe we don't need this filter ... ???
                     logger.debug('found enzymes')
-                    genes += list(filter(lambda x : x['organism'] == 'Humans' or True, results['drugbank']['enzymes']))
+                    genes += list(filter(lambda x : ('organism' in x) and (x['organism'] == 'Humans'), results['drugbank']['enzymes']))
                 if 'transporters' in results['drugbank']:
                     logger.debug('found transporters')
-                    genes += list(filter(lambda x: x['organism']== 'Humans' , results['drugbank']['transporters']))
+                    genes += list(filter(lambda x: ('organism' in x) and (x['organism']== 'Humans') , results['drugbank']['transporters']))
                 if 'carriers' in results['drugbank']:
                     logger.debug('found some carriers')
-                    genes += list(filter(lambda x: x['organism']== 'Humans' , results['drugbank']['carriers']))
+                    genes += list(filter(lambda x: ('organism' in x) and (x['organism']== 'Humans') , results['drugbank']['carriers']))
                 if 'targets' in results['drugbank']:
                     logger.debug('found targets')
-                    genes += list(filter(lambda x: x['organism']== 'Humans' , results['drugbank']['targets']))
+                    genes += list(filter(lambda x: ('organism' in x) and (x['organism']== 'Humans') , results['drugbank']['targets']))
                 for gene in genes:
                     # Actions relate what the drug does to the enzyme ...  ?./>
                     # so I think we can treat actions as relationship types
@@ -217,32 +217,44 @@ class MyChem(Service):
                     # we might have (A drug)  that (inhibits) a gene  and the action here is inhibitor. 
                     # So I think its safe to generalize the actions are what the drug is to the enzyme. Or how the enzyme acts to the drug.
                     # so more like (Drug) - is a/an (action) for ->  (Enzyme/gene), but some <- so list contains direction 
-                    action_to_predicate_map = {                        
-                        'substrate': (LabeledID(identifier='CTD:increases_degradation_of', label= 'substrate'), True), #(label, direction where true means reverse)
-                        'inhibitor': (LabeledID(identifier= 'CTD:decreases_activity_of', label = "inhibitor"), False),
-                        'inducer': (LabeledID(identifier = 'CTD:increases_activity_of', label="inducer"), False),
-                        'antagonist': (LabeledID(identifier= 'CTD:decreases_activity_of', label = "antagonist"), False),
-                        'weak inhibitor': (LabeledID(identifier= 'CTD:decreases_activity_of', label = "weak_inhibitor"), False),
-                        'partial antagonist': (LabeledID(identifier= 'CTD:decreases_activity_of', label = "partial_antagonist"), False),
-                        'blocker': (LabeledID(identifier= 'CTD:decreases_activity_of', label = "blocker"), False),
-                        'inverse agonist': (LabeledID(identifier= 'CTD:decreases_activity_of', label = "inverse_agonist"), False),
-                        'binder': (LabeledID(identifier='CTD:molecularly_interacts_with', label= 'binder'), False), 
-                        'activator': (LabeledID(identifier = 'CTD:increases_activity_of', label="activator"), False),
-                        'agonist': (LabeledID(identifier = 'CTD:increases_activity_of', label="agonist"), False),
-                        'partial agonist': (LabeledID(identifier = 'CTD:increases_activity_of', label="partial_agonist"), False),
-                        'potentiator': (LabeledID(identifier = 'CTD:increases_activity_of', label="potentiator"), False), 
-                        'carrier': (LabeledID(identifier = 'CTD:increases_transport_of', label="potentiator"), True), 
-                        'product of': (LabeledID(identifier= 'CTD:increases_synthesis_of', label = "product_of"), False),
-                        'inhibition of synthesis': (LabeledID(identifier= 'CTD:decreases_synthesis_of', label = "inhibition_of_synthesis"), False),
-                        'inactivator': (LabeledID(identifier= 'CTD:decreases_activity_of', label = "inactivator"), False),
-                    }              
-                    if 'actions' in gene:
+                    #action_to_predicate_map = {
+                    #    'substrate': (LabeledID(identifier='CTD:increases_degradation_of', label= 'substrate'), True), #(label, direction where true means reverse)
+                    #    'inhibitor': (LabeledID(identifier= 'CTD:decreases_activity_of', label = "inhibitor"), False),
+                    #    'inducer': (LabeledID(identifier = 'CTD:increases_activity_of', label="inducer"), False),
+                    #    'antagonist': (LabeledID(identifier= 'CTD:decreases_activity_of', label = "antagonist"), False),
+                    #    'weak inhibitor': (LabeledID(identifier= 'CTD:decreases_activity_of', label = "weak_inhibitor"), False),
+                    #    'partial antagonist': (LabeledID(identifier= 'CTD:decreases_activity_of', label = "partial_antagonist"), False),
+                    #    'blocker': (LabeledID(identifier= 'CTD:decreases_activity_of', label = "blocker"), False),
+                    #    'inverse agonist': (LabeledID(identifier= 'CTD:decreases_activity_of', label = "inverse_agonist"), False),
+                    #    'binder': (LabeledID(identifier='CTD:molecularly_interacts_with', label= 'binder'), False),
+                    #    'activator': (LabeledID(identifier = 'CTD:increases_activity_of', label="activator"), False),
+                    #    'agonist': (LabeledID(identifier = 'CTD:increases_activity_of', label="agonist"), False),
+                    #    'partial agonist': (LabeledID(identifier = 'CTD:increases_activity_of', label="partial_agonist"), False),
+                    #    'potentiator': (LabeledID(identifier = 'CTD:increases_activity_of', label="potentiator"), False),
+                    #    'carrier': (LabeledID(identifier = 'CTD:increases_transport_of', label="potentiator"), True),
+                    #    'product of': (LabeledID(identifier= 'CTD:increases_synthesis_of', label = "product_of"), False),
+                    #    'inhibition of synthesis': (LabeledID(identifier= 'CTD:decreases_synthesis_of', label = "inhibition_of_synthesis"), False),
+                    #    'inactivator': (LabeledID(identifier= 'CTD:decreases_activity_of', label = "inactivator"), False),
+                    #}
+                    reverse = ['substrate','carrier']
+                    #Some genes are more like gene familes, and we don't want them
+                    if 'actions' in gene and 'uniprot' in gene:
                         actions = gene['actions']  if type(gene['actions']) == type([]) else [gene['actions']]
                         # create the gene node
-                        gene_node = KNode(f"UNIPROTKB:{gene['uniprot']}", name= gene['gene_name'], type= node_types.GENE)
+                        if 'gene_name' in gene:
+                            nm = gene['gene_name']
+                        else:
+                            nm = ''
+                        gene_node = KNode(f"UNIPROTKB:{gene['uniprot']}", name= nm, type= node_types.GENE)
                         publications = [f'PMID:{x}' for x in gene['pmids']] if 'pmids' in gene else []
                         for action in actions:
-                            predicate,direction = action_to_predicate_map.get(action, (LabeledID(identifier= 'CTD:interacts_with', label=action),False))
+                            if action in reverse:
+                                direction = True
+                            else:
+                                direction = False
+                            #predicate,direction = action_to_predicate_map.get(action, (LabeledID(identifier= 'CTD:interacts_with', label=action),False))
+                            rel = Text.snakify(action)
+                            predicate = LabeledID(identifier=f'GAMMA:{rel}', label=rel)
                             source_node = input_node
                             target_node = gene_node
                             if direction : # swap input and target nodes

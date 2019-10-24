@@ -1,4 +1,6 @@
 from ftplib import FTP
+from gzip import decompress
+
 from greent.util import Text
 from builder.question import LabeledID
 from io import BytesIO
@@ -16,7 +18,8 @@ def pull_via_ftp(ftpsite, ftpdir, ftpfile):
     ftp.quit()
     return binary
 
-def glom(conc_set, newgroups, unique_prefixes=[]):
+#def glom(conc_set, newgroups, unique_prefixes=[]):
+def glom(conc_set, newgroups, unique_prefixes=['INCHI']):
     """We want to construct sets containing equivalent identifiers.
     conc_set is a dictionary where the values are these equivalent identifier sets and
     the keys are all of the elements in the set.   For each element in a set, there is a key
@@ -39,7 +42,19 @@ def glom(conc_set, newgroups, unique_prefixes=[]):
         #make sure we didn't combine anything we want to keep separate
         setok = True
         for up in unique_prefixes:
-            if len([1 for e in newset if e.startswith(up)]) > 1:
+            idents = [e if type(e)==str else e.identifier for e in newset]
+            if len([1 for e in idents if e.startswith(up)]) > 1:
+                print('------')
+                print('up')
+                print(up)
+                print([e for e in newset if e.startswith(up)])
+                print('group')
+                print(group)
+                print('existing_sets')
+                print(existing_sets)
+                print('newset')
+                print(newset)
+                print('------')
                 setok = False
                 break
         if not setok:
@@ -51,35 +66,38 @@ def glom(conc_set, newgroups, unique_prefixes=[]):
             conc_set[element] = newset
 
 def dump_cache(concord,rosetta,outf=None):
-    for element in concord:
-        if isinstance(element,LabeledID):
-            element_id = element.identifier
-        else:
-            element_id = element
-        key = f"synonymize({Text.upper_curie(element_id)})"
-        value = concord[element]
-        if outf is not None:
-            outf.write(f'{key}: {value}\n')
-        rosetta.cache.set(key,value)
+    with rosetta.cache.get_pipeline() as pipe:
+        ecount = 0
+        for element in concord:
+            if isinstance(element,LabeledID):
+                element_id = element.identifier
+            else:
+                element_id = element
+            key = f"synonymize({Text.upper_curie(element_id)})"
+            value = concord[element]
+            if outf is not None:
+                outf.write(f'{key}: {value}\n')
+            rosetta.cache.set(key,value,pipe)
+            ecount += 1
+            if ecount >= 1000:
+                pipe.execute()
 
 
 ############
-# Gets a simple array of sequence variant ids
+# Sends a query to the graph database and returns the values
 #
-# param: Rosetts object
-# returns: a list of sequence variant IDs
+# params: Rosetta object, the query to send, a cutoff that limits the number of results
+# returns: a list of lists of data from the graph
 ############
-def get_variant_list(rosetta: Rosetta, limit: int = None) -> list:
+def query_the_graph(rosetta: Rosetta, query: str, limit: int = None) -> list:
     # get a connection to the graph database
     db_conn = rosetta.type_graph.driver
 
     # init the returned variant id list
-    var_list = []
+    return_list = []
 
     # open a db session
     with db_conn.session() as session:
-        # this query will get the node id and synonymized inro
-        query = 'match (s:sequence_variant) return distinct s.id, s.equivalent_identifiers'
 
         # if we got an optional limit of returned data
         if limit is not None:
@@ -90,14 +108,14 @@ def get_variant_list(rosetta: Rosetta, limit: int = None) -> list:
 
     # did we get a valid response
     if response is not None:
-        # de-queue the returned data into a list for iteration
-        rows = list(response)
-
-        # go through each record and save only what we need (id, synonymizations) into a simple list
-        for r in rows:
-            # append only the data we need to the returned list
-            var_list.append([r[0], r[1]])
+        # de-queue the returned data into a list
+        return_list = list(response)
 
     # return the simple array to the caller
-    return var_list
+    return return_list
 
+
+def pull_and_decompress(location, directory, filename):
+    data = pull_via_ftp(location, directory, filename)
+    rdf = decompress(data).decode()
+    return rdf

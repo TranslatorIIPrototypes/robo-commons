@@ -15,13 +15,15 @@ class Onto(CachedService):
         obj = self.get(f"{self.url}/id_list/{self.name.upper()}")
         return obj
     def is_a(self,identifier,candidate_ancestor):
-        obj = self.get(f"{self.url}/is_a/{identifier}/{candidate_ancestor}/")
+        obj = self.get(f"{self.url}/is_a/{identifier}/{candidate_ancestor}")
+        if obj is None:
+            return False
         #print (f"obj: {json.dumps(obj, indent=2)}")
         return obj is not None and 'is_a' in obj and obj['is_a']
     def get_label(self,identifier):
         """ Get the label for an identifier. """
         obj = self.get(f"{self.url}/label/{identifier}")
-        return obj['label'] if 'label' in obj else None
+        return obj['label'] if obj and 'label' in obj else None
     def search(self,name,is_regex=False, full=False):
         """ Search ontologies for a term. """
         obj = self.get(f"{self.url}/search/{name}/?regex={'true' if is_regex else 'false'}")

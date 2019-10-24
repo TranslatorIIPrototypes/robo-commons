@@ -17,6 +17,7 @@ class ChemicalAnnotator(Annotator):
             'PUBCHEM': self.get_pubchem_data,
             'DRUGBANK': self.get_mychem_data,
             'KEGG.COMPOUND':self.get_kegg_data
+            # 'INCHIKEY':self.get_inchikey_data
         }
         self.tripleStore = TripleStoreAsync('https://stars-app.renci.org/uberongraph/sparql')
         
@@ -30,6 +31,9 @@ class ChemicalAnnotator(Annotator):
         suffix = Text.un_curie(chembl_id)
         url_part = f'{suffix}.json'
         response_json = await self.async_get_json(conf['url'] + url_part)
+        #There are some chembl id's that 404, leading to an empty response
+        if len(response_json) == 0:
+            return response_json
         return self.extract_chembl_data(response_json, keys_of_interest)
         
     def extract_chembl_data(self, chembl_raw, keys_of_interest=[]):
@@ -79,13 +83,29 @@ class ChemicalAnnotator(Annotator):
         response = await self.async_get_text(url)
         kegg_dict = self.parse_flat_file_to_dict(response)
         return self.extract_kegg_data(kegg_dict, conf['keys'])
-    
+
     def extract_kegg_data(self, kegg_dict, keys_of_interest):
         extracted = {keys_of_interest[key] : \
             self.convert_data_to_primitives(kegg_dict[key]) \
             for key in keys_of_interest if key in kegg_dict.keys()}
+        #if len(keys_of_interest) != len(extracted.keys()):
+        #    logger.warn(f"All keys were not annotated for {kegg_dict['ENTRY']}")
+        return extracted
+
+    async def get_inchikey_data(self, inchikey_id):
+        conf = self.get_prefix_config('INCHIKEY')
+        inchikey_c_id = Text.un_curie(inchikey_id) 
+        url = conf['url'] + inchikey_c_id
+        response = await self.async_get_text(url)
+        inchikey_dict = self.parse_flat_file_to_dict(response)
+        return self.extract_inchikey_data(inchikey_dict, conf['keys'])
+
+    def extract_inchikey_data(self, inchikey_dict, keys_of_interest):
+        extracted = {keys_of_interest[key] : \
+            self.convert_data_to_primitives(inchikey_dict[key]) \
+            for key in keys_of_interest if key in inchikey_dict.keys()}
         if len(keys_of_interest) != len(extracted.keys()):
-            logger.warn(f"All keys were not annotated for {kegg_dict['ENTRY']}")
+            logger.warn(f"All keys were not annotated for {inchikey_dict['ENTRY']}")
         return extracted
 
     def parse_flat_file_to_dict(self, raw):

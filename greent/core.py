@@ -1,6 +1,7 @@
 from greent.ontologies.go2 import GO2
 from greent.ontologies.hpo2 import HPO2
 from greent.ontologies.mondo2 import Mondo2
+from greent.ontologies.uberon import Uberon
 from greent.services.biolink import Biolink
 from greent.services.caster import Caster
 from greent.services.chembio import ChemBioKS
@@ -8,6 +9,7 @@ from greent.services.chemotext import Chemotext
 from greent.services.clingen import ClinGen
 from greent.services.ctd import CTD
 from greent.services.ensembl import Ensembl
+from greent.services.foodb import FooDB
 from greent.services.gtopdb import gtopdb
 from greent.services.gwascatalog import GWASCatalog
 from greent.services.hetio import HetIO
@@ -53,6 +55,7 @@ class GreenT:
             "chemotext"        : lambda :  Chemotext (self.service_context),
             "clingen"          : lambda :  ClinGen(self.service_context),
             "ctd"              : lambda :  CTD(self.service_context),
+            "foodb"            : lambda :  FooDB(self.service_context),
             "ensembl"          : lambda :  Ensembl(self.service_context),
             "go"               : lambda :  GO2(self.service_context),
             "gtopdb"           : lambda :  gtopdb(self.service_context),
@@ -73,6 +76,7 @@ class GreenT:
             "quickgo"          : lambda :  QuickGo (self.service_context),
             "tkba"             : lambda :  TranslatorKnowledgeBeaconAggregator (self.service_context),
             "typecheck"        : lambda :  TypeCheck(self.service_context, self, rosetta),
+            "uberon"           : lambda :  Uberon(self.service_context),
             "uberongraph"      : lambda :  UberonGraphKS(self.service_context),
             "unichem"          : lambda :  UniChem(self.service_context),
             "uniprot"          : lambda :  UniProt(self.service_context),

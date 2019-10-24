@@ -13,6 +13,12 @@ class CachedService(Service):
         #print (f"==================> {url}")
         obj = self.context.cache.get(key)
         if not obj:
-            obj = requests.get(url).json ()
-            self.context.cache.set(key, obj)
+            if url.endswith('/'):
+                url = url[:-1]
+            rv = requests.get(url)
+            if rv.status_code == 200:
+                obj = rv.json()
+                self.context.cache.set(key, obj)
+            else:
+                obj = None
         return obj

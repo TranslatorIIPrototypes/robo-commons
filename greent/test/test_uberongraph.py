@@ -11,6 +11,11 @@ def uberon(rosetta):
     uberon = rosetta.core.uberongraph
     return uberon
 
+def test_label(uberon):
+    mondo = 'MONDO:0001876'
+    expected_label='renal artery atheroma'
+    actual_label = uberon.get_label(mondo)
+    assert actual_label == expected_label
 
 def test_name(uberon):
     cn ='CL:0000097'
@@ -27,7 +32,7 @@ def test_disease_to_go(uberon):
         assert ri[0].standard_predicate.identifier != 'GAMMA:0'
     assert len(r) > 50
 
-def test_disease_to_go(uberon):
+def test_disease_to_go_2(uberon):
     #Make sure that for a variety of cell types we 1) get relationships going both directions and
     # that we map all predicates
     disease = KNode('HP:0012387',type=node_types.PHENOTYPIC_FEATURE, name="Bronchitis")
@@ -207,6 +212,12 @@ def test_disease_to_anatomy(uberon):
     assert 'axilla' in [ node_name  for edge_tar_id, predicate, node_id , node_name in attributes ]
     assert 'appendage girdle region' in [ node_name  for edge_tar_id, predicate, node_id , node_name in attributes ]
 
+def test_disease_to_anatomy_rc_face(uberon):
+    k = KNode('MONDO:0022407', type = node_types.DISEASE)
+    results = uberon.get_anatomy_by_disease(k)
+    newnodes = [ node.id for edge,node in results ]
+    print(newnodes)
+    assert 'UBERON:0001456' in newnodes
 
 def test_cell_component_to_chemical(uberon):
     k = KNode('GO:0043257', type = node_types.CELLULAR_COMPONENT)

@@ -35,7 +35,6 @@ classes:
       - NCIT
       - UMLS
       - MEDDRA
-      - EFO
 
   chemical substance:
     id_prefixes:
@@ -43,6 +42,7 @@ classes:
       - CHEMBL
       - DRUGBANK
       - PUBCHEM
+      - PR
       - MESH
       - HMDB
       - INCHI
@@ -55,7 +55,13 @@ classes:
       - PHAROS.DRUG
       - DRUG.INTERACTION
       - CTD
+      - UNIPROTKB
       - METABOLON
+      - FOOD
+
+  food:
+    id_prefixes:
+      - FOOD
 
   anatomical entity:
     id_prefixes:
@@ -72,13 +78,24 @@ classes:
       - HGNC
       - NCBIGENE
       - ENSEMBL
-      - UniProtKB
+      - UNIPROTKB
       - EC
       - RNAcentral
       - MGI
       - ZFIN
       - HGNC.SYMBOL
       - IUPHAR
+
+  gene family:
+    id_prefixes:
+      - HGNC.FAMILY
+      - PANTHER.FAMILY
+
+  gene product:
+    id_prefixes:
+      - UNIPROTKB
+      - GTOPDB
+      - PR
 
   sequence variant:
     id_prefixes:
@@ -102,6 +119,25 @@ classes:
       - REACT
       - KEGG-path
 
+  biological process:
+    id_prefixes:
+      - GO
+      - Reactome
+
+  biological process or molecular activity:
+    id_prefixes:
+      - GO
+      - Reactome
+
+  molecular activity:
+    id_prefixes:
+      - GO
+      - Reactome
+
+  cellular component:
+    id_prefixes:
+      - GO
+
 slots:
 
   id:
@@ -110,7 +146,6 @@ slots:
 
   gene associated with condition:
     mappings:
-      - BIOLINK:0000001 # Minting id for this
       - GENO:0000840 # pathogenic_for_condition
       - GENO:0000841 # likely_pathogenic_for_condition
 
@@ -164,6 +199,15 @@ slots:
       - hetio:DOWNREGULATES_AdG
       - hetio:DOWNREGULATES_DdG
 
+  homologous to:
+    mappings:
+      - RO:0002158
+      - RO:0002159
+      - core#sexually:homologous:to
+
+
+
+
   directly interacts with:
     description: >-
       Holds between molecular entities that phyically and directly interact with each other
@@ -173,6 +217,26 @@ slots:
       - CTD:interacts_with
       - CTD:affects^binding
       - PHAROS:drug_targets
+      - GAMMA:interacts_with
+      - GAMMA:antibody_binding
+      - GAMMA:other
+      - GAMMA:other/unknown
+      - GAMMA:pharmacological_chaperone
+      - GAMMA:releasing_agent
+      - GAMMA:kd
+      - GAMMA:kb
+      - GAMMA:binder
+      - GAMMA:binding
+      - GAMMA:ligand
+      - GAMMA:cofactor
+      - GAMMA:potency
+      - GAMMA:none
+      - GAMMA:multitarget
+      - GAMMA:chaperone
+      - GAMMA:component
+      - GAMMA:adduct
+      - GAMMA:antibody
+
 
   #New CTD Stuff
   affects abundance of:
@@ -197,16 +261,49 @@ slots:
     mappings:
       - CTD:affects_activity_of
       - CTD:affects^activity
+      - GAMMA:allosteric_modulator
+      - GAMMA:modulator
+      - GAMMA:regulator
 
   increases activity of:
     mappings:
       - CTD:increases_activity_of
       - CTD:increases^activity
+      - GAMMA:activator
+      - GAMMA:partial_agonist
+      - GAMMA:agonist
+      - GAMMA:opener
+      - GAMMA:positive_allosteric_modulator
+      - GAMMA:positive_modulator
+      - GAMMA:ec50
+      - GAMMA:ac50
+      - GAMMA:inducer
+      - GAMMA:potentiator
+      - GAMMA:stimulator
 
   decreases activity of:
     mappings:
       - CTD:decreases_activity_of
       - CTD:decreases^activity
+      - GAMMA:allosteric_antagonist
+      - GAMMA:partial_antagonist
+      - GAMMA:antagonist
+      - GAMMA:weak_inhibitor
+      - GAMMA:inhibitor
+      - GAMMA:channel_blocker
+      - GAMMA:gating_inhibitor
+      - GAMMA:blocker
+      - GAMMA:inverse_agonist
+      - GAMMA:inactivator
+      - GAMMA:downregulator
+      - GAMMA:negative_modulator
+      - GAMMA:negative_allosteric_modulator
+      - GAMMA:inhibitory_allosteric_modulator
+      - GAMMA:ic50
+      - GAMMA:ki
+      - GAMMA:aggregation_inhibitor
+      - GAMMA:conversion_inhibitor
+      - GAMMA:suppressor
 
   affects expression of:
     mappings:
@@ -245,6 +342,8 @@ slots:
       - CTD:affects_localization_of
       - CTD:affects^localization
       - RO:0002313
+      - GAMMA:storage
+      - GOREL:0002003 # results in distribution of
 
   increases localization of:
     mappings:
@@ -262,6 +361,7 @@ slots:
     mappings:
       - CTD:affects_metabolic_processing_of
       - CTD:affects^metabolic processing
+      - GAMMA:catalytic_activity
 
   increases metabolic processing of:
     mappings:
@@ -342,6 +442,8 @@ slots:
       - CTD:increases^oxidation
       - CTD:increases^reduction
       - CTD:increases^carboxylation
+      - GAMMA:acetylation
+      - GAMMA:oxidizer
 
   decreases molecular modification of:
     mappings:
@@ -377,6 +479,7 @@ slots:
       - CTD:decreases^oxidation
       - CTD:decreases^reduction
       - CTD:decreases^carboxylation
+      - GAMMA:deoxidizer
 
   affects synthesis of:
     mappings:
@@ -387,11 +490,13 @@ slots:
     mappings:
       - CTD:increases_synthesis_of
       - CTD:increases^chemical synthesis
+      - GAMMA:product_of
 
   decreases synthesis of:
     mappings:
       - CTD:decreases_synthesis_of
       - CTD:decreases^chemical synthesis
+      - GAMMA:inhibition_of_synthesis
 
   affects degradation of:
     mappings:
@@ -406,6 +511,10 @@ slots:
       - CTD:increases^degradation
       - CTD:increases^cleavage
       - CTD:increases^hydrolysis
+      - GAMMA:substrate
+      - RO:0002586 # results in breakdown of
+      - RO:0002590 # results in disassembly of
+      - GOREL:0002004 # results in fission of
 
   decreases degradation of:
     mappings:
@@ -443,6 +552,7 @@ slots:
     mappings:
       - CTD:decreases_response_to
       - CTD:decreases^response to substance
+      - GAMMA:desensitize_the_target
 
   affects splicing of:
     mappings:
@@ -488,6 +598,8 @@ slots:
       - CTD:increases_transport_of
       - CTD:increases^transport
       - RO:0002020
+      - GAMMA:carrier
+      - GAMMA:transporter
 
   decreases transport of:
     mappings:
@@ -541,6 +653,50 @@ slots:
   coexists with:
     mappings:
       - RO:0002325  # colocalizes_with
+      - BSPO:0000096 #anterior to
+      - BSPO:0000097 #distal to
+      - BSPO:0000098 #dorsal to
+      - BSPO:0000099 #posterior to
+      - BSPO:0000100 #proximal to
+      - BSPO:0000102 #ventral to
+      - BSPO:0000104 #approximately perpendicular to
+      - BSPO:0015001 #finshes axis
+      - BSPO:0015002 #follows axis
+      - BSPO:0015003 #has axis
+      - BSPO:0015005 #orthogonal to
+      - BSPO:0015007 #starts axis
+      - BSPO:0015008 #surface of
+      - BSPO:0015014 #immdiately superficial to
+      - RO:0000300   #in neural circuit with
+      - RO:0000301   #upstream in neural circuit with
+      - RO:0000302   #downstream in neural circuit with
+      - RO:0002002   #has boundary
+      - RO:0002120   #synapsed to
+      - RO:0002150   #continuous with
+      - RO:0002170   #connected to
+      - RO:0002176   #connects
+      - RO:0002177   #attaches to part of
+      - RO:0002178   #supplies
+      - RO:0002179   #drains
+      - RO:0002371   #attached to
+      - core#anastomoses:with
+      - core#anteriorly:connected:to
+      - core#posteriorly:connected:to
+      - core#channel:for
+      - core#channels:from
+      - core#channels:into
+      - core#conduit:for
+      - core#distally:connected:to
+      - core#extends:fibers:into
+      - core#filtered:through
+      - core#indirectly:supplies
+      - core#proximally:connected:to
+      - core#synapsed:by
+      - core#transitively:anteriorly:connected:to
+      - core#transitively:connected:to
+      - core#transitively:distally:connected:to
+      - core#transitively:proximally:connected:to
+
 
     #In translator_minimal now, here for hetio
   expresses:
@@ -550,6 +706,21 @@ slots:
       - RO:0002292
       - hetio:EXPRESSES_AeG
 
+  derives into:
+    mappings:
+      - RO:0001001
+
+
+  location of:
+    mappings:  
+      - RO:0001015
+      - BFO:0000067 #contains process
+      - RO:0001019  #contains
+      - RO:0002005  #innervated by
+      - RO:0002103  #synapsed by
+      - RO:0002221  #surrounds
+
+
   located in:
     mappings:
       - GO:regulates_o_occurs_in
@@ -558,7 +729,31 @@ slots:
       - RO:0004026
       - RO:0004027
       - RO:0001018
+      - RO:0002100 #has soma location
+      - RO:0002102 #axon synapses in
+      - RO:0002113 #has presynaptic terminal in
+      - RO:0002130 #has presynaptic terminal in
+      - RO:0002134  #innervates
       - quick_go:is_active_in
+      - BSPO:0000107 #deep to
+      - BSPO:0000108 #superficial to
+      - BSPO:0000120 #in left side of
+      - BSPO:0000121 #in right side of
+      - BSPO:0000122 #in posterior side of
+      - BSPO:0000123 #in anterior side of
+      - BSPO:0000124 #in proximal side of
+      - BSPO:0000125 #in distal side of
+      - BSPO:0000126 #in lateral side of
+      - BSPO:0001100 #in superficial part of
+      - BSPO:0001101 #in deep part of
+      - BSPO:0001107 #immediately deep to
+      - BSPO:0015101 #in dorsal side of
+      - BSPO:0015102 #in ventral side of
+      - BSPO:0015202 #aboral to
+      - RO:0002219   #surrounded by
+      - core#in:central:side:of
+      - core#in:innermost:side:of
+      - core#in:outermost:side:of
 
   contributes to:
     mappings:
@@ -579,6 +774,8 @@ slots:
   participates in:
     mappings:
       - GO:mediated_by
+      - BFO:0000056
+        
 
   has participant:
     mappings:
@@ -594,12 +791,20 @@ slots:
       - RO:0002329 #part of something that is capable of
       - biolink:gene_get_function            # biolink returns no relation_id or an identifier that is not a curie
       - RO:0002584
+        
   causes:
     mappings:
       - RO:0002595  #Actually causally relates entity to process, while causes is supposed to be entity to entity...
       - RO:0002500  #Actually causally relates entity to process, and is only causally involved in
       - mondo#disease:triggers
       - RO:0003303
+      - RO:0002411 # causally upstream of
+      - RO:0002418 # causally upstream of or within
+      - RO:0004047 # causally upstream of or within, positive effect
+      - RO:0004046 # causally upstream of or within, negative  effect
+      - RO:0002304 # causally upstream of, positive  effect
+      - RO:0002305 # causally upstream of, negative  effect
+      - RO:0002418 # causally upstream of or within
 
   related to:
     mappings:
@@ -617,6 +822,38 @@ slots:
       - RO:0002254
       - RO:0002202
       - RO:0002258
+      - RO:0002203 # develops into
+      - RO:0002207 # develops from
+      - RO:0002225 # develops from part of
+      - RO:0002226 # develops in
+      - RO:0002255 # developmentally contributes to
+      - RO:0002256 # developmentally induced by
+      - RO:0002285 # developmentally replaces
+      - RO:0002286 # developmentally succeeded by
+      - RO:0002320 # evolutionarily related to
+      - RO:0002156 #derived by descent from
+      - RO:0002372 # has muscle origin
+      - RO:0002373 # has muscle insertion
+      - RO:0002374 # derived from ancestral fusion of
+      - RO:0002374 # derived from ancestral fusion of
+      - RO:0002375 # in branching relationship with
+      - RO:0002384 # has developmental potential involving
+      - RO:0002385 # has potential do developmentally contribute
+      - RO:0002387 # has potential to develop into
+      - RO:0002388 # has potential to directly develop into
+      - RO:0002433 # contributes to morphology of
+      - RO:0002494 # transformation of
+      - RO:0002495 # immediate transformation of
+      - RO:0002567 # biomechanically related to
+      - core#protects
+      - RO:0002592 # results in organization of (ubergraph)
+      - RO:0002488 # existence starts during
+      - RO:0002490 # existence overlaps
+      - RO:0002492 # existence ends during
+      - GOREL:0002005 # results in fusion of
+      - RO:0002222 # temporally related to
+      - GOREL:0012006 # results in maintenance of
+      - RO:0002501 #causal relation between processes
 
   disrupts:
     mappings:
@@ -635,8 +872,6 @@ slots:
   has input:
     mappings:
       - RO:0004009 #has primary input
-  
-  
 
   #the following are not in the original biolink model
 
@@ -791,6 +1026,10 @@ slots:
       - RO:0002344
       - RO:0002479
       - RO:0002232
+      - core#site:of
+      - RO:0002342 #results in transport across
+      - RO:0002341 #results in transport along
+      - RO:0002021 #occurs across
 
   regulates:
     description: >-
@@ -824,7 +1063,7 @@ slots:
       holds between molecular entities that directly interact
     mappings:
       - CTD:molecularly_interacts_with
-  
+
   decreases molecular interaction:
     description: >-
       indicates that the source decreases the molecular interaction between the target and some other molecular entity
@@ -840,10 +1079,32 @@ slots:
   part of:
     mappings:
       - RO:0002007
+      - BSPO:0001106 # proximalmost_part_of
+      - BSPO:0001108 # distalmost_part_of
+      - BSPO:0001113 # preaxialmost_part_of
+      - BSPO:0001115 # postaxialmost_part_of
+      - RO:0002376 # tributary of
+      - RO:0002380 # branching part of
+      - RO:0002571 # lumen of
+      - RO:0002572 # luminal space of
+      - RO:0002576 # skeleton of
+      - core#layer:part:of
+      - core#subdivision:of
+      - core#trunk:part:of
+
+  has part:
+    mappings:
+      - RO:0002104 #has plasma membrane part
+      - RO:0002180 # has component
+      - RO:0002351 # has member
+      - RO:0002473 # composed primarily of
+      - RO:0002551 # has skeleton 
+      - RO:0002568 # has muscle antagonist 
   
   overlaps:
     mappings:
       - RO:0002220
+      - BSPO:0005001 # intersects midsagittal plane of
 
   spatially disjoint from:
     description: >-
@@ -851,8 +1112,29 @@ slots:
     mappings:
       - RO:0002163
 
+  produced by:
+    is_a: related to
+    mappings:
+      - RO:0003001
+      - RO:0002353 # output of
+
+
   in linkage disequilibrium with:
     description: >-
       holds between two sequence variants, the presence of which are correlated in a population
     mappings:
       - NCIT:C16798
+
+  has increased amount:
+    mappings:
+      - cl#has:high:plasma:membrane:amount
+
+  has decreased amount:
+    mappings:
+      - cl#has:low:plasma:membrane:amount
+
+  lacks part:
+    mappings:
+      - cl#lacks:part
+      - cl#lacks:plasma:membrane:part
+

@@ -9,6 +9,8 @@ DRUG = 'drug'
 METABOLITE = 'metabolite'
 ANATOMICAL_ENTITY = 'anatomical_entity'
 GENE = 'gene'
+GENE_PRODUCT = 'gene_product'
+GENE_OR_GENE_PRODUCT = 'gene_or_gene_product'
 SEQUENCE_VARIANT = 'sequence_variant'
 BIOLOGICAL_PROCESS_OR_ACTIVITY = 'biological_process_or_activity'
 MOLECULAR_ACTIVITY = 'molecular_activity'
@@ -20,6 +22,7 @@ GROSS_ANATOMICAL_STRUCTURE = 'gross_anatomical_structure'
 GENETIC_CONDITION = 'genetic_condition'
 UNSPECIFIED = 'unspecified'
 GENE_FAMILY = 'gene_family'
+FOOD = 'food'
 
 #The root of all biolink_model entities, which every node in neo4j will also have as a label. used to specify constraints/indices
 ROOT_ENTITY = 'named_thing'
@@ -46,5 +49,6 @@ CELL,
 GROSS_ANATOMICAL_STRUCTURE,
 GENETIC_CONDITION,
 UNSPECIFIED,
-GENE_FAMILY
+GENE_FAMILY,
+FOOD
 ])

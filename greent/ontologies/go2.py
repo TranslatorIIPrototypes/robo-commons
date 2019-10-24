@@ -26,15 +26,15 @@ class GO2(Onto):
         return super(GO2,self).get_synonyms(identifier)
 
     def search (self,text, is_regex=False):
-        return super(GO2,self).searh (text, is_regex)
+        return super(GO2,self).search (text, is_regex)
 
-    def is_cellular_component(self,identifier):
+    def is_cellular_component(self,node):
         """Checks go to find whether the subject is a cellular component"""
-        return self.is_a(identifier, CELLULAR_COMPONENT)
-    def is_biological_process(self,identifier):
+        return self.is_a(node.id, CELLULAR_COMPONENT)
+    def is_biological_process(self,node):
         """Checks go to find whether the subject is a cellular component"""
-        return self.is_a(identifier, BIOLOGICAL_PROCESS)
-    def is_molecular_function(self,identifier):
+        return self.is_a(node.id, BIOLOGICAL_PROCESS)
+    def is_molecular_function(self,node):
         """Checks go to find whether the subject is a cellular component"""
-        return self.is_a(identifier, MOLECULAR_FUNCTION)
+        return self.is_a(node.id, MOLECULAR_FUNCTION)
             

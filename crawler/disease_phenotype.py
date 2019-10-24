@@ -1,6 +1,8 @@
 from crawler.crawl_util import glom, dump_cache
 from builder.question import LabeledID
 from greent.util import Text
+import os
+from datetime import datetime as dt
 
 def write_sets(sets,fname):
     with open(fname,'w') as outf:
@@ -14,35 +16,54 @@ def write_dicts(dicts,fname):
 
 
 def load_diseases_and_phenotypes(rosetta):
-    mondo_sets = build_exact_sets(rosetta.core.mondo)
+    print('disease/phenotype')
+    print('get and write mondo sets')
+    mondo_sets = build_exact_sets(rosetta.core.mondo,rosetta.core.uberongraph)
     write_sets(mondo_sets,'mondo_sets.txt')
+    print('get and write hp sets')
     hpo_sets = build_sets(rosetta.core.hpo)
     write_sets(hpo_sets,'hpo_sets.txt')
+    print('get and write umls sets')
     meddra_umls = read_meddra()
     write_sets(hpo_sets,'meddra_umls_sets.txt')
     dicts = {}
+    print('put it all together')
     glom(dicts,mondo_sets)
     write_dicts(dicts,'mondo_dicts.txt')
     glom(dicts,hpo_sets)
     write_dicts(dicts,'mondo_hpo_dicts.txt')
     glom(dicts,meddra_umls)
     write_dicts(dicts,'mondo_hpo_meddra_dicts.txt')
+    print('dump it')
     with open('disease.txt','w') as outf:
         dump_cache(dicts,rosetta,outf)
 
-def build_exact_sets(o):
+def build_exact_sets(o,u):
     sets = []
     mids = o.get_ids()
+    print(len(mids))
+    n = 0
+    now = dt.now()
     for mid in mids:
+        if n % 100 == 0 and n > 0:
+            later = dt.now()
+            delt = (later-now).seconds
+            f = n / len(mids)
+            print(f'{n}/{len(mids)} = {f} in {delt} s')
+            print(f'  estimated time remaining = {delt * (1-f)/(f)}')
         #FWIW, ICD codes tend to be mapped to multiple MONDO identifiers, leading to mass confusion. So we
         #just excise them here.  It's possible that we'll want to revisit this decision in the future.  If so,
         #then we probably will want to set a 'glommable' and 'not glommable' set.
+        print(mid)
         dbx = [ Text.upper_curie(x) for x in o.get_exact_matches(mid) ]
+        print(dbx)
         dbx = set( filter( lambda x: not x.startswith('ICD'), dbx ) )
-        label = o.get_label(mid)
+        label = u.get_label(mid)
+        print(label)
         mid = Text.upper_curie(mid)
         dbx.add(LabeledID(mid,label))
         sets.append(dbx)
+        n += 1
     return sets
 
 
@@ -60,7 +81,7 @@ def build_sets(o):
         #FWIW, ICD codes tend to be mapped to multiple MONDO identifiers, leading to mass confusion. So we
         #just excise them here.  It's possible that we'll want to revisit this decision in the future.  If so,
         #then we probably will want to set a 'glommable' and 'not glommable' set.
-        dbx = set([Text.upper_curie(x['id']) for x in o.get_xrefs(mid) if not x['id'].startswith('ICD')])
+        dbx = set([Text.upper_curie(x) for x in o.get_xrefs(mid) if not x.startswith('ICD')])
         dbx = set([norm(x) for x in dbx])
         label = o.get_label(mid)
         mid = Text.upper_curie(mid)
@@ -73,7 +94,8 @@ def build_sets(o):
 # It's possible we could rebuild using the services, but no doubt very slowly
 def read_meddra():
     pairs = []
-    with open('MRCONSO.RRF','r') as inf:
+    mrcon = os.path.join(os.path.dirname(__file__), 'MRCONSO.RRF')
+    with open(mrcon,'r') as inf:
         for line in inf:
             x = line.strip().split('|')
             if x[1] != 'ENG':

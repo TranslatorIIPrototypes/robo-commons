@@ -41,6 +41,9 @@ class KNode(FromDictMixin):
         self.synonyms = set()
         self.synonyms.add(LabeledID(identifier=self.id, label=self.name))
 
+        #List of labels to attach to exports
+        self.export_labels = []
+
     def add_synonyms(self, new_synonym_set):
         """Accepts a collection of either String CURIES or LabeledIDs"""
         #Once I am sure that we're only sending in strings, we can dunk this and go back to just using update
@@ -51,6 +54,9 @@ class KNode(FromDictMixin):
             else:
                 #Better be a LabeledID
                 self.synonyms.add(newsyn)
+
+    def add_export_labels(self, all_types):
+        self.export_labels = frozenset(all_types)
 
     def get_synonyms_by_prefix(self, prefix):
         """Returns curies (not labeledIDs) for any synonym with the input prefix"""

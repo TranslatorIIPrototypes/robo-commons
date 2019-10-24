@@ -246,6 +246,29 @@ def test_chem_to_enzymes_morphine_and_morphine3gluc(kegg):
     shared = morphine_enzymes.intersection(normorphine_enzymes)
     assert len(shared) > 0
 
+def test_sequence(kegg):
+    res = kegg.get_sequence('C16030')
+    assert res == 'DFDMLRCMLGRVYRPCWQV'
+
+def test_sequence_no_organism(kegg):
+    res = kegg.get_sequence('C16099')
+    assert res == 'GKASQFFGLM'
+
+def test_sequence_Glp(kegg):
+    #res = kegg.get_sequence('C01836')
+    res = kegg.get_sequence('C16027')
+
+def test_one_aa_seq(kegg):
+    res = kegg.get_sequence('C16008')
+    assert res == 'ISLMKRPPGF'
+
+def test_s(kegg):
+    res = kegg.get_sequence('C16131')
+    assert res == 'GPETLCGAELVDALQFVCGDRGFYFNKPTGYGSSSRRAPQTGIVDECCFRSCDLRRLEMYCAPLKPAKSA'
+
+#a functional test.  Remove the f if you actually want it to run
+def ftest_sequences(kegg):
+    v = kegg.pull_sequences()
 
 #def test_enzyme_to_chem(kegg):
 #    enzyme = KNode('EC:1.11.1.9', name="who", type=node_types.GENE)

@@ -77,13 +77,16 @@ class Cache:
                         self.cache[key] = result
         return result
     
-    def set(self, key, value):
+    def set(self, key, value, pipeline=None):
         """ Add an item to the cache. """
         key = self.prefix + key
         if self.enabled:
             if self.redis:
                 if value is not None:
-                    self.redis.set (key, self.serializer.dumps (value))
+                    if pipeline is not None:
+                        pipeline.set(key, self.serializer.dumps(value))
+                    else:
+                        self.redis.set (key, self.serializer.dumps (value))
                     self.cache[key] = value
             else:
                 path = os.path.join (self.cache_path, key)
@@ -98,3 +101,6 @@ class Cache:
                 self.redis.delete(*keys)
         else:
             self.redis.flushdb()
+
+    def get_pipeline(self):
+        return self.redis.pipeline()

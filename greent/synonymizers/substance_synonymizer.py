@@ -20,6 +20,10 @@ logger = LoggingUtil.init_logging(__name__, level=logging.DEBUG)
 #
 # If we add other drug name resolvers then things may change. Adding other functions that simply use compound ids
 # should be ok, as long as these two paths resolve whatever the name of interest is.
+#
+# Sept 2019: Note now that having UniChem in here is no longer relevant.  We are pre-caching
+# anything from unichem up front, so the on-the-fly stuff is not only not helpful, but
+# potentially confusing.  Dropping it.
 def synonymize(node,gt):
     logger.debug("Synonymize: {}".format(node.id))
     curie = Text.get_curie(node.id)
@@ -27,18 +31,7 @@ def synonymize(node,gt):
     if 'KEGG.COMPOUND' in node.id:
         kegg_un_namespaced = f'KEGG:{Text.un_curie(node.id)}'
         node.add_synonyms([LabeledID(identifier=kegg_un_namespaced, label=node.name)])
-    if curie == 'CHEMBL':
-        synonyms.update(synonymize_with_UniChem(node,gt))
-        #OXO is going to troll the node's synonyms, so we want to add them now
-        node.add_synonyms(synonyms)
-        synonyms.update(synonymize_with_OXO(node,gt))
-        #synonymize_with_CTD(node,gt)
-    else:
-        logger.debug("Trying OXO")
-        synonyms.update(synonymize_with_OXO(node,gt))
-        logger.debug("Trying UniChem")
-        synonyms.update(synonymize_with_UniChem(node,gt))
-        #synonymize_with_CTD(node,gt)
+    synonyms.update(synonymize_with_OXO(node,gt))
     synonyms.update(kegg_id_normalize(node))
     return synonyms
 
