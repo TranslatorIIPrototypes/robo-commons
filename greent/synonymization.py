@@ -126,10 +126,7 @@ class Synonymizer:
                     if len(ids_with_labels) > 0:
                         potential_identifiers = ids_with_labels
                     potential_identifiers.sort()
-                node.id = potential_identifiers[0].identifier
-                #Only replace the label if we have a label.
-                if potential_identifiers[0].label != '':
-                    node.name = potential_identifiers[0].label
+                node.id = potential_identifiers[0].identifier                
                 break
         #Remove any synonyms with extraneous prefixes.  The point of this is not so much to remove
         # unknown prefixes, as to make sure that if we got e.g. a meddra, and we downcast it to a disease,
