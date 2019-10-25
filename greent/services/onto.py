@@ -55,7 +55,7 @@ class Onto(CachedService):
             result.extend(obj['exact matches'])
         return result
     def get_synonyms(self,identifier,curie_pattern=None):
-        return self.get(f"{self.url}/synonyms/{identifier}/")
+        return self.get(f"{self.url}/synonyms/{identifier}")
     def lookup(self,identifier):
         obj = self.get(f"{self.url}/lookup/{identifier}")
         return [ ref["id"] for ref in obj['refs'] ] if 'refs' in obj else []
