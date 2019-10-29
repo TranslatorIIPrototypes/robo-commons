@@ -21,7 +21,10 @@ class gtopdb(Service):
             ligandId = Text.un_curie(identifier)
             url=f"{self.url}/ligands/{ligandId}/precursors"
             logger.debug(url)
-            obj = requests.get(url).json ()
+            try:
+                obj = requests.get(url).json ()
+            except:
+                continue
             for r in obj:
                 logger.debug(r['officialGeneId'])
                 if r['species'] != 'Human':
@@ -41,7 +44,10 @@ class gtopdb(Service):
             logger.debug(f'ligand->gene {identifier}')
             ligandId = Text.un_curie(identifier)
             url=f"{self.url}/ligands/{ligandId}/interactions"
-            obj = requests.get(url).json ()
+            try:
+                obj = requests.get(url).json ()
+            except:
+                continue
             for r in obj:
                 logger.debug(r['targetId'])
                 if r['targetSpecies'] != 'Human':
@@ -58,7 +64,10 @@ class gtopdb(Service):
         for identifier in identifiers:
             targetid = Text.un_curie(identifier)
             url=f"{self.url}/targets/{targetid}/interactions"
-            obj = requests.get(url).json ()
+            try:
+                obj = requests.get(url).json ()
+            except:
+                continue
             for r in obj:
                 if r['species'] != 'Human':
                     continue
@@ -73,7 +82,10 @@ class gtopdb(Service):
         for identifier in identifiers:
             ligandid = Text.un_curie(identifier)
             url=f"{self.url}/ligands/{ligandid}"
-            obj = requests.get(url).json ()
+            try:
+                obj = requests.get(url).json ()
+            except:
+                continue
             if obj['species'] != 'Human':
                 continue
             for part in obj['subunitIds']:
