@@ -83,7 +83,7 @@
         op    : mychem.get_drugcentral
     chemical_substance:
       - link  : chemical_to_chemical_class
-        op    : uberongraph.get_chemical_to_chemical
+        op    : uberongraph.get_chemical_by_chemical
       - link  : complex_to_part
         op    : gtopdb.complex_to_part
     food:
