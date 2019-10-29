@@ -183,8 +183,8 @@ class Biolink(Service):
         if response is None:
             return []
         edges_nodes = self.process_associations(response, 'gene_get_process_or_function', node_types.BIOLOGICAL_PROCESS_OR_ACTIVITY, input_id, url,gene)
-        process_or_function_results = list(filter(lambda x: self.go.is_biological_process(x[1].id) or
-                                                  self.go.is_molecular_function(x[1].id), edges_nodes))
+        process_or_function_results = list(filter(lambda x: self.go.is_biological_process(x[1]) or
+                                                  self.go.is_molecular_function(x[1]), edges_nodes))
         return process_or_function_results
 
     def gene_get_pathways(self, gene):
