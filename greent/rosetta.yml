@@ -192,9 +192,12 @@
     disease:
       - link  : phenotype_to_disease
         op    : biolink.phenotype_get_disease
-    biological_process_or_activity:
+    biological_process:
       - link  : phenotype_to_biological_process_or_activity
-        op    : uberongraph.get_process_or_activity_by_phenotype
+        op    : uberongraph.get_processby_phenotype
+    molecular_activity:
+      - link  : phenotype_to_biological_process_or_activity
+        op    : uberongraph.get_activity_by_phenotype
     chemical_substance:
       - link  : phenotype_to_chemical_substance
         op    : uberongraph.get_chemical_by_phenotype
