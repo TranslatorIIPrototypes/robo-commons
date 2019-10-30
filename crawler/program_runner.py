@@ -89,7 +89,7 @@ def get_identifiers(input_type,rosetta):
         print("Pull genes")
         data = pull_via_ftp('ftp.ebi.ac.uk', '/pub/databases/genenames/new/json', 'hgnc_complete_set.json')
         hgnc_json = loads( data.decode() )
-        hgnc_genes = hgnc_json['response']['docs'][:10]
+        hgnc_genes = hgnc_json['response']['docs']
         for gene_dict in hgnc_genes:
             symbol = gene_dict['symbol']
             lids.append( LabeledID(identifier=gene_dict['hgnc_id'], label=symbol) )
