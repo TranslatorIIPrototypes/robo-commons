@@ -3,6 +3,7 @@ from builder.question import LabeledID
 from greent.util import Text
 import os
 from datetime import datetime as dt
+from functools import reduce
 
 def write_sets(sets,fname):
     with open(fname,'w') as outf:
@@ -21,7 +22,7 @@ def load_diseases_and_phenotypes(rosetta):
     mondo_sets = build_exact_sets(rosetta.core.mondo,rosetta.core.uberongraph)
     write_sets(mondo_sets,'mondo_sets.txt')
     print('get and write hp sets')
-    hpo_sets = build_sets(rosetta.core.hpo)
+    hpo_sets = build_sets(rosetta.core.hpo, ignore_list = ['ICD','NCIT'])
     write_sets(hpo_sets,'hpo_sets.txt')
     print('get and write umls sets')
     meddra_umls = read_meddra()
@@ -74,14 +75,14 @@ def norm(curie):
         return f'SNOMEDCT:{Text.un_curie(curie)}'
     return curie
 
-def build_sets(o):
+def build_sets(o, ignore_list = ['ICD']):
     sets = []
     mids = o.get_ids()
     for mid in mids:
         #FWIW, ICD codes tend to be mapped to multiple MONDO identifiers, leading to mass confusion. So we
         #just excise them here.  It's possible that we'll want to revisit this decision in the future.  If so,
         #then we probably will want to set a 'glommable' and 'not glommable' set.
-        dbx = set([Text.upper_curie(x) for x in o.get_xrefs(mid) if not x.startswith('ICD')])
+        dbx = set([Text.upper_curie(x) for x in o.get_xrefs(mid) if not reduce(lambda accumlator, ignore_prefix: accumlator or x.startswith(ignore_prefix) , ignore_list, False)])
         dbx = set([norm(x) for x in dbx])
         label = o.get_label(mid)
         mid = Text.upper_curie(mid)
