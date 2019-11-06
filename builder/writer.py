@@ -31,22 +31,22 @@ def callback(ch, method, properties, body):
     if isinstance(graph, str) and graph == 'flush':
         logger.debug('Flushing buffer...')
         writer.flush()
-        return
-    for node in graph['nodes']:
-        # logger.debug(f'Writing node {node.id}')
-        writer.write_node(node)
-    for edge in graph['edges']:
-        # logger.debug(f'Writing edge {edge.source_id}->{edge.target_id}')
-        if 'force' in graph:
-            writer.write_edge(edge, force_create= True)
-        else:
-            writer.write_edge(edge)
-    # Found out that rabbitmq will reset connections for channels 
-    # and sometimes it is the case that neo4j related things take time 
-    # and the broker decides this client is no longer active and kills the connection
-    # so to avoid dropping of any incoming data that might, have not been written we can
-    # tell the queue that we've processed them if we still have the channel open
-    # else we will just leave them on the queue.
+    else:
+        for node in graph['nodes']:
+            # logger.debug(f'Writing node {node.id}')
+            writer.write_node(node)
+        for edge in graph['edges']:
+            # logger.debug(f'Writing edge {edge.source_id}->{edge.target_id}')
+            if 'force' in graph:
+                writer.write_edge(edge, force_create= True)
+            else:
+                writer.write_edge(edge)
+        # Found out that rabbitmq will reset connections for channels 
+        # and sometimes it is the case that neo4j related things take time 
+        # and the broker decides this client is no longer active and kills the connection
+        # so to avoid dropping of any incoming data that might, have not been written we can
+        # tell the queue that we've processed them if we still have the channel open
+        # else we will just leave them on the queue.
     if ch.is_open:
         ch.basic_ack(method.delivery_tag)
     return
