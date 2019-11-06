@@ -117,14 +117,7 @@ class Program:
         
         for n in self.machine_question['nodes']:
             if not n.curie:
-                continue
-
-            # Ignore the name we're given. Get one from bionames.
-            if isinstance(n.curie, str):
-                bionames_name = get_name_for_curie(n.curie)
-            elif isinstance(n.curie, list):
-                bionames_name = [get_name_for_curie(c) for c in n.curie]
-            n.name = bionames_name if bionames_name else n.name
+                continue            
             start_node = KNode(n.curie, type=n.type, name=n.name)
             self.process_node(start_node, [n.id])
         return

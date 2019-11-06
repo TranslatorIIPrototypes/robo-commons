@@ -247,3 +247,5 @@ DiseaseAnnotator:
         - "X-linked recessive disease": 
             source: "MONDO:0020605"
             data_type: boolean
+GenericAnnotator:
+    node_type: named_thing 

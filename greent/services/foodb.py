@@ -84,7 +84,7 @@ class FooDB(Service):
                 in_food_node.properties = node_properties
 
                 # create a new chemical substance node
-                chemical_substance_node: KNode = KNode(id=f'{food_id}', name=food_common_name, type=node_types.CHEMICAL_SUBSTANCE, properties=node_properties)
+                chemical_substance_node: KNode = KNode(id=f'{food_id}', type=node_types.CHEMICAL_SUBSTANCE, properties=node_properties)
 
                 # create the edge label
                 predicate: LabeledID = LabeledID(identifier='RO:0001019', label='contains')
@@ -154,7 +154,7 @@ class FooDB(Service):
 
         # get the identifier.
         if compound['moldb_inchikey'] != '':
-            equivalent_identifier = f'INCHIKEY:{compound["moldb_inchikey"][9:]}'
+            equivalent_identifier = f'INCHIKEY:{compound["moldb_inchikey"]}'.replace('InChIKey=', '')
         elif compound['chembl_id'] != '':
             equivalent_identifier = f'CHEMBL:{compound["chembl_id"]}'
         elif compound['drugbank_id'] != '':
