@@ -2,7 +2,7 @@ from greent.util import LoggingUtil
 from greent.service import Service
 from greent import node_types
 from greent.graph_components import KNode, LabeledID, KEdge
-
+from greent.util import Text
 from csv import reader
 import logging
 import requests
@@ -47,7 +47,8 @@ class FooDB(Service):
 
         try:
             # get the contents records using the food id
-            contents: list = requests.get(f"{self.url}contents_food_id/{in_food_node.id}").json()
+            in_food_id = Text.un_curie(in_food_node.id)
+            contents: list = requests.get(f"{self.url}contents_food_id/{in_food_id}").json()
 
             # loop through the contents returned
             for content in contents:

@@ -191,8 +191,8 @@ def get_identifiers(input_type,rosetta):
 
     elif input_type == node_types.FOOD:
         #get the full list of Food ids here here~~~~~
-        lids = list (map( lambda x: LabeledID(x[0], x[1]), requests.get('http://phil-centos.edc.renci.org:4001/foods_examples/').json()))
-        print(lids)
+        foods = rosetta.core.foodb.load_all_foods('foods.csv')
+        lids = list (map( lambda x: LabeledID(f'FOODB:{x}',''), foods))
     elif input_type == node_types.SEQUENCE_VARIANT:
         # grab every variant already in the graph
         lids = get_all_variant_ids_from_graph(rosetta)
