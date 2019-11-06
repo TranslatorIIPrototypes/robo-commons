@@ -225,11 +225,12 @@ class FooDB(Service):
 
                 # index into the array to the HGVS position
                 id_index = header_line.index('id')
+                food_name_index = header_line.index('name')
 
                 # for each line (skipping the first header line)
                 for line in lines:
                     # add the food db id to the list
-                    food_list.append(line[id_index])
+                    food_list.append((line[id_index], line[food_name_index]))
 
             # close the input file
             inFH.close()
