@@ -83,7 +83,7 @@ class FooDB(Service):
                 in_food_node.properties = node_properties
 
                 # create a new chemical substance node
-                chemical_substance_node: KNode = KNode(id=f'{food_id}', name=food_common_name, type=node_types.CHEMICAL_SUBSTANCE, properties=node_properties)
+                chemical_substance_node: KNode = KNode(id=f'{food_id}', type=node_types.CHEMICAL_SUBSTANCE, properties=node_properties)
 
                 # create the edge label
                 predicate: LabeledID = LabeledID(identifier='RO:0001019', label='contains')
