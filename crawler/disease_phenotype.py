@@ -15,6 +15,27 @@ def write_dicts(dicts,fname):
         for k in dicts:
             outf.write(f'{k}\t{dicts[k]}\n')
 
+def filter_out_non_unique_ids(old_list):
+    """
+    filters out elements that exist accross rows 
+    eg input [{'z', 'x', 'y'}, {'z', 'n', 'm'}] 
+    output [{'x', 'y'}, {'m', 'n'}]    
+    """
+    bad_ids = []
+    for index, terms in enumerate(old_list):                
+        for other_terms in old_list[index +1:]:
+            for term in terms:                
+                if term not in bad_ids and term in other_terms:
+                    bad_ids.append(term)
+                    continue
+    new_list = list(map(
+        lambda term_list : \
+        set(
+            filter(
+                lambda term: term not in bad_ids, 
+                term_list                
+            )), old_list))
+    return new_list        
 
 def load_diseases_and_phenotypes(rosetta):
     print('disease/phenotype')
@@ -23,6 +44,7 @@ def load_diseases_and_phenotypes(rosetta):
     write_sets(mondo_sets,'mondo_sets.txt')
     print('get and write hp sets')
     hpo_sets = build_sets(rosetta.core.hpo, ignore_list = ['ICD','NCIT'])
+    hpo_sets = filter_out_non_unique_ids(hpo_sets)
     write_sets(hpo_sets,'hpo_sets.txt')
     print('get and write umls sets')
     meddra_umls = read_meddra()
