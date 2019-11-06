@@ -153,7 +153,7 @@ class FooDB(Service):
 
         # get the identifier.
         if compound['moldb_inchikey'] != '':
-            equivalent_identifier = f'INCHIKEY:{compound["moldb_inchikey"][9:]}'
+            equivalent_identifier = f'INCHIKEY:{compound["moldb_inchikey"]}'.replace('InChIKey=', '')
         elif compound['chembl_id'] != '':
             equivalent_identifier = f'CHEMBL:{compound["chembl_id"]}'
         elif compound['drugbank_id'] != '':
