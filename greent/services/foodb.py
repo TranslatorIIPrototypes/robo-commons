@@ -48,7 +48,7 @@ class FooDB(Service):
         try:
             # get the contents records using the food id
             in_food_id = Text.un_curie(in_food_node.id)
-            contents: list = requests.get(f"{self.url}contents_food_id/{in_food_id}").json()
+            contents: list = requests.get(f"{self.url}contents_food_id/{in_food_id}/").json()
 
             # loop through the contents returned
             for content in contents:
@@ -62,13 +62,13 @@ class FooDB(Service):
                 # what type of chemical substance are we working
                 if content_type == 'Compound':
                     # use the source id in the contents record to get the compounds record
-                    compound: dict = requests.get(f"{self.url}compounds_id/{content['source_id']}").json()[0]
+                    compound: dict = requests.get(f"{self.url}compounds_id/{content['source_id']}/").json()[0]
 
                     # inspect the compound row and return the needed data
                     good_row, food_id, node_properties = self.check_compound_row(compound)
                 elif content_type == 'Nutrient':
                     # use the source id in the contents record to get the nutrient record
-                    nutrient: dict = requests.get(f"{self.url}nutrients_id/{content['source_id']}").json()[0]
+                    nutrient: dict = requests.get(f"{self.url}nutrients_id/{content['source_id']}/").json()[0]
 
                     # inspect the compound row
                     good_row, food_id, node_properties = self.check_nutrient_row(nutrient)
@@ -91,12 +91,12 @@ class FooDB(Service):
 
                 # create the edge
                 edge: KEdge = self.create_edge(source_node=in_food_node,
-                                               target_node=chemical_substance_node,
-                                               provided_by='foodb.food_to_chemical_substance',
-                                               input_id=in_food_node.id,
-                                               predicate=predicate,
-                                               properties=edge_properties
-                                               )
+                                                target_node=chemical_substance_node,
+                                                provided_by='foodb.food_to_chemical_substance',
+                                                input_id=in_food_node.id,
+                                                predicate=predicate,
+                                                properties=edge_properties
+                                                )
 
                 # append the edge/node pair to the returned data array
                 rv.append((edge, chemical_substance_node))
