@@ -15,12 +15,12 @@ def run_query(url,cypherquery):
 
 def get_chemicals(url):
     """This is all the variants.  We might want to filter on source"""
-    cquery = f'''match (a:chemical_substance) where a.smiles is not NULL RETURN a.inchikey, a.name, a.smiles'''
+    cquery = f'''match (a:chemical_substance) where a.smiles is not NULL RETURN a.inchikey, a.smiles'''
     records = run_query(url,cquery)
     with open('smiles.txt','w') as outf:
         for r in records:
             #print(r)
-            outf.write(f'{r["a.inchikey"]}\t{r["a.name"]}\t{r["a.smiles"]}\n')
+            outf.write(f'{r["a.inchikey"]}\t{r["a.smiles"]}\n')
 
 if __name__ == '__main__':
     url = 'bolt://robokopdb2.renci.org:7687'
