@@ -19,7 +19,7 @@ def get_chemicals(url):
     records = run_query(url,cquery)
     with open('smiles.txt','w') as outf:
         for r in records:
-            print(r)
+            #print(r)
             outf.write(f'{r["a.inchikey"]}\t{r["a.name"]}\t{r["a.smiles"]}\n')
 
 if __name__ == '__main__':
