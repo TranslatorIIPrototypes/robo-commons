@@ -114,7 +114,7 @@
         op    : hmdb.disease_to_metabolite
     biological_process_or_activity:
       - link  : disease_to_biological_process_or_activity
-        op    : uberongraph.get_process_or_activity_by_disease
+        op    : uberongraph.get_process_by_disease
     anatomical_entity:
       - link  : disease_to_anatomical_entity
         op    : uberongraph.get_anatomy_by_disease
@@ -194,7 +194,7 @@
         op    : biolink.phenotype_get_disease
     biological_process:
       - link  : phenotype_to_biological_process_or_activity
-        op    : uberongraph.get_processby_phenotype
+        op    : uberongraph.get_process_by_phenotype
     molecular_activity:
       - link  : phenotype_to_biological_process_or_activity
         op    : uberongraph.get_activity_by_phenotype
