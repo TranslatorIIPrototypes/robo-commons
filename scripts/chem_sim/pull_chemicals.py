@@ -18,9 +18,12 @@ def get_chemicals(url):
     cquery = f'''match (a:chemical_substance) where a.smiles is not NULL and a.inchikey is not null RETURN a.inchikey, a.smiles'''
     records = run_query(url,cquery)
     with open('smiles.txt','w') as outf:
+        outf.write(f"Compound_name\tCASRN\tSMILES\tSolubility(µM)\tSolubility(µg / mL)\tlogSo(mol / L)\tSource")
+
         for r in records:
             #print(r)
-            outf.write(f'{r["a.inchikey"]}\t{r["a.smiles"]}\n')
+            #outf.write(f'{r["a.inchikey"]}\t{r["a.smiles"]}\n')
+            outf.write(f'noname\tnocasrn\t{r["a.smiles"]}\t0\t0\t0\tnosource')
 
 if __name__ == '__main__':
     url = 'bolt://robokopdb2.renci.org:7687'
