@@ -20,10 +20,17 @@ def get_chemicals(url):
     with open('smiles.txt','w') as outf:
         outf.write(f"Compound_name\tCASRN\tSMILES\tSolubility(µM)\tSolubility(µg / mL)\tlogSo(mol / L)\tSource\n")
 
+        counter = 0
+
         for r in records:
             #print(r)
             #outf.write(f'{r["a.inchikey"]}\t{r["a.smiles"]}\n')
             outf.write(f'noname\tnocasrn\t{r["a.smiles"]}\t0\t0\t0\tnosource\n')
+
+            counter = counter + 1
+
+            if counter > 10000:
+                break;
 
 if __name__ == '__main__':
     url = 'bolt://robokopdb2.renci.org:7687'
