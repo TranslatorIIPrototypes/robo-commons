@@ -30,7 +30,7 @@ bad_idents = conf.get('bad_identifiers')
 def get_label(curie, url='https://onto.renci.org/label/'):
     y = {'label': ''}
     try:        
-        y.update(requests.get(f'{url}/{curie}').json())
+        y.update(requests.get(f'{url}{curie}').json())
         return y
     except Exception as e:
         print(f"error calling {url}/{curie} - to get labels")
