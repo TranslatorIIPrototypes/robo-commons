@@ -216,13 +216,13 @@ def load_all(input_type,output_type,rosetta,poolsize,identifier_list=None , op_f
     """Given an input type and an output type, run a bunch of workflows dumping results into neo4j and redis"""
     identifiers = identifier_list if (identifier_list != None) else get_identifiers(input_type,rosetta)
     print( f'Found {len(identifiers)} input {input_type}')
-    partial_do_one = partial(do_one, input_type, output_type)
+    partial_do_one = partial(do_one, input_type, output_type, {'op_filter': op_filter})
     pool = Pool(processes=poolsize)
     chunks = poolsize*2
     chunksize = int(len(identifiers)/chunks)
     print( f'Chunksize: {chunksize}')
     single_program_size = chunksize  if chunksize > 0 else 1 # nodes sent to a program
     identifier_chunks = [identifiers[i: i + single_program_size] for i in range(0, len(identifiers), single_program_size)]
-    pool.map_async(partial_do_one, identifier_chunks, op_filter)# chunksize=chunksize)
+    pool.map_async(partial_do_one, identifier_chunks)# chunksize=chunksize)
     pool.close()
     pool.join()
