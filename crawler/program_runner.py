@@ -8,6 +8,7 @@ from crawler.sequence_variants import get_all_variant_ids_from_graph
 from json import loads
 from greent.graph_components import KNode
 from greent.util import Text
+from crawler.service_based_crawler import get_supported_types
 import requests
 
 # There's a tradeoff here: do we want these things in the database or not.  One big problem
@@ -32,7 +33,7 @@ def get_label(curie, url='https://onto.renci.org/label/'):
         y.update(requests.get(f'{url}/{curie}').json())
         return y
     except Exception as e:
-        print(e)
+        print(f"error calling {url}/{curie} - to get labels")
         return y
 
 def get_identifiers(input_type,rosetta):
@@ -172,7 +173,7 @@ def get_identifiers(input_type,rosetta):
         # pull Biological process decendants
         identifiers = requests.get('https://onto.renci.org/descendants/GO:0008150').json()
         # merge with molucular activity decendants
-        identifiers = identifiers + requests.get('https://onto.renci.org/descendants/GO:0003674').json()        
+        identifiers = identifiers + requests.get('https://onto.renci.org/descendants/GO:0003674').json()
         for ident in identifiers:
             if ident not in bad_idents:
                 p = get_label(ident) #requests.get(f'https://onto.renci.org/label/{ident}/')
@@ -201,17 +202,17 @@ def get_identifiers(input_type,rosetta):
 
     return lids
 
-def do_one(itype,otype,identifier):
+def do_one(itype,otype,identifier, op_filter = lambda x: True):
     path = f'{itype},{otype}'
     print(path)
     if type(identifier) != type([]):
         print('Passing single identifier per program')
-        run(path,identifier.label,identifier.identifier,None,None,None,'greent.conf')
+        run(path,identifier.label,identifier.identifier,None,None,None,'greent.conf', op_filter= op_filter)
     else:
         print('passing chunk of identifiers for a program')
-        run(path,'','',None,None,None,'greent.conf', identifier_list = identifier)
+        run(path,'','',None,None,None,'greent.conf', identifier_list = identifier, op_filter= op_filter)
      
-def load_all(input_type,output_type,rosetta,poolsize,identifier_list=None):
+def load_all(input_type,output_type,rosetta,poolsize,identifier_list=None , op_filter = lambda x: True):
     """Given an input type and an output type, run a bunch of workflows dumping results into neo4j and redis"""
     identifiers = identifier_list if (identifier_list != None) else get_identifiers(input_type,rosetta)
     print( f'Found {len(identifiers)} input {input_type}')
@@ -222,6 +223,7 @@ def load_all(input_type,output_type,rosetta,poolsize,identifier_list=None):
     print( f'Chunksize: {chunksize}')
     single_program_size = chunksize  if chunksize > 0 else 1 # nodes sent to a program
     identifier_chunks = [identifiers[i: i + single_program_size] for i in range(0, len(identifiers), single_program_size)]
-    pool.map_async(partial_do_one, identifier_chunks)# chunksize=chunksize)
+    pool.map_async(partial_do_one, identifier_chunks, op_filter)# chunksize=chunksize)
     pool.close()
     pool.join()
+    do_one(input_type, output_type, identifiers, op_filter)
