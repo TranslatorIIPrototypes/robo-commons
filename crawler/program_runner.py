@@ -33,7 +33,7 @@ def get_label(curie, url='https://onto.renci.org/label/'):
         y.update(requests.get(f'{url}{curie}').json())
         return y
     except Exception as e:
-        print(f"error calling {url}/{curie} - to get labels")
+        print(f"error calling {url}{curie} - to get labels")
         return y
 
 def get_identifiers(input_type,rosetta):
