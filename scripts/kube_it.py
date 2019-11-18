@@ -138,7 +138,7 @@ def get_pv_configs(tmp_file, out_dir, root_dir):
             pvc_name = f'robokop-{_dir_fixed}-pvc' 
             is_shared = _dir in shared_dirs
             #the following are the ones that we'd like to write            
-            pvc_config_instance = make_pv_claim(pvc_name, pv_config['size'],pv_name,)
+            pvc_config_instance = make_pv_claim(pvc_name, pv_config['size'],pv_name,private= not is_shared)
             pv_config_instance = make_pv(pv_name, pv_config['size'],host_path, private= not is_shared)
 
             print('**************************************')
