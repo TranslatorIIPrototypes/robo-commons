@@ -314,8 +314,8 @@ def correct_images (config):
     #@TODO these are to change to a more central location.
     image_maps = {
         'knowledgegraph': 'yaphetkg/knowledgegraph',
-        'manager': 'yaphetkg/manager',
-        'messenger': 'yaphetkg/messenger',
+        'manager': 'yaphetkg/robokop_manager',
+        'messenger': 'yaphetkg/robokop_messenger',
         'rank': 'yaphetkg/robokop_rank',
         'interfaces': 'yaphetkg/robokop_builder'
     }
