@@ -146,13 +146,16 @@ def get_pv_configs(tmp_file, out_dir, root_dir):
             print(pv_name)            
             print('**************************************')
             if is_shared:
-                # we would want to define the claims shared among services once                                
-                with open(f'{out_dir}{pv_name}.yml','w') as pv_file:
-                    yaml.dump(pv_config_instance, pv_file)
+                # we would want to define the claims shared among services once     
+                shared_things = {'apiVersion': 'v1', 'kind': 'List', 'items': [] }     
+                shared_things['items'].append(pv_config_instance)
+                shared_things['items'].append(pvc_config_instance)
+                with open(f'{out_dir}/{pv_name}.yml','w') as pv_file:
+                    yaml.dump(shared_things, pv_file)  # dump the PV and PVC for the shared things together
             else:
                 volume_configs['items'].append(pv_config_instance)
-            volume_configs['items'].append(pvc_config_instance)
-            mount_points[srvc].append( # these are going to be used to modify our final kuberenetes generated file
+                volume_configs['items'].append(pvc_config_instance)
+            mount_points[srvc].append( # these are going to be used to modify our final kuberenetes generated file, specifically the volume mounts. 
                 {
                     'name': f'{_dir_fixed}-volume',
                     'persistenceVolumeClaim': pvc_config_instance['metadata']['name'],
