@@ -7,7 +7,7 @@ import crawler.program_runner
 
 def run_per_service(service_name, rosetta):
     triplets = get_supported_types(service_name, rosetta)
-    for triplet in triplets[:1]:
+    for triplet in triplets:
         bake_programs(triplet, rosetta)
 
 
