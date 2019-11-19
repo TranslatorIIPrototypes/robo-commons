@@ -7,7 +7,7 @@ import crawler.program_runner
 
 def run_per_service(service_name, rosetta):
     triplets = get_supported_types(service_name, rosetta)
-    for triplet in triplets:
+    for triplet in triplets[:1]:
         bake_programs(triplet, rosetta)
 
 
@@ -58,10 +58,7 @@ def bake_programs(triplet, rosetta):
     if we filter ops with our collection we should be fine
     """
     source, operations, target = triplet
-    if source.startswith('bio'):
-        print('here')
-    op_filter = lambda x : x in operations
-    crawler.program_runner.load_all(source,target, rosetta, 10, op_filter = op_filter)
+    crawler.program_runner.load_all(source,target, rosetta, 1, op_list = operations)
 
 
 
