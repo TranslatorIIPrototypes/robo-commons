@@ -51,7 +51,7 @@ class Rosetta:
 
         """ Load configuration. """
         with open(config_file, 'r') as stream:
-            self.config = yaml.load(stream)
+            self.config = yaml.load(stream, Loader=yaml.Loader)
         self.operators = self.config["@operators"]
         self.type_checks = self.config["@type_checks"]
 
@@ -60,7 +60,7 @@ class Rosetta:
 
         """ Initialize type graph. """
         self.type_graph = TypeGraph(self.service_context, debug=debug)
-        self.synonymizer = Synonymizer(self.type_graph.concept_model, self)
+        self.synonymizer = Synonymizer()
 
         """ Merge identifiers.org vocabulary into Rosetta vocab. """
         self.identifiers = Identifiers()
