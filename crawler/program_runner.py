@@ -201,21 +201,24 @@ def get_identifiers(input_type,rosetta):
 
     return lids
 
-def do_one(itype,otype,identifier):
+def do_one(itype,otype,op_list,identifier):
     path = f'{itype},{otype}'
     print(path)
+    op_list = lambda x: True
+    if op_list is not None:
+        op_filter = lambda x: x in op_list
     if type(identifier) != type([]):
         print('Passing single identifier per program')
-        run(path,identifier.label,identifier.identifier,None,None,None,'greent.conf')
+        run(path,identifier.label,identifier.identifier,None,None,None,'greent.conf', op_filter=op_filter)
     else:
         print('passing chunk of identifiers for a program')
-        run(path,'','',None,None,None,'greent.conf', identifier_list = identifier)
+        run(path,'','',None,None,None,'greent.conf', identifier_list = identifier, op_filter=op_filter)
      
-def load_all(input_type,output_type,rosetta,poolsize,identifier_list=None):
+def load_all(input_type,output_type,rosetta,poolsize,identifier_list=None, op_list = None):
     """Given an input type and an output type, run a bunch of workflows dumping results into neo4j and redis"""
     identifiers = identifier_list if (identifier_list != None) else get_identifiers(input_type,rosetta)
     print( f'Found {len(identifiers)} input {input_type}')
-    partial_do_one = partial(do_one, input_type, output_type)
+    partial_do_one = partial(do_one, input_type, output_type, op_list)
     pool = Pool(processes=poolsize)
     chunks = poolsize*2
     chunksize = int(len(identifiers)/chunks)

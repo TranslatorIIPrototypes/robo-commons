@@ -348,7 +348,7 @@ class Question(FromDictMixin):
             response[e_id] = new_edge
         return response
 
-    def compile(self, rosetta, disconnected_graph = False):
+    def compile(self, rosetta, disconnected_graph = False, op_filter= lambda x: True):
         plan = None
         if not disconnected_graph:
             plans = self.get_transitions(rosetta.type_graph, self.generate_concept_cypher())
@@ -363,7 +363,7 @@ class Question(FromDictMixin):
             # remove duplicate transitions
             for source_id in plan:
                 for target_id in plan:
-                    plan[source_id][target_id] = {t['op']:t for t in plan[source_id][target_id]}.values()
+                    plan[source_id][target_id] = {t['op']:t for t in plan[source_id][target_id] if op_filter(t['op'])}.values()
         else:
             plan = self.get_transitions_disconnected(rosetta.type_graph)
         if not plan:
