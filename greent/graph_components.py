@@ -39,7 +39,6 @@ class KNode(FromDictMixin):
 
         #Synonyms is just for CURIEs
         self.synonyms = set()
-        self.synonyms.add(LabeledID(identifier=self.id, label=self.name))
 
         #List of labels to attach to exports
         self.export_labels = []
