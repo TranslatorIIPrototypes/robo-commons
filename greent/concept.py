@@ -172,6 +172,7 @@ class ConceptModel:
         children = [x[0] for x in children_name_concept]
         return children
 
+    @staticmethod
     def standardize_relationship(self,relationship):
         url = f'http://robokopdev.renci.org:8145/resolve?key={relationship.identifier}'
         logger.debug(f'calling {url}')

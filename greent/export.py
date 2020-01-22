@@ -1,17 +1,15 @@
 from greent import node_types
 from greent.util import LoggingUtil,Text
-from neo4j.v1 import GraphDatabase
 from collections import defaultdict, deque
 from greent.export_type_graph import ExportGraph
-import calendar
+from greent.concept import ConceptModel
 import logging
-from datetime import datetime
-from sys import stdout
 
 
 logger = LoggingUtil.init_logging(__name__, logging.DEBUG)
 
-class BufferedWriter():
+
+class BufferedWriter:
     """Buffered writer accepts individual nodes and edges to write to neo4j.
     It doesn't write the node/edge if it has already been written in its lifetime (it maintains a record)
     It then accumulates nodes/edges by label/type until a buffersize has been reached, at which point it does
@@ -25,7 +23,7 @@ class BufferedWriter():
     Doing this as a context manager will make sure that the different queues all get flushed out.
     """
 
-    def __init__(self,rosetta):
+    def __init__(self, rosetta):
         self.rosetta = rosetta
         self.export_graph = ExportGraph(self.rosetta)
         self.written_nodes = set()
@@ -46,9 +44,9 @@ class BufferedWriter():
             return
         if node.name is None or node.name == '':
             logger.warning(f"Node {node.id} is missing a label")
-        self.export_graph.add_type_labels(node)
+        # Node should have been labeled already by synonymizer
         self.written_nodes.add(node.id)
-        typednodes = self.node_queues[node.export_labels]
+        typednodes = self.node_queues[frozenset(node.export_labels)]
         typednodes.append(node)
         if len(typednodes) >= self.node_buffer_size:
             self.flush()
@@ -58,6 +56,9 @@ class BufferedWriter():
             return
         self.written_edges[edge.source_id][edge.target_id].add(edge)
         label = Text.snakify(edge.standard_predicate.label)
+        ## For now since we have everything cached we can just use that to avoid expensive service calls
+        ## but will normalize edges here since old cached values has old edges.
+        edge.standard_predicate = ConceptModel.standardize_relationship(edge.original_predicate)
         typed_edges = self.edge_queues[label]
         typed_edges.append(edge)
         #if len(typed_edges) >= self.edge_buffer_size:
@@ -83,46 +84,65 @@ class BufferedWriter():
 
     def __exit__(self,*args):
         self.flush()
-        #Doesn't own the driver
-        #self.driver.close()
+
 
 def sort_edges_by_label(edges):
     el = defaultdict(list)
-    deque( map( lambda x: el[Text.snakify(x[2]['object'].standard_predicate.label)].append(x), edges ) )
+    deque(map(lambda x: el[Text.snakify(x[2]['object'].standard_predicate.label)].append(x), edges))
     return el
+
 
 def export_edge_chunk(tx,edgelist,edgelabel):
     """The approach of updating edges will be to erase an old one and replace it in whole.   There's no real
     reason to worry about preserving information from an old edge.
     What defines the edge are the identifiers of its nodes, and the source.function that created it."""
-    cypher = f"""UNWIND $batches as row
-            
+    cypher = f"""UNWIND $batches as row            
             MATCH (a:{node_types.ROOT_ENTITY} {{id: row.source_id}}),(b:{node_types.ROOT_ENTITY} {{id: row.target_id}})
             MERGE (a)-[r:{edgelabel} {{id: apoc.util.md5([a.id, b.id, '{edgelabel}']), predicate_id: row.standard_id}}]->(b)
-            ON CREATE SET r.edge_source = [row.provided_by]
-            ON CREATE SET r.relation_label = [row.original_predicate_label]
-            ON CREATE SET r.source_database=[row.database]
-            ON CREATE SET r.ctime=[row.ctime]
             ON CREATE SET r.hyper_edge_id=CASE WHEN exists(row.hyper_edge_id)  THEN [row.hyper_edge_id] END
-            ON CREATE SET r.publications=row.publications
-            ON CREATE SET r.relation = [row.original_predicate_id]
-            // FOREACH mocks if condition 
-            FOREACH (_ IN CASE WHEN row.provided_by in r.edge_source THEN [] ELSE [1] END |
-            SET r.edge_source = CASE WHEN EXISTS(r.edge_source) THEN r.edge_source + [row.provided_by] ELSE [row.provided_by] END
-            SET r.ctime = CASE WHEN EXISTS (r.ctime) THEN r.ctime + [row.ctime] ELSE [row.ctime] END
-            SET r.relation_label = CASE WHEN EXISTS(r.relation_label) THEN r.relation_label + [row.original_predicate_label] ELSE [row.original_predicate_label] END
-            SET r.source_database = CASE WHEN EXISTS(r.source_database) THEN r.source_database + [row.database] ELSE [row.database] END
-            SET r.predicate_id = row.standard_id
-            SET r.relation = CASE WHEN EXISTS(r.relation) THEN r.relation + [row.original_predicate_id] ELSE [row.original_predicate_id] END
-            SET r.publications = [pub in row.publications where not pub in r.publications ] + r.publications
-            )
+            SET r.edge_source = row.provided_by
+            SET r.relation_label = row.original_predicate_label
+            SET r.source_database= row.database
+            SET r.ctime= row.ctime            
+            SET r.publications=row.publications
+            SET r.relation = row.original_predicate_id
+            SET r.predicate_id = row.standard_id            
             SET r += row.properties
+            // Hyper-edge merging.
             FOREACH (__ IN CASE WHEN EXISTS(row.hyper_edge_id) THEN [1] ELSE [] END  | 
             FOREACH (_ IN CASE WHEN row.hyper_edge_id in r.hyper_edge_id THEN [] ELSE [1] END |
             SET r.hyper_edge_id = CASE WHEN EXISTS(r.hyper_edge_id) THEN r.hyper_edge_id + [row.hyper_edge_id] ELSE [row.hyper_edge_id] END
-            )
-            )
+            ))
             """
+    ## Commenting out old write query  since we are using service based crawls we are not so much on merging things
+    # cypher = f"""UNWIND $batches as row
+            #
+            # MATCH (a:{node_types.ROOT_ENTITY} {{id: row.source_id}}),(b:{node_types.ROOT_ENTITY} {{id: row.target_id}})
+            # MERGE (a)-[r:{edgelabel} {{id: apoc.util.md5([a.id, b.id, '{edgelabel}']), predicate_id: row.standard_id}}]->(b)
+            # ON CREATE SET r.edge_source = [row.provided_by]
+            # ON CREATE SET r.relation_label = [row.original_predicate_label]
+            # ON CREATE SET r.source_database=[row.database]
+            # ON CREATE SET r.ctime=[row.ctime]
+            # ON CREATE SET r.hyper_edge_id=CASE WHEN exists(row.hyper_edge_id)  THEN [row.hyper_edge_id] END
+            # ON CREATE SET r.publications=row.publications
+            # ON CREATE SET r.relation = [row.original_predicate_id]
+            # // FOREACH mocks if condition
+            # FOREACH (_ IN CASE WHEN row.provided_by in r.edge_source THEN [] ELSE [1] END |
+            # SET r.edge_source = CASE WHEN EXISTS(r.edge_source) THEN r.edge_source + [row.provided_by] ELSE [row.provided_by] END
+            # SET r.ctime = CASE WHEN EXISTS (r.ctime) THEN r.ctime + [row.ctime] ELSE [row.ctime] END
+            # SET r.relation_label = CASE WHEN EXISTS(r.relation_label) THEN r.relation_label + [row.original_predicate_label] ELSE [row.original_predicate_label] END
+            # SET r.source_database = CASE WHEN EXISTS(r.source_database) THEN r.source_database + [row.database] ELSE [row.database] END
+            # SET r.predicate_id = row.standard_id
+            # SET r.relation = CASE WHEN EXISTS(r.relation) THEN r.relation + [row.original_predicate_id] ELSE [row.original_predicate_id] END
+            # SET r.publications = [pub in row.publications where not pub in r.publications ] + r.publications
+            # )
+            # SET r += row.properties
+            # FOREACH (__ IN CASE WHEN EXISTS(row.hyper_edge_id) THEN [1] ELSE [] END  |
+            # FOREACH (_ IN CASE WHEN row.hyper_edge_id in r.hyper_edge_id THEN [] ELSE [1] END |
+            # SET r.hyper_edge_id = CASE WHEN EXISTS(r.hyper_edge_id) THEN r.hyper_edge_id + [row.hyper_edge_id] ELSE [row.hyper_edge_id] END
+            # )
+            # )
+            # """
 
     batch = [ {'source_id': edge.source_id,
                'target_id': edge.target_id,
