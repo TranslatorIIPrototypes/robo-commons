@@ -157,7 +157,6 @@ def run(pathway, start_name, start_id, end_name, end_id, supports, config, ident
     else:
         spec = specs_from_array_of_ids(pathway, identifier_list ,end_name, end_id)
         disconnected_graph = True
-    print(spec)
     q = Question(spec)
     rosetta = setup(config)
     programs = q.compile(rosetta, disconnected_graph= disconnected_graph)
