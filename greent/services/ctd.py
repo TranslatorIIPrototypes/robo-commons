@@ -128,7 +128,7 @@ class CTD(Service):
         output = []
         identifiers = drug.get_synonyms_by_prefix('MESH')
         for identifier in identifiers:
-            url=f"{self.url}/CTD_chem_gene_ixns_ChemicalID/{Text.un_curie(identifier)}/"
+            url=f"{self.url}CTD_chem_gene_ixns_ChemicalID/{Text.un_curie(identifier)}/"
             obj = requests.get(url).json ()
             for r in obj:
                 good_row, predicate_label, props = self.check_gene_chemical_row(r)
@@ -251,7 +251,7 @@ class CTD(Service):
         for identifier in identifiers:
             unique = set()
             geneid = Text.un_curie(identifier)
-            url = f"{self.url}/CTD_chem_gene_expanded_geneID/ncbigene:{geneid}/"
+            url = f"{self.url}CTD_chem_gene_expanded_geneID/ncbigene:{geneid}/"
             obj = requests.get (url).json ()
             for r in obj:
                 good_row, predicate_label, props, pmids = self.check_expanded_gene_chemical_row(r)
