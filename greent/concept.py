@@ -1,9 +1,13 @@
 import os
-from greent.util import Resource
+import logging
+import requests
+from greent.util import Resource, LoggingUtil
 from greent.graph_components import LabeledID
 from collections import defaultdict
 import itertools
 from collections import OrderedDict
+
+logger = LoggingUtil.init_logging(__name__, logging.DEBUG, 'short')
 
 #TODO: should all of this be done with some sort of canned semantic tools?
 class Concept:
@@ -169,12 +173,19 @@ class ConceptModel:
         return children
 
     def standardize_relationship(self,relationship):
-        xref = relationship.identifier
-        r = self.relations_by_xref[xref]
-        if r is None:
-            return LabeledID(identifier="GAMMA:0", label="Unmapped_Relation")
+        url = f'http://robokopdev.renci.org:8145/resolve?key={relationship.identifier}'
+        logger.debug(f'calling {url}')
+        response = requests.get(url)
+        if response.status_code == 200:
+            response = response.json()
+            r = response.get(relationship.identifier, None)
+            logger.debug(f'{relationship.identifier} mappeed to {r}')
+            if r is not None:
+                return LabeledID(identifier=r['identifier'], label=r['label'])
         else:
-            return LabeledID(identifier=r.identifier, label=r.name)
+            logger.error(f'Error calling {url} to standardize predicate {relationship.identifer} -- {response.status_code}')
+        # every fail condition will be handled here.
+        return LabeledID(identifier="GAMMA:0", label="Unmapped_Relation")
 
 class ConceptModelLoader:
 
