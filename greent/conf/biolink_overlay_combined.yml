@@ -49,8 +49,8 @@ classes:
     class_uri: SIO:010046
     description: A subcellular location, cell type or gross anatomical part
     id_prefixes:
-    - UMLS
     - UBERON
+    - UMLS
     is_a: organismal entity
     mappings:
     - WD:Q4936952
@@ -217,9 +217,9 @@ classes:
   cell:
     class_uri: GO:0005623
     id_prefixes:
-    - UMLS
     - CL
     - PO
+    - UMLS
     is_a: anatomical entity
     mappings:
     - CL:0000000
@@ -272,27 +272,28 @@ classes:
       as active ingredient, or a complex material with multiple chemical entities
       as part
     id_prefixes:
-    - METABOLON
-    - PHAROS.DRUG
-    - MESH
-    - PR
     - INCHI
-    - CHEMBL.COMPOUND
-    - HMDB
-    - KEGG
-    - CHEBI
-    - KEGG.COMPOUND
-    - CHEMBL
-    - KEGG.DRUG
-    - PUBCHEM
-    - UNII
-    - GTOPDB
-    - CTD
-    - DRUGBANK
-    - PUBCHEM.COMPOUND
     - DRUG.INTERACTION
     - FOOD
+    - PUBCHEM.COMPOUND
+    - KEGG.DRUG
+    - UNII
+    - KEGG.COMPOUND
+    - PR
+    - DRUGBANK
+    - GTOPDB
+    - METABOLON
+    - CHEBI
+    - HMDB
+    - CHEMBL.COMPOUND
+    - PUBCHEM
     - INCHIKEY
+    - PHAROS.DRUG
+    - CHEMBL
+    - KEGG
+    - CTD
+    - UNIPROTKB
+    - MESH
     is_a: molecular entity
     mappings:
     - WD:Q79529
@@ -492,14 +493,14 @@ classes:
     class_uri: MONDO:0000001
     id_prefixes:
     - OMIM
-    - MESH
-    - PHAROS.DISEASE
     - DOID
-    - ORPHANET
-    - MONDO
-    - MEDDRA
-    - UMLS
     - EFO
+    - MONDO
+    - UMLS
+    - PHAROS.DISEASE
+    - ORPHANET
+    - MEDDRA
+    - MESH
     is_a: disease or phenotypic feature
     mappings:
     - WD:Q12136
@@ -789,21 +790,21 @@ classes:
     - locus
     class_uri: SO:0000704
     id_prefixes:
-    - ENSEMBL
-    - SGD
-    - WB
-    - UNIPROTKB
-    - ZFIN
-    - EC
-    - HGNC
     - NCBIGene
-    - MGI
-    - PomBase
+    - WB
+    - ZFIN
     - RNAcentral
+    - ENSEMBL
     - HGNC.SYMBOL
-    - IUPHAR
     - NCBIGENE
+    - PomBase
+    - MGI
     - dictyBase
+    - UNIPROTKB
+    - HGNC
+    - EC
+    - SGD
+    - IUPHAR
     is_a: gene or gene product
     mappings:
     - SIO:010035
@@ -829,8 +830,8 @@ classes:
       descent
     id_prefixes:
     - HGNC.FAMILY
-    - PANTHER.FAMILY
     - PANTHER
+    - PANTHER.FAMILY
     is_a: molecular entity
     mappings:
     - NCIT:C20130
@@ -875,9 +876,9 @@ classes:
     description: The functional molecular product of a single gene. Gene products
       are either proteins or functional RNA molecules
     id_prefixes:
+    - GTOPDB
     - UNIPROTKB
     - PR
-    - GTOPDB
     is_a: gene or gene product
     union_of:
     - protein
@@ -1476,8 +1477,8 @@ classes:
       or macromolecular complex.
     id_prefixes:
     - GO
-    - RHEA
     - Reactome
+    - RHEA
     is_a: biological process or activity
     mappings:
     - UMLSSC:T044
@@ -1623,16 +1624,16 @@ classes:
     id_prefixes:
     - REACTOME
     - REACT
-    - SMPDB
-    - GO
-    - KEGG
-    - Reactome
-    - BIOCARTA.PATHWAY
-    - KEGG.PATHWAY
     - WIKIPATHWAYS
-    - KEGG-path
-    - PHARMGKB.PATHWAYS
+    - SMPDB
+    - KEGG.PATHWAY
+    - KEGG
+    - GO
+    - BIOCARTA.PATHWAY
     - PHARMGKB
+    - KEGG-path
+    - Reactome
+    - PHARMGKB.PATHWAYS
     is_a: biological process
     mappings:
     - SIO:010526
@@ -1666,10 +1667,10 @@ classes:
     class_uri: UPHENO:0001001
     id_prefixes:
     - HP
+    - EFO
+    - UMLS
     - NCIT
     - MEDDRA
-    - UMLS
-    - EFO
     is_a: disease or phenotypic feature
     mappings:
     - SIO:010056
@@ -1867,16 +1868,16 @@ classes:
     description: An allele that varies in its sequence from what is considered the
       reference allele at that locus.
     id_prefixes:
-    - MYVARIANT_HG38
     - WD
+    - CIViC
+    - MYVARIANT_HG38
     - ROBO_VARIANT
-    - ClinVar
-    - CLINVARVARIANT
     - HGVS
+    - DBSNP
+    - CLINVARVARIANT
     - MYVARIANT_HG19
     - CAID
-    - DBSNP
-    - CIViC
+    - ClinVar
     is_a: genomic entity
     local_names:
       agr: allele
@@ -2326,7 +2327,6 @@ slots:
     - CTD:affects_splicing_of
     - CTD:affects^RNA splicing
     - CTD:affects^splicing
-    - GTEx:affects_splicing_of
     range: transcript
   affects stability of:
     description: holds between two molecular entities where the action or effect of
@@ -2451,8 +2451,8 @@ slots:
     inverse: caused by
     is_a: contributes to
     mappings:
-    - WD:P1542
     - mondo#disease:triggers
+    - WD:P1542
     - SEMMEDDB:CAUSES
     slot_uri: RO:0002410
   causes adverse event:
@@ -3109,8 +3109,8 @@ slots:
     inverse: participates in
     is_a: related to
     mappings:
-    - WD:P2283
     - GOREL:0002008
+    - WD:P2283
     - GOREL:0001007
     slot_uri: RO:0000057
   has percentage:
@@ -3199,8 +3199,8 @@ slots:
     - translator_minimal
     is_a: related to
     mappings:
-    - core#sexually:homologous:to
     - SIO:010302
+    - core#sexually:homologous:to
     slot_uri: RO:HOM0000001
   id:
     description: A unique identifier for a thing. Must be either a CURIE shorthand
@@ -3612,9 +3612,9 @@ slots:
     inverse: located in
     is_a: related to
     mappings:
-    - SEMMEDDB:LOCATION_OF
     - WD:276
     - BFO:0000067
+    - SEMMEDDB:LOCATION_OF
     slot_uri: RO:0001015
   longitude:
     description: longitude
@@ -3691,9 +3691,9 @@ slots:
       ro: activity directly negatively regulates activity of
       translator: negatively regulates
     mappings:
-    - hetio:DOWNREGULATES_DdG
     - SEMMEDDB:INHIBITS
     - hetio:DOWNREGULATES_AdG
+    - hetio:DOWNREGULATES_DdG
     mixins:
     - negatively regulates
     slot_uri: RO:0002449
@@ -3728,8 +3728,8 @@ slots:
     is_a: related to
     mappings:
     - SEMMEDDB:PROCESS_OF
-    - core#site:of
     - SEMMEDDB:OCCURS_IN
+    - core#site:of
     slot_uri: BFO:0000066
   onset qualifier:
     description: a qualifier used in a phenotypic association to state when the phenotype
@@ -3768,15 +3768,15 @@ slots:
     inverse: has part
     is_a: overlaps
     mappings:
-    - core#trunk:part:of
-    - BSPO:0001108
     - BSPO:0001113
-    - BSPO:0001115
     - WD:P361
+    - BSPO:0001115
+    - BSPO:0001106
+    - core#trunk:part:of
     - SEMMEDDB:PART_OF
     - core#layer:part:of
-    - BSPO:0001106
     - core#subdivision:of
+    - BSPO:0001108
     slot_uri: BFO:0000050
   participates in:
     description: holds between a continuant and a process, where the continuant is
@@ -3825,10 +3825,10 @@ slots:
       ro: activity directly positively regulates activity of
       translator: positively regulates
     mappings:
-    - SEMMEDDB:STIMULATES
-    - GO:acts_upstream_of_or_within_positive_effect
     - hetio:UPREGULATES_DuG
     - hetio:UPREGULATES_AuG
+    - SEMMEDDB:STIMULATES
+    - GO:acts_upstream_of_or_within_positive_effect
     mixins:
     - positively regulates
     slot_uri: RO:0002450
@@ -3847,10 +3847,10 @@ slots:
     - translator_minimal
     is_a: related to
     mappings:
-    - GO:acts_upstream_of
     - SEMMEDDB:PRECEDES
-    - GO:acts_upstream_of_or_within
     - WD:P156
+    - GO:acts_upstream_of_or_within
+    - GO:acts_upstream_of
     range: occurrent
     slot_uri: BFO:0000063
   predisposes:
@@ -3881,9 +3881,9 @@ slots:
     - translator_minimal
     is_a: related to
     mappings:
-    - GO:regulates_o_results_in_acquisition_of_features_of
     - SEMMEDDB:PRODUCES
     - WD:P1056
+    - GO:regulates_o_results_in_acquisition_of_features_of
     slot_uri: RO:0003000
   provided by:
     description: connects an association to the agent (person, organization or group)
@@ -3947,10 +3947,10 @@ slots:
     inherited: true
     mappings:
     - GOREL:0002005
-    - GOREL:0012006
-    - BFO:0000054
-    - SEMMEDDB:ASSOCIATED_WITH
     - core#protects
+    - BFO:0000054
+    - GOREL:0012006
+    - SEMMEDDB:ASSOCIATED_WITH
     multivalued: true
     range: named thing
     slot_uri: owl:ObjectProperty
@@ -4102,12 +4102,12 @@ slots:
     inverse: treated by
     is_a: affects
     mappings:
-    - SEMMEDDB:TREATS
-    - CTD:negativecorrelation
-    - RO:0003307
     - CTD:therapeutic
+    - CTD:negativecorrelation
+    - SEMMEDDB:TREATS
     - mondo#disease:responds:to
     - WD:P2175
+    - RO:0003307
     range: disease or phenotypic feature
     required: true
     slot_uri: RO:0002606
