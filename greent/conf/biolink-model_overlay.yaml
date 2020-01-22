@@ -869,7 +869,7 @@ slots:
       - RO:0004024
       - RO:0004025
 
-  gene to expression site association:
+  expressed in:
     mappings:
       - gene_to_expression_site_association
 
