@@ -45,6 +45,9 @@ class BufferedWriter:
         if node.name is None or node.name == '':
             logger.warning(f"Node {node.id} is missing a label")
         # Node should have been labeled already by synonymizer
+        # but for some misses defaulting back to export graph logic.
+        if len(node.export_labels):
+            self.export_graph.add_type_labels(node)
         self.written_nodes.add(node.id)
         typednodes = self.node_queues[frozenset(node.export_labels)]
         typednodes.append(node)
