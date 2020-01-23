@@ -9,6 +9,9 @@ from json import loads
 from greent.graph_components import KNode
 from greent.util import Text
 import requests
+from greent.annotators.util import async_client
+import asyncio
+import pickle
 
 # There's a tradeoff here: do we want these things in the database or not.  One big problem
 # is that they end up getting tangled up in a huge number of explosive graphs, and we almost
@@ -35,56 +38,131 @@ def get_label(curie, url='https://onto.renci.org/label/'):
         print(e)
         return y
 
-def get_identifiers(input_type,rosetta):
+
+async def get_label_deco(curie):
+    url = f'https://onto.renci.org/label/{curie}'
+    response = await async_client.async_get_json(url, {})
+    return {
+        'id' : curie,
+        'label': response.get('label', '')
+    }
+
+
+async def get_label_async(curie_list):
+    tasks = []
+    for curie in curie_list:
+        tasks.append(get_label_deco(curie))
+    results = await asyncio.gather(*tasks)
+    return results
+
+
+def get_labels_multiple(curie_list, url='https://onto.renci.org/lable'):
+    """
+    Grab labels and return labeledIDs
+    :param curie_list:
+    :param url:
+    :return:
+    """
+    ## going @ 1000 requests per round, not to overload server
+    req_per_round = 1000
+    # chunck up
+    curie_list_chunck = [curie_list[i: i + req_per_round] for i in range(0, len(curie_list), req_per_round)]
+    results = []
+    for chunk in curie_list_chunck:
+        loop = asyncio.new_event_loop()
+        results += loop.run_until_complete(get_label_async(chunk))
+    ### returns [{id: 'xxxx', label: 'xxxxx'}]
+
+    return list(map(
+        lambda x: LabeledID(identifier=x['id'], label=x['label']),  # create LabeledIDS
+        filter(lambda result: not result['label'].startswith('obsolete'), results)) # filter obsolete results
+    )
+
+
+def pickle_labeled_ids(list_type, lids):
+    with open(f'{list_type}.lst', 'wb') as file:
+        pickle.dump(lids, file)
+
+def get_pickled_labeled_ids(list_type):
     lids = []
+    try:
+        with open(f'{list_type}.lst', 'rb') as in_file:
+            lids = pickle.load(in_file)
+    except:
+        print(f'could not read {list_type}.lst')
+    return lids
+
+
+
+def get_identifiers(input_type,rosetta):
+    lids = get_pickled_labeled_ids(input_type)
+    if lids != []:
+        return lids
     if input_type == node_types.DISEASE:
-        identifiers =  rosetta.core.mondo.get_ids()
-        for ident in identifiers:
-            if ident not in bad_idents:
-                #label = rosetta.core.mondo.get_label(ident)
-                label = rosetta.core.uberongraph.get_label(ident)
-                print(ident,label)
-                if label is not None and not label.startswith('obsolete'):
-                    lids.append(LabeledID(ident,label))
-        print("got labels") 
+        identifiers = rosetta.core.mondo.get_ids()
+        lids = get_labels_multiple(identifiers)
+        # for ident in identifiers:
+        #     if ident not in bad_idents:
+        #         #label = rosetta.core.mondo.get_label(ident)
+        #         label = get_label(ident)
+        #         if label is not None and not label.startswith('obsolete'):
+        #             lids.append(LabeledID(ident,label))
+        # print("got labels")
     if input_type == node_types.PHENOTYPIC_FEATURE:
         # filtering to avoid things like 
         # "C0341110" http://www.orpha.net/ORDO/Orphanet:73247
-        identifiers = filter ( 
-            lambda x : x.startswith('HP:'),
+        identifiers = list(filter(
+            lambda x: x.startswith('HP:'),
             requests.get('https://onto.renci.org/descendants/HP:0000118').json()
-        )
-        for ident in identifiers:
-            if ident not in bad_idents:
-                label = get_label(ident)
-                if label is not None and not label['label'].startswith('obsolete'):
-                    lids.append(LabeledID(ident,label['label']))
+        ))
+        lids = get_labels_multiple(identifiers)
+        # for ident in identifiers:
+        #     if ident not in bad_idents:
+        #         label = get_label(ident)
+        #         if label is not None and not label['label'].startswith('obsolete'):
+        #             lids.append(LabeledID(ident,label['label']))
     elif input_type == node_types.GENETIC_CONDITION:
-        identifiers_disease = rosetta.core.mondo.get_ids()
-        for ident in identifiers_disease:
-            print(ident)
-            if ident not in bad_idents:
-                if rosetta.core.mondo.is_genetic_disease(KNode(ident,type=node_types.DISEASE)):
-                    label = rosetta.core.mondo.get_label(ident)
-                    if label is not None and not label.startswith('obsolete'):
-                        print(ident,label,len(lids))
-                        lids.append(LabeledID(ident,label))
+        identifiers = []
+        GENETIC_DISEASE = ('MONDO:0020573', 'MONDO:0003847')
+        for disease in GENETIC_DISEASE:
+            identifiers.append(requests.get(f'https://onto.renci.org/descendants/{disease}'))
+        lids = get_labels_multiple(identifiers)
+        ## this is slow I think we can just grab children of genetic conditions.
+        # identifiers_disease = rosetta.core.mondo.get_ids()
+        # for ident in identifiers_disease:
+            # # print(ident)
+            # if ident not in bad_idents:
+            #     if rosetta.core.mondo.is_genetic_disease(KNode(ident,type=node_types.DISEASE)):
+            #         label = rosetta.core.mondo.get_label(ident)
+            #         if label is not None and not label.startswith('obsolete'):
+            #             print(ident,label,len(lids))
+            #             lids.append(LabeledID(ident,label))
     elif input_type == node_types.ANATOMICAL_ENTITY:
         identifiers = requests.get("https://onto.renci.org/descendants/UBERON:0001062").json()
-        for ident in identifiers:
-            if ident not in bad_idents:
-                if ident.split(':')[0] in ['UBERON','CL','GO']:
-                    #res = get_label(ident) #requests.get(f'https://onto.renci.org/label/{ident}').json()
-                    #lids.append(LabeledID(ident,res['label']))
-                    print(ident)
-                    label = rosetta.core.uberongraph.get_label(ident)
-                    lids.append(LabeledID(ident,label))
+        identifiers = list(filter(
+            lambda x:
+                x not in bad_idents
+                and
+                x.split(':')[0] in ['UBERON', 'CL', 'GO'],
+            identifiers))  # filter out some bad ids
+        lids = get_labels_multiple(identifiers)
+        # for ident in identifiers:
+        #     if ident not in bad_idents:
+        #         if ident.split(':')[0] in ['UBERON','CL','GO']:
+        #             #res = get_label(ident) #requests.get(f'https://onto.renci.org/label/{ident}').json()
+        #             #lids.append(LabeledID(ident,res['label']))
+        #             print(ident)
+        #             label = rosetta.core.uberongraph.get_label(ident)
+        #             lids.append(LabeledID(ident,label))
     elif input_type == node_types.CELL:
-        identifiers = requests.get("https://onto.renci.org/descendants/CL:0000000").json()
-        for ident in identifiers:
-            if ident not in bad_idents:
-                res = get_label(ident) #requests.get(f'https://onto.renci.org/label/{ident}/').json()
-                lids.append(LabeledID(ident,res['label']))
+        identifiers = list(filter(lambda x: x not in bad_idents, requests.get("https://onto.renci.org/descendants/CL:0000000").json()))
+        lids = get_labels_multiple(identifiers)
+        pickle_labeled_ids(node_types.CELL, lids)
+        # identifiers = requests.get("https://onto.renci.org/descendants/CL:0000000").json()
+        # for ident in identifiers:
+        #     if ident not in bad_idents:
+        #         res = get_label(ident) #requests.get(f'https://onto.renci.org/label/{ident}/').json()
+        #         lids.append(LabeledID(ident,res['label']))
     elif input_type == node_types.GENE:
         print("Pull genes")
         data = pull_via_ftp('ftp.ebi.ac.uk', '/pub/databases/genenames/new/json', 'hgnc_complete_set.json')
@@ -95,23 +173,30 @@ def get_identifiers(input_type,rosetta):
             lids.append( LabeledID(identifier=gene_dict['hgnc_id'], label=symbol) )
         print("OK")
     elif input_type == node_types.CELLULAR_COMPONENT:
-        print('Pulling cellular compnent descendants')
-        identifiers = requests.get("https://onto.renci.org/descendants/GO:0005575").json()
+        lids = get_pickled_labeled_ids(node_types.CELLULAR_COMPONENT)
+        if lids == []:
+            print('Pulling cellular compnent descendants')
+            identifiers = list(
+                filter(
+                    lambda x: x not in bad_idents and not x.startswith('CL:'),
+                    requests.get("https://onto.renci.org/descendants/GO:0005575").json()
+                )
+            )
+            lids = get_labels_multiple(identifiers)
+            pickle_labeled_ids(node_types.CELLULAR_COMPONENT, lids)
+        # print('Pulling cellular compnent descendants')
+        # identifiers = requests.get("https://onto.renci.org/descendants/GO:0005575").json()
         # for now trying with exclusive descendants of cellular component
         # "cell" is a cellular component, and therefore every type of cell is a cellular component.
         # For querying neo4j, this is confusing, so let's subset to not include things in CL here.
-        for ident in identifiers:
-            if ident.startswith('CL:'):
-                continue
-            if ident in bad_idents:
-                continue
-            res = get_label(ident) #requests.get(f'https://onto.renci.org/label/{ident}/').json()
-            lids.append(LabeledID(ident,res['label']))
-#    elif input_type == node_types.CHEMICAL_SUBSTANCE:
-#        print('pull chem ids')
-#        lids = [LabeledID(identifier="CHEBI:5931",label="insulin")]
+        # for ident in identifiers:
+        #     if ident.startswith('CL:'):
+        #         continue
+        #     if ident in bad_idents:
+        #         continue
+        #     res = get_label(ident) #requests.get(f'https://onto.renci.org/label/{ident}/').json()
+        #     lids.append(LabeledID(ident,res['label']))
     elif input_type == node_types.CHEMICAL_SUBSTANCE:
-#    elif False:
         print('pull chem ids')
         identifiers = requests.get("https://onto.renci.org/descendants/CHEBI:23367").json()
         identifiers = [x for x in identifiers if 'CHEBI' in x]
@@ -171,12 +256,17 @@ def get_identifiers(input_type,rosetta):
     elif input_type == node_types.BIOLOGICAL_PROCESS_OR_ACTIVITY:
         # pull Biological process decendants
         identifiers = requests.get('https://onto.renci.org/descendants/GO:0008150').json()
-        # merge with molucular activity decendants
-        identifiers = identifiers + requests.get('https://onto.renci.org/descendants/GO:0003674').json()        
-        for ident in identifiers:
-            if ident not in bad_idents:
-                p = get_label(ident) #requests.get(f'https://onto.renci.org/label/{ident}/')
-                lids.append(LabeledID(ident, p['label']))
+        identifiers += requests.get('https://onto.renci.org/descendants/GO:0003674').json()
+        identifiers = list(filter(lambda x: x not in bad_idents, identifiers))
+        lids = get_labels_multiple(identifiers)
+        #     # # pull Biological process decendants
+        # identifiers = requests.get('https://onto.renci.org/descendants/GO:0008150').json()
+        # # merge with molucular activity decendants
+        # identifiers = identifiers + requests.get('https://onto.renci.org/descendants/GO:0003674').json()
+        # for ident in identifiers:
+        #     if ident not in bad_idents:
+        #         p = get_label(ident) #requests.get(f'https://onto.renci.org/label/{ident}/')
+        #         lids.append(LabeledID(ident, p['label']))
     elif input_type == node_types.GENE_FAMILY:
         gene_fam_data = rosetta.core.panther.gene_family_data
         for key in gene_fam_data:
@@ -198,7 +288,7 @@ def get_identifiers(input_type,rosetta):
         lids = get_all_variant_ids_from_graph(rosetta)
     else:
         print(f'Not configured for input type: {input_type}')
-
+    pickle_labeled_ids(input_type, lids)
     return lids
 
 def do_one(itype,otype,op_list,identifier):
