@@ -184,7 +184,7 @@ class ConceptModel:
             if r is not None:
                 return LabeledID(identifier=r['identifier'], label=r['label'])
         else:
-            logger.error(f'Error calling {url} to standardize predicate {relationship.identifer} -- {response.status_code}')
+            logger.debug(f'Error calling {url} to standardize predicate {relationship.identifier} -- {response.status_code}')
         # every fail condition will be handled here.
         return LabeledID(identifier="GAMMA:0", label="Unmapped_Relation")
 
