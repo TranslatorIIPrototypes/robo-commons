@@ -50,6 +50,7 @@ class ExportGraph:
 
     def get_leaf_type(self,node,current_type):
         try:
+            current_type = current_type if isinstance(current_type, str) else current_type[0]
             child_types = self.subs[current_type]
         except KeyError:
             logger.error('oh dookie')

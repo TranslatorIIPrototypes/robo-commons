@@ -173,7 +173,7 @@ class ConceptModel:
         return children
 
     @staticmethod
-    def standardize_relationship(self,relationship):
+    def standardize_relationship(relationship):
         url = f'http://robokopdev.renci.org:8145/resolve?key={relationship.identifier}'
         logger.debug(f'calling {url}')
         response = requests.get(url)
