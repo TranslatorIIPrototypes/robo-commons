@@ -125,7 +125,7 @@ def get_identifiers(input_type,rosetta):
         identifiers = []
         GENETIC_DISEASE = ('MONDO:0020573', 'MONDO:0003847')
         for disease in GENETIC_DISEASE:
-            identifiers.append(requests.get(f'https://onto.renci.org/descendants/{disease}'))
+            identifiers.append(requests.get(f'https://onto.renci.org/descendants/{disease}').json())
         lids = get_labels_multiple(identifiers)
         ## this is slow I think we can just grab children of genetic conditions.
         # identifiers_disease = rosetta.core.mondo.get_ids()
