@@ -6,6 +6,7 @@ from greent.graph_components import LabeledID
 from collections import defaultdict
 import itertools
 from collections import OrderedDict
+import urllib.parse
 
 logger = LoggingUtil.init_logging(__name__, logging.DEBUG, 'short')
 
@@ -174,7 +175,8 @@ class ConceptModel:
 
     @staticmethod
     def standardize_relationship(relationship):
-        url = f'http://robokopdev.renci.org:8145/resolve?key={relationship.identifier}'
+        key = urllib.parse.quote_plus(relationship.identifier)
+        url = f'http://robokopdev.renci.org:8145/resolve?key={key}'
         logger.debug(f'calling {url}')
         response = requests.get(url)
         if response.status_code == 200:
