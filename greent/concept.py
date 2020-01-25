@@ -187,8 +187,9 @@ class ConceptModel:
                 return LabeledID(identifier=r['identifier'], label=r['label'])
         else:
             logger.debug(f'Error calling {url} to standardize predicate {relationship.identifier} -- {response.status_code}')
-        # every fail condition will be handled here.
-        return LabeledID(identifier="GAMMA:0", label="Unmapped_Relation")
+        # every fail condition will be handled here, defaulting to related to ???
+        # @TODO maybe this should be handled differently
+        return LabeledID(identifier="SEMMEDDB:ASSOCIATED_WITH", label="related_to")
 
 class ConceptModelLoader:
 
