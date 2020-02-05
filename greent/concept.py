@@ -176,7 +176,7 @@ class ConceptModel:
     @staticmethod
     def standardize_relationship(relationship):
         key = urllib.parse.quote_plus(relationship.identifier)
-        url = f'http://edgenormalization-sri.renci.org/resolve?key={key}'
+        url = f'https://edgenormalization-sri.renci.org/resolve?key={key}'
         logger.debug(f'calling {url}')
         response = requests.get(url)
         if response.status_code == 200:
