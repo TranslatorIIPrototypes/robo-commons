@@ -55,7 +55,7 @@ class PharosMySQL(Service):
         return predicate, pmids, props
 
     def g2d(self,hgnc,query,chembls,resolved_edge_nodes,gene_node):
-        prefixmap={'ChEMBL':'CHEMBL', 'Guide to Pharmacology':'GTOPDB'}
+        prefixmap={'ChEMBL':'CHEMBL.COMPOUND', 'Guide to Pharmacology':'GTOPDB'}
         cursor = self.db.cursor(dictionary = True, buffered = True)
         cursor.execute(query)
         for result in cursor:
@@ -111,7 +111,7 @@ class PharosMySQL(Service):
     def drug_get_gene(self, drug_node):
         """ Get a gene from a drug. """
         resolved_edge_nodes = []
-        identifiers = drug_node.get_synonyms_by_prefix('CHEMBL')
+        identifiers = drug_node.get_synonyms_by_prefix('CHEMBL.COMPOUND')
         predicate = LabeledID(identifier='PHAROS:drug_targets', label='is_target')
         hgncs = set()
         for chembl in identifiers:
