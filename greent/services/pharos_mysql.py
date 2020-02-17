@@ -30,6 +30,9 @@ class PharosMySQL(Service):
                 pattern = re.compile('^C\d+$') # pattern for umls local id
                 if pattern.match(did):
                     did = f'UMLS:{did}'
+                if did.startswith('Orphanet:'):
+                    dparts = did.split(':')
+                    did = 'ORPHANET:' + dparts[1]
                 disease_node = KNode(did, type=node_types.DISEASE, name=label)
                 edge = self.create_edge(disease_node,gene_node, 'pharos.gene_get_disease',hgnc,predicate)
                 resolved_edge_nodes.append( (edge,disease_node) )
