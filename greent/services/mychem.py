@@ -33,7 +33,7 @@ class MyChem(Service):
                     # 2. To filter outcomes. This is because things that are indications often show up as outcomes erroneously
                     if 'indications' in aeolus:
                         for indication in aeolus['indications']:
-                            meddra_id = f"MedDRA:{indication['meddra_code']}"
+                            meddra_id = f"MEDDRA:{indication['meddra_code']}"
                             indication_meddra.add(meddra_id)
                             if indication['count'] < 25:
                                 continue
@@ -47,7 +47,7 @@ class MyChem(Service):
                             # CI bound is > 1, and if I have enough counts (at least 5)
                             if outcome['case_count'] <=5:
                                 continue
-                            meddra_id = f"MedDRA:{outcome['meddra_code']}"
+                            meddra_id = f"MEDDRA:{outcome['meddra_code']}"
                             if min(outcome['prr_95_ci']) > 1:
                                 if meddra_id in indication_meddra:
                                     continue
@@ -141,7 +141,7 @@ class MyChem(Service):
     def get_drug_from_adverse_events(self,input_node):
         """Given a node (drug or phenotype), find chemicals that have a high or low rate of causing the node
         concept as an adverse event"""
-        meddras = input_node.get_labeled_ids_by_prefix('MedDRA')
+        meddras = input_node.get_labeled_ids_by_prefix('MEDDRA')
         return_results = []
         for meddra in meddras:
             mname = meddra.label
