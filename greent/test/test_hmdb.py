@@ -86,3 +86,13 @@ def test_metabolite_to_pathway(hmdb):
     node_ids=[node.id for edge,node in results]
     assert 'SMPDB:SMP00710' in node_ids
 
+def test_smdb_id_normalizer(hmdb):
+    node = KNode('HMDB:HMDB0112245', type=node_types.CHEMICAL_SUBSTANCE)
+    node.add_synonyms(['HMDB:HMDB0112245'])
+    results = hmdb.metabolite_to_pathway(node)
+    for r in results:
+        r_node = r[1]
+        if r_node.id.startswith('SMPDB'):
+            uncuried = Text.un_curie(r_node.id)
+            assert len(uncuried) == 10
+            # SMB ####### (seven digits)  We have this structure for normalized s

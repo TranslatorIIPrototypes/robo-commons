@@ -45,6 +45,11 @@ class HMDB(Service):
             url = '{0}/concepts?keywords={1}'.format (self.url, keyword)
         return requests.get (url).json ()
 
+    def normalize_smpdb_ids(self, curie):
+        smp_id = Text.un_curie(curie)
+        smp_numeric = smp_id.lstrip('SMP')
+        return 'SMPDB:SMP' + '0'*(7-len(smp_numeric)) + smp_numeric
+
     def make_node(self,json_node):
         identifier = json_node['id']
         if identifier == '' or identifier is None:
@@ -53,7 +58,11 @@ class HMDB(Service):
         node_types = json_node['categories']
         if len(node_types) > 1:
             logger.warn("Multiple Node Types from HMDB")
+        # normalize smp ids
+        if Text.get_curie(identifier) == 'SMPDB':
+            identifier = self.normalize_smpdb_ids(identifier)
         node_type = self.concepts_hmdb2robo[node_types[0]]
+
         return KNode(identifier, name=label, type=node_type)
 
     def make_predicate(self,json_node):
