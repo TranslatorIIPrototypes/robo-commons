@@ -182,7 +182,6 @@ class ConceptModel:
         if response.status_code == 200:
             response = response.json()
             r = response.get(relationship.identifier, None)
-            logger.debug(f'{relationship.identifier} mappeed to {r}')
             if r is not None:
                 return LabeledID(identifier=r['identifier'], label=r['label'])
         else:
