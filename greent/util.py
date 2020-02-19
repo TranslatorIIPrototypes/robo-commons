@@ -91,14 +91,38 @@ class Text:
         return text.split ('/')[-1:][0] if '/' in text else text
 
     @staticmethod
-    def obo_to_curie (text):
-        return ':'.join( text.split('/')[-1].split('_') )
+    def obo_to_curie(text):
+        obo_removed = text.replace('http://purl.obolibrary.org/obo/', '')
+        # two types so far things like <obo_url>/UBERON_XXXXX and
+        # things like <obo_url>/Uberon/core#<xcxcxcx>
+        if not ('/' in obo_removed or '#' in obo_removed):  # we do like we used to
+            split = obo_removed.split('_')
+            prefix = split[0]
+            return f"{prefix}:{'_'.join(split[1:])}"
+        else:
+            # result looking like uberon_core:protects
+            split = obo_removed.split('/')
+            last_path = split[-1]
+            # last_path could be something like abc_def_xyz which means abc:def_xyz
+            # or abc#def_xyz reversing back to either of these is going to be a problem...
+            if '#' in last_path:
+                last_path = last_path.replace('#', ':')
+            else:
+                last_path_split = last_path.split('_')
+                last_path = f"{last_path_split[0]}:{'_'.join(last_path_split[1:])}"
+            split[-1] = last_path
+            return '_'.join(split)
 
     @staticmethod
-    def curie_to_obo (text):
+    def curie_to_obo(text):
         x = text.split(':')
-        return f'<http://purl.obolibrary.org/obo/{x[0]}_{x[1]}>'
-
+        prefix = x[0]
+        concat_char = '_'
+        if '_' in prefix or text.count('_') > 1:
+            prefix = prefix.replace('_', '/')
+            concat_char = '#'
+        suffix = '_'.join(x[1:])
+        return f'<http://purl.obolibrary.org/obo/{prefix}{concat_char}{suffix}>'
 
     @staticmethod
     def snakify(text):
