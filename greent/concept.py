@@ -1,7 +1,7 @@
 import os
 import logging
 import requests
-from greent.util import Resource, LoggingUtil
+from greent.util import Resource, LoggingUtil, Text
 from greent.graph_components import LabeledID
 from collections import defaultdict
 import itertools
@@ -178,7 +178,6 @@ class ConceptModel:
         predicate_id = Text.normalize_predicate(relationship.identifier)
         key = urllib.parse.quote_plus(predicate_id)
         url = f'https://edgenormalization-sri.renci.org/resolve?key={key}'
-        logger.debug(f'calling {url}')
         response = requests.get(url)
         if response.status_code == 200:
             response = response.json()
@@ -189,7 +188,7 @@ class ConceptModel:
             logger.debug(f'Error calling {url} to standardize predicate {relationship.identifier} -- {response.status_code}')
         # every fail condition will be handled here, defaulting to related to ???
         # @TODO maybe this should be handled differently
-        return LabeledID(identifier="SEMMEDDB:ASSOCIATED_WITH", label="related_to")
+        return LabeledID(identifier="GAMMA:Unmapped_Relation", label="Unmapped_Relation")
 
 class ConceptModelLoader:
 
