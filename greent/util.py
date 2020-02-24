@@ -10,6 +10,7 @@ import yaml
 from collections import namedtuple
 import copy
 from logging.handlers import RotatingFileHandler
+import re
 
 #loggers = {}
 class LoggingUtil(object):
@@ -137,6 +138,11 @@ class Text:
             return text
         p = text.split(':', 1)
         return f'{p[0].upper()}:{p[1]}'
+
+    @staticmethod
+    def normalize_predicate(curie):
+        return re.sub(r'[\/]|[\s]|[_]|[\^]', '_', curie)
+
 
 
 

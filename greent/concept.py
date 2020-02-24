@@ -175,7 +175,8 @@ class ConceptModel:
 
     @staticmethod
     def standardize_relationship(relationship):
-        key = urllib.parse.quote_plus(relationship.identifier)
+        predicate_id = Text.normalize_predicate(relationship.identifier)
+        key = urllib.parse.quote_plus(predicate_id)
         url = f'https://edgenormalization-sri.renci.org/resolve?key={key}'
         logger.debug(f'calling {url}')
         response = requests.get(url)

@@ -20,3 +20,16 @@ def test_obo_to_curie():
             break
         do -= 1
         assert Text.curie_to_obo(curie) == f'<{obo}>'
+
+
+def test_normalize_predicates():
+    test_set = {
+        "CTD:affects^expression": "CTD:affects_expression",
+        "CTD:affects^metabolic processing": "CTD:affects_metabolic_processing",
+        "CTD:affects^ADP-ribosylation": "CTD:affects_ADP-ribosylation",
+        "GAMMA:other/unknown": "GAMMA:other_unknown",
+        "CTD:affects^N-linked glycosylation": "CTD:affects_N-linked_glycosylation"
+    }
+    for unformatted, formatted in test_set.items():
+        result = Text.normalize_predicate(unformatted)
+        assert result == formatted

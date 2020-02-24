@@ -10,7 +10,7 @@ logger = LoggingUtil.init_logging(__name__, level=logging.INFO, format='medium')
 
 class Synonymizer:
     def synonymize(self, node):
-        normalization_url = f'https://nodenormalization-sri.renci.org/get?key={node.id}'
+        normalization_url = f'https://nodenormalization-sri.renci.org/get_normalized_nodes?curie={node.id}'
         logger.debug(f'getting synonyms from {normalization_url}')
         response = requests.get(normalization_url)
         if response.status_code == 200:
