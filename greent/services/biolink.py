@@ -69,7 +69,7 @@ class Biolink(Service):
         return None
  
         
-    def process_associations(self, associations, function, target_node_type, input_identifier, url, input_node, reverse=False):
+    def process_associations(self, associations, relationship_id, function, target_node_type, input_identifier, url, input_node, reverse=False):
         """Given a response from biolink, create our edge and node structures.
         Sometimes (as in pathway->Genes) biolink returns the query as the object, rather
         than the subject.  reverse=True will handle this case, bringing back the subject
@@ -112,16 +112,16 @@ class Biolink(Service):
             # able to make this a little nicer
             predicate_id = association['relation']['id']
             if (predicate_id is None):
-                predicate_id = f'biolink:{function}'
+                predicate_id = relationship_id
             elif (':' not in predicate_id):
                 if predicate_id in self.label2id:
                     predicate_id = self.label2id[predicate_id]
                 else:
                     logging.getLogger('application').error(f'Relationship Missing: {predicate_id}')
-                    predicate_id = f'biolink:{function}'
+                    predicate_id = relationship_id
             predicate_label= association['relation']['label']
             if predicate_label is None:
-                predicate_label = f'biolink:{function}'
+                predicate_label = relationship_id
             #now back to the show
             predicate = LabeledID(identifier=predicate_id, label=predicate_label)
             try:
@@ -186,7 +186,8 @@ class Biolink(Service):
         response,url,input_id = self.gene_get_go(gene)
         if response is None:
             return []
-        edges_nodes = self.process_associations(response, 'gene_get_process_or_function', node_types.BIOLOGICAL_PROCESS_OR_ACTIVITY, input_id, url,gene)
+        # default relationship Gene - [involved in (RO:0002331)] -> pathway
+        edges_nodes = self.process_associations(response, 'RO:0002331', 'gene_get_process_or_function', node_types.BIOLOGICAL_PROCESS_OR_ACTIVITY, input_id, url,gene)
         process_or_function_results = list(filter(lambda x: self.go.is_biological_process(x[1]) or
                                                   self.go.is_molecular_function(x[1]), edges_nodes))
         return process_or_function_results
@@ -195,13 +196,15 @@ class Biolink(Service):
         url = "{0}/bioentity/gene/{1}/pathways/".format(self.url, gene.id)
         #response = requests.get(url).json()
         response = self.page_calls(url)
-        return self.process_associations(response, 'gene_get_pathways', node_types.PATHWAY, gene.id, url,gene)
+        # default relationship Gene - [involved in (RO:0002331)] -> pathway
+        return self.process_associations(response, 'RO:0002331', 'gene_get_pathways', node_types.PATHWAY, gene.id, url,gene)
 
     def pathway_get_gene(self, pathway):
         url = "{0}/bioentity/pathway/{1}/genes/".format(self.url, pathway.id)
         #response = requests.get(url).json()
         response = self.page_calls(url)
-        return self.process_associations(response, 'pathway_get_genes', node_types.GENE, url, pathway.id, pathway, reverse=True)
+        # default relationship Gene - [involved in (RO:0002331)] -> pathway
+        return self.process_associations(response, 'RO:0002331', 'pathway_get_genes', node_types.GENE, url, pathway.id, pathway, reverse=True)
 
     def sequence_variant_get_phenotype(self, variant_node):
         results = []
@@ -210,21 +213,26 @@ class Biolink(Service):
             clinvar_url_curie = f'ClinVarVariant:{Text.un_curie(clinvarsyn)}'
             url = f'{self.url}/bioentity/variant/{clinvar_url_curie}/phenotypes/'
             response = self.page_calls(url)
-            results.extend(self.process_associations(response, 'sequence_variant_get_phenotype', node_types.DISEASE_OR_PHENOTYPIC_FEATURE, clinvarsyn, url, variant_node))
+            # 2/26/2020 seems like we don't have any thing coming back here on rkg. but letting the process_associa..
+            # logic handle the predicate type from service.
+            results.extend(self.process_associations(response, '', 'sequence_variant_get_phenotype', node_types.DISEASE_OR_PHENOTYPIC_FEATURE, clinvarsyn, url, variant_node))
         return results
         
     def disease_get_gene(self, disease):
         url = "{0}/bioentity/disease/{1}/genes/".format(self.url, disease.id)
         response = self.page_calls(url)
-        return self.process_associations(response, 'disease_get_gene', node_types.GENE, disease.id, url, disease)
+        # not defaulting here to any predicate type, let the service call logic do it.
+        # @TODO check if any predicates where being missed.
+        return self.process_associations(response, '', 'disease_get_gene', node_types.GENE, disease.id, url, disease)
 
     def gene_get_phenotype(self, gene):
         url = f"{self.url}/bioentity/gene/{gene.id}/phenotypes/"
         response = self.page_calls(url)
-        return self.process_associations(response, 'gene_get_phenotype', node_types.PHENOTYPIC_FEATURE, gene.id, url, gene)
+        # not defaulting here to any predicate type, let the service call logic do it.
+        return self.process_associations(response, '', 'gene_get_phenotype', node_types.PHENOTYPIC_FEATURE, gene.id, url, gene)
 
     def phenotype_get_gene(self, phenotype):
         url = f"{self.url}/bioentity/phenotype/{phenotype.id}/genes/"
         response = self.page_calls(url)
-        return self.process_associations(response, 'phenotype_get_gene', node_types.GENE, phenotype.id, url, phenotype)
+        return self.process_associations(response, '', 'phenotype_get_gene', node_types.GENE, phenotype.id, url, phenotype)
 

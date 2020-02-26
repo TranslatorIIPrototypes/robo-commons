@@ -572,7 +572,7 @@ class UberonGraphKS(Service):
                     continue
                 predicate_curie = Text.obo_to_curie(r['p'])
                 prefix = Text.get_curie(predicate_curie)
-                prefix = prefix.upper() if prefix == 'uberon_core' else prefix
+                prefix = prefix if prefix == 'ubergraph-axioms.ofn' else prefix.upper()
                 upper_cased_predicate_curie = prefix + ":" + Text.un_curie(predicate_curie)
                 predicate = LabeledID(upper_cased_predicate_curie,r['pLabel'])
                 output_node = KNode(r['output_id'],type=output_type,name=r['output_label'])

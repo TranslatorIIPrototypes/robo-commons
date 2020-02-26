@@ -254,6 +254,7 @@ class MyChem(Service):
                                 direction = False
                             #predicate,direction = action_to_predicate_map.get(action, (LabeledID(identifier= 'CTD:interacts_with', label=action),False))
                             rel = Text.snakify(action)
+                            rel = Text.normalize_predicate(rel)
                             predicate = LabeledID(identifier=f'GAMMA:{rel}', label=rel)
                             source_node = input_node
                             target_node = gene_node

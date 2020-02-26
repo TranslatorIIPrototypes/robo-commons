@@ -48,7 +48,7 @@ class QuickGo(Service):
                 'results_in_closure_of':'RO:0002585',
                 'part_of': 'BFO:0000050',
                 'colocalizes_with': 'RO:0002325',
-                'is_active_in': 'quick_go:is_active_in'
+                'is_active_in': 'RO:0001025'
                 }
         try:
             return LabeledID(identifier=labels2identifiers[p_label], label=p_label)
