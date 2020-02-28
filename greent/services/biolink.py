@@ -120,8 +120,6 @@ class Biolink(Service):
                     logging.getLogger('application').error(f'Relationship Missing: {predicate_id}')
                     predicate_id = relationship_id
             predicate_label= association['relation']['label']
-            if predicate_label is None:
-                predicate_label = relationship_id
             #now back to the show
             predicate = LabeledID(identifier=predicate_id, label=predicate_label)
             try:
