@@ -1,25 +1,20 @@
 import logging
-import traceback
-import calendar
-import json
 import os
-import pickle
 import pika
 from datetime import datetime as dt
 from datetime import timedelta
 import hashlib
-
 import requests
-from collections import defaultdict
 from greent.export_delegator import WriterDelegator
-from greent.graph_components import KNode
+from greent.synonymization import Synonymizer
 from greent.util import LoggingUtil, Text
-from greent import node_types
 from greent.cache import Cache
-from greent.graph_components import KEdge
 from greent.annotators.annotator_factory import annotate_shortcut
 import traceback
+
+
 logger = LoggingUtil.init_logging(__name__, level=logging.DEBUG)
+
 
 class QueryDefinition:
     """Defines a query"""
@@ -35,6 +30,7 @@ class QueryDefinition:
         self.start_name = None
         self.end_name = None
 
+
 def get_name_for_curie(curie):
     response = requests.get(f"https://bionames.renci.org/ID_to_label/{curie}/")
     if response.ok:
@@ -44,6 +40,7 @@ def get_name_for_curie(curie):
     else:
         logger.warning(f"Bionames ID_to_label failed for curie {curie}.")
         return None
+
 
 class Program:
 
@@ -114,12 +111,22 @@ class Program:
     def initialize_instance_nodes(self):
         # No error checking here. You should have caught any malformed questions before this point.
         logger.debug("Initializing program {}".format(self.program_number))
-        
+
+        # Filter out the curies in the question
+        curies = list(map(lambda n: n.curie, filter(lambda node: node.curie, self.machine_question['nodes'])))
+
+        #  batch synonymize them all, getting back a dict
+        # normalized_node = { <curie> : KNode() }
+        normalized_nodes = Synonymizer.batch_normalize_nodes(curies)
+
+        # go back to the question an start processing them.
+        # during processing we don't need to do synonymization at
+        # any point. We will let each service return a KNode
+        # we will batch synonymize results later in Buffered writer.
         for n in self.machine_question['nodes']:
-            if not n.curie:
-                continue            
-            start_node = KNode(n.curie, type=n.type, name=n.name)
-            self.process_node(start_node, [n.id])
+            if n.curie:
+                start_node = normalized_nodes.get(n.curie)
+                self.process_node(start_node, [n.id])
         return
 
     def process_op(self, link, source_node, history):
@@ -148,7 +155,7 @@ class Program:
                 logger.debug(f"    {[node for _, node in results]}")
             results = list(filter(lambda x: x[1].id not in self.excluded_identifiers, results))
             for edge, node in results:
-                edge_label = Text.snakify(edge.standard_predicate.label)
+                edge_label = Text.snakify(edge.original_predicate.label)
                 if link['predicate'] is None or edge_label == link['predicate'] or (isinstance(link['predicate'], list) and (edge_label in link['predicate'])):
                     self.process_node(node, history, edge)
                 else:
@@ -170,7 +177,6 @@ class Program:
         logger.debug(f'process {node.id}')
         if edge is not None:
             is_source = node.id == edge.source_id
-        self.rosetta.synonymizer.synonymize(node)
         #Our excluded ids are e.g. uberons, but we might have gotten something else like a CARO
         # so we need to synonymize and then cehck for identifiers
         if node.id in self.excluded_identifiers:
