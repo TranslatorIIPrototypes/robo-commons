@@ -30,8 +30,8 @@ class GTExBuilder:
         self.rosetta = rosetta
 
         # create static edge labels for variant/gtex and gene/gtex edges
-        self.variant_gtex_label = LabeledID(identifier=f'GTEx:affects_expression_in', label=f'affects expression in')
-        self.gene_gtex_label = LabeledID(identifier=f'gene_to_expression_site_association', label=f'gene to expression site association')
+        self.variant_gtex_label = LabeledID(identifier=f'CTD:affects_expression_of', label=f'affects expression in')
+        self.gene_gtex_label = LabeledID(identifier=f'RO:0002206', label=f'gene to expression site association')
 
         # get a ref to the util class
         self.gtu = GTExUtils(self.rosetta)

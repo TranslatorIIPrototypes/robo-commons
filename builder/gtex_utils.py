@@ -383,10 +383,10 @@ class GTExUtils:
             # get the polarity of slope to get the direction of expression.
             # positive value increases expression, negative decreases
             if float(slope) > 0.0:
-                label_id = f'GTEx:increases_expression_of'
+                label_id = f'CTD:increases_expression_of'
                 label_name = f'increases expression'
             else:
-                label_id = f'GTEx:decreases_expression_of'
+                label_id = f'CTD:decreases_expression_of'
                 label_name = f'decreases expression'
 
             # return to the caller
