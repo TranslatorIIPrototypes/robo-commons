@@ -31,7 +31,7 @@ class BufferedWriter:
         self.written_edges = defaultdict(lambda: defaultdict( set ) )
         self.node_queues = defaultdict(dict)
         self.edge_queues = []
-        self.node_buffer_size = 1000
+        self.node_buffer_size = 100
         self.edge_buffer_size = 100
         self.driver = self.rosetta.type_graph.driver
         self.maxWrittenNodes = 100000
@@ -116,6 +116,7 @@ class BufferedWriter:
                             by_type[n_type],
                             n_type
                         )
+                    self.node_queues[node_type] = {}
             # batch normalize edges
             # and group them by their standardized labels
 
