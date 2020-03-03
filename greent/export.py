@@ -67,6 +67,7 @@ class BufferedWriter:
 
     def flush(self):
         with self.driver.session() as session:
+            syn_map = {}
             for node_type in self.node_queues:
                 if node_type != frozenset([]):
                     # This means we have we have export labels set for these nodes which
