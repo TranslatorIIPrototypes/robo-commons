@@ -413,5 +413,6 @@ class CTD(Service):
         :return:
         """
         regex = '\/|\ |\^'
-        predicate.identifier = re.sub(regex, '_', predicate.identifier)
-        return predicate
+        return LabeledID(
+            identifier=re.sub(regex, '_', predicate.identifier),
+            label=predicate.label)
