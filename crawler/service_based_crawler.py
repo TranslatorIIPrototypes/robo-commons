@@ -10,7 +10,7 @@ def run_per_service(service_name, rosetta):
     # triplets = triplets[67:]
     for index, triplet in enumerate(triplets):
         print(f'{index} runninng {triplet[0]} --> {triplet[2]}')
-        # bake_programs(triplet, rosetta)
+        bake_programs(triplet, rosetta)
     print(len(triplets))
 
 
