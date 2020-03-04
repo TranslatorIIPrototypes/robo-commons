@@ -5,6 +5,7 @@ from greent.service import Service
 from greent.graph_components import KNode, LabeledID
 from greent.util import Text, LoggingUtil
 from greent import node_types
+import re
 
 logger = LoggingUtil.init_logging(__name__, level=logging.DEBUG)
 
@@ -116,7 +117,7 @@ class CTD(Service):
         #Change the modifier to "affects" to deal with the fact that we don't know what the deleted part does.
         thing = self.term_parents[goodparts[0].split('^')[1]]
         new_id = f'CTD:affects^{thing}'
-        return self.concept_model.standardize_relationship(LabeledID(identifier=new_id, label=new_id))
+        return self.normalize_predicate(LabeledID(identifier=new_id, label=new_id))
 
     def get_ctd_predicate_identifier(self,label):
         chunk = label.split('|')
@@ -134,7 +135,9 @@ class CTD(Service):
                 good_row, predicate_label, props = self.check_gene_chemical_row(r)
                 if not good_row:
                     continue
-                predicate = LabeledID(identifier=f'CTD:{predicate_label}', label=predicate_label)
+                predicate = self.normalize_predicate(
+                    LabeledID(identifier=f'CTD:{predicate_label}', label=predicate_label)
+                )
                 gene_node = KNode(f"NCBIGENE:{r['GeneID']}", type=node_types.GENE)
                 if sum([s in predicate.identifier for s in self.g2d_strings]) > 0:
                     subject = gene_node
@@ -198,7 +201,9 @@ class CTD(Service):
                 good_row, predicate_label, props, pmids = self.check_expanded_gene_chemical_row(r)
                 if not good_row:
                     continue
-                predicate = LabeledID(identifier=f"CTD:{Text.snakify(predicate_label)}", label=predicate_label)
+                predicate = self.normalize_predicate(
+                    LabeledID(identifier=f"CTD:{Text.snakify(predicate_label)}", label=predicate_label)
+                )
                 gene_node = KNode(Text.upper_curie(r['geneID']), name=r['gene_label'],type=node_types.GENE)
                 direction = r['direction']
                 if direction == '->':
@@ -225,7 +230,9 @@ class CTD(Service):
                 good_row, predicate_label, props = self.check_gene_chemical_row(r)
                 if not good_row:
                     continue
-                predicate = LabeledID(identifier=f'CTD:{predicate_label}', label=predicate_label)
+                predicate = self.normalize_predicate(
+                    LabeledID(identifier=f'CTD:{predicate_label}', label=predicate_label)
+                )
                 #Should this be substance?
                 drug_node = KNode(f"MESH:{r['ChemicalID']}", type=node_types.CHEMICAL_SUBSTANCE, name=f"{r['ChemicalName']}")
                 if sum([s in predicate.identifier for s in self.g2d_strings]) > 0:
@@ -257,7 +264,9 @@ class CTD(Service):
                 good_row, predicate_label, props, pmids = self.check_expanded_gene_chemical_row(r)
                 if not good_row:
                     continue
-                predicate = LabeledID(identifier=f"CTD:{Text.snakify(predicate_label)}", label=predicate_label)
+                predicate = self.normalize_predicate(
+                    LabeledID(identifier=f"CTD:{Text.snakify(predicate_label)}", label=predicate_label)
+                )
                 #Should this be substance?
                 drug_node = KNode(Text.upper_curie(r['chemicalID']), type=node_types.CHEMICAL_SUBSTANCE, name=r['chem_label'])
                 direction = r['direction']
@@ -290,7 +299,9 @@ class CTD(Service):
                 predicate_label = r['outcomerelationship']
                 if predicate_label == 'no correlation':
                     continue
-                predicate = LabeledID(identifier=f"CTD:{''.join(predicate_label.split())}", label=predicate_label)
+                predicate = self.normalize_predicate(
+                    LabeledID(identifier=f"CTD:{''.join(predicate_label.split())}", label=predicate_label)
+                )
                 #Should this be substance?
                 drug_node = KNode(f"MESH:{r['exposurestressorid']}", type=node_types.CHEMICAL_SUBSTANCE, name=r['exposurestressorname'])
                 edge = self.create_edge(drug_node,disease_node,'ctd.disease_to_exposure',identifier,predicate,
@@ -353,6 +364,8 @@ class CTD(Service):
                     publications = treats_refs
                 # make node and edge
                 drug_node = KNode(f'MESH:{c_id}', type=node_types.CHEMICAL_SUBSTANCE, name= chemical_info['name'])
+                # normalize predicate
+                predicate = self.normalize_predicate(predicate)
                 edge = self.create_edge(
                     drug_node,
                     disease_node,
@@ -368,7 +381,7 @@ class CTD(Service):
                     unique.add(key)   
         return output
 
-    def get_chemical_label_id (self, therapeutic_count, marker_count, marker_predicate_label = 'marker/mechanism', therapeutic_predicate_label = 'therapeutic'):
+    def get_chemical_label_id (self, therapeutic_count, marker_count, marker_predicate_label = 'marker_mechanism', therapeutic_predicate_label = 'therapeutic'):
         """
         This function applies rules to determine which edge to prefer in cases
         where conflicting edges are returned for a chemical disease relation ship. 
@@ -392,3 +405,13 @@ class CTD(Service):
         if therapeutic:
             return LabeledID(identifier = f'CTD:{therapeutic_predicate_label}', label = therapeutic_predicate_label)
         return LabeledID(identifier= 'RO:0001001', label='related to')
+
+    def normalize_predicate(self, predicate):
+        """
+        Removes ^ / and ` ` from the predcate id
+        :param predicate:
+        :return:
+        """
+        regex = '\/|\ |\^'
+        predicate.identifier = re.sub(regex, '_', predicate.identifier)
+        return predicate
