@@ -415,4 +415,4 @@ class CTD(Service):
         regex = '\/|\ |\^'
         return LabeledID(
             identifier=re.sub(regex, '_', predicate.identifier),
-            label=predicate)
+            label=predicate.label)
