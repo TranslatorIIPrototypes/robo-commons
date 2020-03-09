@@ -141,20 +141,20 @@ class Biolink(Service):
         urlcall = '%s/bioentity/gene/%s/diseases' % (self.url, ehgnc)
         r = self.page_calls(urlcall)
         #r = requests.get(urlcall).json()
-        return self.process_associations(r, 'gene_get_disease', node_types.DISEASE, ehgnc, urlcall, gene_node)
+        return self.process_associations(r, '', 'gene_get_disease', node_types.DISEASE, ehgnc, urlcall, gene_node)
 
     def disease_get_phenotype(self, disease):
         #Biolink should understand any of our disease inputs here.
         url = "{0}/bioentity/disease/{1}/phenotypes/".format(self.url, disease.id)
         response = self.page_calls(url)
         #response = requests.get(url).json()
-        return self.process_associations(response, 'disease_get_phenotype', node_types.PHENOTYPIC_FEATURE, disease.id, url, disease)
+        return self.process_associations(response, '', 'disease_get_phenotype', node_types.PHENOTYPIC_FEATURE, disease.id, url, disease)
 
     def phenotype_get_disease(self,phenotype):
         url = "{0}/bioentity/phenotype/{1}/diseases/".format(self.url, phenotype.id)
         response = self.page_calls(url)
         #response = requests.get(url).json()
-        return self.process_associations(response, 'phenotype_get_disease', node_types.DISEASE, phenotype.id, url, phenotype, reverse= True)
+        return self.process_associations(response,'', 'phenotype_get_disease', node_types.DISEASE, phenotype.id, url, phenotype, reverse= True)
 
 
     def gene_get_go(self, gene):
