@@ -38,12 +38,14 @@ def callback_wrapper(ch, method, properties, body):
     # so to avoid dropping of any incoming data that might, have not been written we can
     # tell the queue that we've processed them if we still have the channel open
     # else we will just leave them on the queue. 
-    thrd = threading.Thread(target= callback, args= [body])
-    while thrd.is_alive():
-        # just to keep the connection alive
-        ch._connection.sleep('0.01')
-        # let's acknowledge after the thread completes
+    # thrd = threading.Thread(target= callback, args= [body])
+    # while thrd.is_alive():
+    #     # just to keep the connection alive
+    #     ch._connection.sleep('0.01')
+    # let's acknowledge after the thread completes
+    callback(body)
     ch.basic_ack(method.delivery_tag)
+
 
 def callback(body):
     # logger.info(f" [x] Received {body}")
