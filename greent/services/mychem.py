@@ -15,7 +15,7 @@ class MyChem(Service):
     def get_adverse_events(self,drug_node):
         #Don't need to worry about paging in this one, since we'll just return one drug (the one we're asking for)
         #and mychem pages by drug.
-        chemblids = drug_node.get_synonyms_by_prefix('CHEMBL')
+        chemblids = drug_node.get_synonyms_by_prefix('CHEMBL.COMPUND')
         if len(chemblids) == 0:
             logger.warn('no chembl ids')
         return_results = []
