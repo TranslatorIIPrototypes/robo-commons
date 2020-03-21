@@ -80,8 +80,8 @@ class Biolink(Service):
         for association in associations:
             # We would like to include edges that are direct links, if we have entity A we've queried for we also get other subjects that have (New_subject)-is_a-> A and relations returned for those,
             # so we end up having direct relations of subclasses  being pushed up to parent classes, so check to see if subject is actually the one we asked for
-            # if association['subject']['id'] != input_node.id:
-                # continue
+            if association['subject']['id'] != input_node.id:
+                continue
             pubs = []
             if 'publications' in association and association['publications'] is not None:
                 for pub in association['publications']:
