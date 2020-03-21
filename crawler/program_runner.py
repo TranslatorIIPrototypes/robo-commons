@@ -95,9 +95,7 @@ def get_pickled_labeled_ids(list_type):
 
 
 def get_identifiers(input_type,rosetta):
-    lids = get_pickled_labeled_ids(input_type)
-    if lids != []:
-        return lids
+    lids = [] #get_pickled_labeled_ids(input_type)
     if input_type == node_types.DISEASE:
         identifiers = rosetta.core.mondo.get_ids()
         lids = get_labels_multiple(identifiers)
