@@ -140,6 +140,7 @@ class PharosMySQL(Service):
         resolved_edge_nodes = []
         hgncs = set()
         # WD:P2293 gene assoc with condition.
+        # domain is gene and range is disease or phenotype for this relationship
         predicate = LabeledID(identifier='WD:P2293', label='gene_involved')
         #Pharos contains multiple kinds of disease identifiers in its disease table:
         # For OMIM identifiers, they can have either prefix OMIM or MIM
@@ -162,6 +163,6 @@ class PharosMySQL(Service):
                             if hgnc not in hgncs:
                                 hgncs.add(hgnc)
                                 gene_node = KNode(hgnc, type=node_types.GENE, name=label)
-                                edge = self.create_edge(disease_node,gene_node, 'pharos.disease_get_gene',pharos_id,predicate)
-                                resolved_edge_nodes.append( (edge,gene_node) )
+                                edge = self.create_edge(gene_node, disease_node, 'pharos.disease_get_gene', pharos_id, predicate)
+                                resolved_edge_nodes.append((edge, gene_node))
         return resolved_edge_nodes
