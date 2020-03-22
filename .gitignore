@@ -6,9 +6,7 @@ greent/cache/*
 *.log
 *.pid
 *.json
-.pytest_cache/*
-greent/.pytest_cache/*
-greent/test/.pytest_cache/*
+.pytest_cache
 q2-drugandcondition-list.txt
 .vscode
 builder/cache
