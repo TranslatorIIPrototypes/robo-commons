@@ -15,10 +15,11 @@ BL_LOOKUP_URL = 'https://bl-lookup-sri.renci.org'
 BL_VERSION = 'custom'
 REPORT_FILE_NAME = 'domain_range_report.json'
 
-NEO4J_HOST = 'robokopdev.renci.org' #os.environ.get("NEO4J_HOST")
-NEO4J_BOLT_PORT = '7689' #os.environ.get("NEO4J_BOLT_PORT")
-NEO4J_USER = 'neo4j' #os.environ.get('NEO4J_USER'),
-NEO4J_PASSWORD = 'ncatsgamma' #os.environ.get('NEO4J_PASSWORD')
+NEO4J_HOST = os.environ.get("NEO4J_HOST")
+NEO4J_BOLT_PORT = os.environ.get("NEO4J_BOLT_PORT")
+NEO4J_USER = os.environ.get('NEO4J_USER'),
+NEO4J_PASSWORD = os.environ.get('NEO4J_PASSWORD')
+
 
 @pytest.fixture()
 def neo4j_driver():
