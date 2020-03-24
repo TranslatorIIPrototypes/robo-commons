@@ -26,6 +26,7 @@ class BufferedWriter:
 
     def __init__(self, rosetta):
         self.rosetta = rosetta
+        self.merge_edges = rosetta.service_context.config.get('MERGE_EDGES') != None
         self.export_graph = ExportGraph(self.rosetta)
         self.written_nodes = set()
         self.written_edges = defaultdict(lambda: defaultdict( set ) )
@@ -65,7 +66,7 @@ class BufferedWriter:
         # Append the edge in the edge queue. It will be standardized in a batch when flushing
         self.edge_queues.append(edge)
 
-    def flush(self, merge_edges=False):
+    def flush(self):
         with self.driver.session() as session:
             syn_map = {}
             for node_type in self.node_queues:
@@ -149,7 +150,7 @@ class BufferedWriter:
                 edge_by_labels[label].append(edge)
 
             for edge_label in edge_by_labels:
-                session.write_transaction(export_edge_chunk, edge_by_labels[edge_label], edge_label, merge_edges)
+                session.write_transaction(export_edge_chunk, edge_by_labels[edge_label], edge_label, self.merge_edges)
             self.edge_queues = []
 
             # clear the memory on a threshold boundary to avoid using up all memory when
