@@ -65,7 +65,7 @@ class BufferedWriter:
         # Append the edge in the edge queue. It will be standardized in a batch when flushing
         self.edge_queues.append(edge)
 
-    def flush(self):
+    def flush(self, merge_edges=False):
         with self.driver.session() as session:
             syn_map = {}
             for node_type in self.node_queues:
@@ -149,7 +149,7 @@ class BufferedWriter:
                 edge_by_labels[label].append(edge)
 
             for edge_label in edge_by_labels:
-                session.write_transaction(export_edge_chunk, edge_by_labels[edge_label], edge_label)
+                session.write_transaction(export_edge_chunk, edge_by_labels[edge_label], edge_label, merge_edges)
             self.edge_queues = []
 
             # clear the memory on a threshold boundary to avoid using up all memory when
@@ -170,7 +170,7 @@ def sort_edges_by_label(edges):
     return el
 
 
-def export_edge_chunk(tx,edgelist,edgelabel):
+def export_edge_chunk(tx,edgelist,edgelabel, merge_edges):
     """The approach of updating edges will be to erase an old one and replace it in whole.   There's no real
     reason to worry about preserving information from an old edge.
     What defines the edge are the identifiers of its nodes, and the source.function that created it."""
@@ -192,35 +192,34 @@ def export_edge_chunk(tx,edgelist,edgelabel):
             SET r.hyper_edge_id = CASE WHEN EXISTS(r.hyper_edge_id) THEN r.hyper_edge_id + [row.hyper_edge_id] ELSE [row.hyper_edge_id] END
             ))
             """
-    ## Commenting out old write query  since we are using service based crawls we are not so much on merging things
-    # cypher = f"""UNWIND $batches as row
-            #
-            # MATCH (a:{node_types.ROOT_ENTITY} {{id: row.source_id}}),(b:{node_types.ROOT_ENTITY} {{id: row.target_id}})
-            # MERGE (a)-[r:{edgelabel} {{id: apoc.util.md5([a.id, b.id, '{edgelabel}']), predicate_id: row.standard_id}}]->(b)
-            # ON CREATE SET r.edge_source = [row.provided_by]
-            # ON CREATE SET r.relation_label = [row.original_predicate_label]
-            # ON CREATE SET r.source_database=[row.database]
-            # ON CREATE SET r.ctime=[row.ctime]
-            # ON CREATE SET r.hyper_edge_id=CASE WHEN exists(row.hyper_edge_id)  THEN [row.hyper_edge_id] END
-            # ON CREATE SET r.publications=row.publications
-            # ON CREATE SET r.relation = [row.original_predicate_id]
-            # // FOREACH mocks if condition
-            # FOREACH (_ IN CASE WHEN row.provided_by in r.edge_source THEN [] ELSE [1] END |
-            # SET r.edge_source = CASE WHEN EXISTS(r.edge_source) THEN r.edge_source + [row.provided_by] ELSE [row.provided_by] END
-            # SET r.ctime = CASE WHEN EXISTS (r.ctime) THEN r.ctime + [row.ctime] ELSE [row.ctime] END
-            # SET r.relation_label = CASE WHEN EXISTS(r.relation_label) THEN r.relation_label + [row.original_predicate_label] ELSE [row.original_predicate_label] END
-            # SET r.source_database = CASE WHEN EXISTS(r.source_database) THEN r.source_database + [row.database] ELSE [row.database] END
-            # SET r.predicate_id = row.standard_id
-            # SET r.relation = CASE WHEN EXISTS(r.relation) THEN r.relation + [row.original_predicate_id] ELSE [row.original_predicate_id] END
-            # SET r.publications = [pub in row.publications where not pub in r.publications ] + r.publications
-            # )
-            # SET r += row.properties
-            # FOREACH (__ IN CASE WHEN EXISTS(row.hyper_edge_id) THEN [1] ELSE [] END  |
-            # FOREACH (_ IN CASE WHEN row.hyper_edge_id in r.hyper_edge_id THEN [] ELSE [1] END |
-            # SET r.hyper_edge_id = CASE WHEN EXISTS(r.hyper_edge_id) THEN r.hyper_edge_id + [row.hyper_edge_id] ELSE [row.hyper_edge_id] END
-            # )
-            # )
-            # """
+    if merge_edges == True:
+        cypher = f"""UNWIND $batches as row
+                MATCH (a:{node_types.ROOT_ENTITY} {{id: row.source_id}}),(b:{node_types.ROOT_ENTITY} {{id: row.target_id}})
+                MERGE (a)-[r:{edgelabel} {{id: apoc.util.md5([a.id, b.id, '{edgelabel}']), predicate_id: row.standard_id}}]->(b)
+                ON CREATE SET r.edge_source = [row.provided_by]
+                ON CREATE SET r.relation_label = [row.original_predicate_label]
+                ON CREATE SET r.source_database=[row.database]
+                ON CREATE SET r.ctime=[row.ctime]
+                ON CREATE SET r.hyper_edge_id=CASE WHEN exists(row.hyper_edge_id)  THEN [row.hyper_edge_id] END
+                ON CREATE SET r.publications=row.publications
+                ON CREATE SET r.relation = [row.original_predicate_id]
+                // FOREACH mocks if condition
+                FOREACH (_ IN CASE WHEN row.provided_by in r.edge_source THEN [] ELSE [1] END |
+                SET r.edge_source = CASE WHEN EXISTS(r.edge_source) THEN r.edge_source + [row.provided_by] ELSE [row.provided_by] END
+                SET r.ctime = CASE WHEN EXISTS (r.ctime) THEN r.ctime + [row.ctime] ELSE [row.ctime] END
+                SET r.relation_label = CASE WHEN EXISTS(r.relation_label) THEN r.relation_label + [row.original_predicate_label] ELSE [row.original_predicate_label] END
+                SET r.source_database = CASE WHEN EXISTS(r.source_database) THEN r.source_database + [row.database] ELSE [row.database] END
+                SET r.predicate_id = row.standard_id
+                SET r.relation = CASE WHEN EXISTS(r.relation) THEN r.relation + [row.original_predicate_id] ELSE [row.original_predicate_id] END
+                SET r.publications = [pub in row.publications where not pub in r.publications ] + r.publications
+                )
+                SET r += row.properties
+                FOREACH (__ IN CASE WHEN EXISTS(row.hyper_edge_id) THEN [1] ELSE [] END  |
+                FOREACH (_ IN CASE WHEN row.hyper_edge_id in r.hyper_edge_id THEN [] ELSE [1] END |
+                SET r.hyper_edge_id = CASE WHEN EXISTS(r.hyper_edge_id) THEN r.hyper_edge_id + [row.hyper_edge_id] ELSE [row.hyper_edge_id] END
+                )
+                )
+                """
 
     batch = [ {'source_id': edge.source_id,
                'target_id': edge.target_id,
