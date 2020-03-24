@@ -192,7 +192,7 @@ def export_edge_chunk(tx,edgelist,edgelabel, merge_edges):
             SET r.hyper_edge_id = CASE WHEN EXISTS(r.hyper_edge_id) THEN r.hyper_edge_id + [row.hyper_edge_id] ELSE [row.hyper_edge_id] END
             ))
             """
-    if merge_edges == True:
+    if merge_edges:
         cypher = f"""UNWIND $batches as row
                 MATCH (a:{node_types.ROOT_ENTITY} {{id: row.source_id}}),(b:{node_types.ROOT_ENTITY} {{id: row.target_id}})
                 MERGE (a)-[r:{edgelabel} {{id: apoc.util.md5([a.id, b.id, '{edgelabel}']), predicate_id: row.standard_id}}]->(b)
