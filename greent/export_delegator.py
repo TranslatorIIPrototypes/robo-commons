@@ -80,5 +80,6 @@ class WriterDelegator:
                     routing_key='neo4j',
                     body=pickle.dumps('flush'))
         else:
-            self.buffered_writer.flush()
+            merge_edges = self.rosetta.service_context.config.get('MERGE_EDGES', False)
+            self.buffered_writer.flush(merge_edges)
              
