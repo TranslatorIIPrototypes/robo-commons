@@ -35,7 +35,6 @@ class Service:
 
     def create_edge(self, source_node, target_node, provided_by, input_id, predicate, analysis_id=None, publications=[], url=None, properties={}):
         ctime = time.time()
-        standard_predicate=self.standardize_predicate(predicate, source_node.id, target_node.id)
         if provided_by is None:
             raise 'missing edge source'
         return KEdge(source_id=source_node.id,
@@ -43,7 +42,7 @@ class Service:
                      provided_by=provided_by,
                      ctime=ctime,
                      original_predicate=predicate,
-                     standard_predicate=standard_predicate,
+                     # standard_predicate=standard_predicate, # This is now moved to Buffered writer flush method
                      input_id=input_id,
                      publications=publications,
                      url=url,

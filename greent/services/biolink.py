@@ -80,8 +80,8 @@ class Biolink(Service):
         for association in associations:
             # We would like to include edges that are direct links, if we have entity A we've queried for we also get other subjects that have (New_subject)-is_a-> A and relations returned for those,
             # so we end up having direct relations of subclasses  being pushed up to parent classes, so check to see if subject is actually the one we asked for
-            # if association['subject']['id'] != input_node.id:
-                # continue
+            if association['subject']['id'] != input_node.id:
+                continue
             pubs = []
             if 'publications' in association and association['publications'] is not None:
                 for pub in association['publications']:
@@ -141,20 +141,20 @@ class Biolink(Service):
         urlcall = '%s/bioentity/gene/%s/diseases' % (self.url, ehgnc)
         r = self.page_calls(urlcall)
         #r = requests.get(urlcall).json()
-        return self.process_associations(r, 'gene_get_disease', node_types.DISEASE, ehgnc, urlcall, gene_node)
+        return self.process_associations(r, '', 'gene_get_disease', node_types.DISEASE, ehgnc, urlcall, gene_node)
 
     def disease_get_phenotype(self, disease):
         #Biolink should understand any of our disease inputs here.
         url = "{0}/bioentity/disease/{1}/phenotypes/".format(self.url, disease.id)
         response = self.page_calls(url)
         #response = requests.get(url).json()
-        return self.process_associations(response, 'disease_get_phenotype', node_types.PHENOTYPIC_FEATURE, disease.id, url, disease)
+        return self.process_associations(response, '', 'disease_get_phenotype', node_types.PHENOTYPIC_FEATURE, disease.id, url, disease)
 
     def phenotype_get_disease(self,phenotype):
         url = "{0}/bioentity/phenotype/{1}/diseases/".format(self.url, phenotype.id)
         response = self.page_calls(url)
         #response = requests.get(url).json()
-        return self.process_associations(response, 'phenotype_get_disease', node_types.DISEASE, phenotype.id, url, phenotype, reverse= True)
+        return self.process_associations(response,'', 'phenotype_get_disease', node_types.DISEASE, phenotype.id, url, phenotype, reverse= True)
 
 
     def gene_get_go(self, gene):

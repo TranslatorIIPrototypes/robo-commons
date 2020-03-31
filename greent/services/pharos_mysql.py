@@ -15,7 +15,7 @@ class PharosMySQL(Service):
 
     def gene_get_disease(self, gene_node):
         identifiers = gene_node.get_synonyms_by_prefix('HGNC')
-        predicate = LabeledID(identifier='PHAROS:gene_involved', label='gene_involved')
+        predicate = LabeledID(identifier='WD:P2293', label='gene_involved')
         resolved_edge_nodes = []
         for hgnc in identifiers:
             query = f"select distinct d.did,d.name from disease d join xref x on x.protein_id = d.target_id where x.xtype = 'HGNC' and d.dtype <> 'Expression Atlas' and x.value = '{hgnc}'"
@@ -34,7 +34,7 @@ class PharosMySQL(Service):
                     dparts = did.split(':')
                     did = 'ORPHANET:' + dparts[1]
                 disease_node = KNode(did, type=node_types.DISEASE, name=label)
-                edge = self.create_edge(disease_node,gene_node, 'pharos.gene_get_disease',hgnc,predicate)
+                edge = self.create_edge(gene_node, disease_node, 'pharos.gene_get_disease',hgnc,predicate)
                 resolved_edge_nodes.append( (edge,disease_node) )
         return resolved_edge_nodes
 
@@ -112,7 +112,6 @@ class PharosMySQL(Service):
         """ Get a gene from a drug. """
         resolved_edge_nodes = []
         identifiers = drug_node.get_synonyms_by_prefix('CHEMBL.COMPOUND')
-        predicate = LabeledID(identifier='PHAROS:drug_targets', label='is_target')
         hgncs = set()
         for chembl in identifiers:
             query=f"""SELECT DISTINCT x.value, p.sym,
@@ -140,7 +139,9 @@ class PharosMySQL(Service):
         """ Get a gene from a pharos disease id."""
         resolved_edge_nodes = []
         hgncs = set()
-        predicate = LabeledID(identifier='PHAROS:gene_involved', label='gene_involved')
+        # WD:P2293 gene assoc with condition.
+        # domain is gene and range is disease or phenotype for this relationship
+        predicate = LabeledID(identifier='WD:P2293', label='gene_involved')
         #Pharos contains multiple kinds of disease identifiers in its disease table:
         # For OMIM identifiers, they can have either prefix OMIM or MIM
         # UMLS doen't have any prefixes.... :(
@@ -162,6 +163,6 @@ class PharosMySQL(Service):
                             if hgnc not in hgncs:
                                 hgncs.add(hgnc)
                                 gene_node = KNode(hgnc, type=node_types.GENE, name=label)
-                                edge = self.create_edge(disease_node,gene_node, 'pharos.disease_get_gene',pharos_id,predicate)
-                                resolved_edge_nodes.append( (edge,gene_node) )
+                                edge = self.create_edge(gene_node, disease_node, 'pharos.disease_get_gene', pharos_id, predicate)
+                                resolved_edge_nodes.append((edge, gene_node))
         return resolved_edge_nodes

@@ -59,7 +59,7 @@ class Panther(Service):
         Makes ftp request to get sequence classification file from Panther ftp.
         """
         # get the human file
-        sequence_classication_path = '/sequence_classifications/current_release/PANTHER_Sequence_Classification_files/'
+        sequence_classication_path = '/sequence_classifications/14.1/PANTHER_Sequence_Classification_files/'
         sequence_classication_file = 'PTHR14.1_human_'
         ftp_data = self.pull_ftp_data(sequence_classication_file, sequence_classication_path, self.url) 
         return ftp_data

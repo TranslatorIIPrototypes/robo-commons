@@ -15,7 +15,7 @@ class MyChem(Service):
     def get_adverse_events(self,drug_node):
         #Don't need to worry about paging in this one, since we'll just return one drug (the one we're asking for)
         #and mychem pages by drug.
-        chemblids = drug_node.get_synonyms_by_prefix('CHEMBL')
+        chemblids = drug_node.get_synonyms_by_prefix('CHEMBL.COMPOUND')
         if len(chemblids) == 0:
             logger.warn('no chembl ids')
         return_results = []
@@ -65,7 +65,7 @@ class MyChem(Service):
     def get_drugcentral(self,drug_node):
         #Don't need to worry about paging in this one, since we'll just return one drug (the one we're asking for)
         #and mychem pages by drug.
-        chemblids = drug_node.get_synonyms_by_prefix('CHEMBL')
+        chemblids = drug_node.get_synonyms_by_prefix('CHEMBL.COMPOUND')
         if len(chemblids) == 0:
             logger.warn('no chembl ids')
         return_results = []
@@ -178,7 +178,7 @@ class MyChem(Service):
         fails, chebi.  Failing that, complain bitterly."""
         if 'chembl' in hit_element:
             chembl=hit_element['chembl']
-            return KNode(f"CHEMBL:{chembl['molecule_chembl_id']}", type=node_types.CHEMICAL_SUBSTANCE, name=chembl['pref_name'])
+            return KNode(f"CHEMBL.COMPOUND:{chembl['molecule_chembl_id']}", type=node_types.CHEMICAL_SUBSTANCE, name=chembl['pref_name'])
         if 'chebi' in hit_element:
             chebi = hit_element['chebi']
             return KNode(chebi['chebi_id'], type=node_types.CHEMICAL_SUBSTANCE, name=chebi['chebi_name'])
