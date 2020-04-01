@@ -43,6 +43,10 @@ class WriterDelegator:
         self.flush()
 
     def write_node(self, node, synonymize=False):
+        # check if node has already hit writer
+        # this step is already done
+        if node.id in self.buffered_writer.written_nodes:
+            return
         if synonymize:
             self.synonymizer.synonymize(node)
         try:
