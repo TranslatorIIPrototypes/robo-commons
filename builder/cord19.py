@@ -13,16 +13,19 @@ class Cord19Service(Service):
         self.rosetta = Rosetta()
         self.writer = WriterDelegator(rosetta=self.rosetta)
 
-    def load(self, limit=0):
+    def load(self, provided_by, limit=0):
         print('writing to graph')
         nodes_dict = self.parse_nodes()
-        edges = self.parse_edges(nodes_dict=nodes_dict, limit=limit)
-        for edge in edges:
+        edges = self.parse_edges(nodes_dict=nodes_dict, provided_by=provided_by, limit=limit)
+        print(f'found {len(edges)}')
+        for index, edge in enumerate(edges):
             source_node = nodes_dict.get(edge.source_id)
             target_node = nodes_dict.get(edge.target_id)
             self.writer.write_node(source_node)
             self.writer.write_node(target_node)
             self.writer.write_edge(edge)
+            if index % 10000 == 0:
+                print(f'~~~~~~~~~{(index/len(edges))* 100}% complete')
         self.writer.flush()
         print('done writing edges')
 
@@ -59,7 +62,7 @@ class Cord19Service(Service):
             print(f'done parsing nodes {len(nodes)}')
             return nodes
 
-    def parse_edges(self, nodes_dict, limit=0):
+    def parse_edges(self, nodes_dict, provided_by, limit=0):
         """ Construct KEdges"""
         edges = []
         limit_counter = 0
@@ -73,7 +76,7 @@ class Cord19Service(Service):
                     source_node=source_node,
                     target_node=target_node,
                     input_id=edge_raw['Term1'],
-                    provided_by='cord19_scigraph_v1',
+                    provided_by=provided_by,
                     predicate=predicate,
                     publications=[],
                     properties={
@@ -89,8 +92,19 @@ class Cord19Service(Service):
 
 
 if __name__ == '__main__':
-    loader = Cord19Service()
-    # limit to test on part of the file.
-    loader.load(limit=0)
+    import argparse
+
+    parser = argparse.ArgumentParser(description="""
+        Parse edges and nodes file to graph.
+        """, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('-p', '--provided_by',
+                        help='Provided by attribute to be used on edges.',)
+    args = parser.parse_args()
+    if not args.provided_by:
+        print('provided by arg is required')
+        exit(-1)
+    svc = Cord19Service()
+    svc.load(provided_by=args.provided_by)
+
 
 
