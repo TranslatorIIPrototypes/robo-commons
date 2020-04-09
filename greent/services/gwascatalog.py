@@ -155,7 +155,7 @@ class GWASCatalog(Service):
 
                                 if caid_count == 1:
                                     # multiple CAIDs per rsid makes precaching the rsid and caids in one call complex,
-                                    # here we can cache rsids that only returned one CAID easily, so do that
+                                    # here we can cache rsids that onl  y returned one CAID easily, so do that
                                     # others will meet synonymization later but it should be a small percentage of them
                                     # TODO we could/probably should split the synonyms returned for rsid calls then we could cache those cases too
                                     redis_pipe.set(f'synonymize(CAID:{caid_id})', pickle.dumps(synonyms))
@@ -228,7 +228,7 @@ class GWASCatalog(Service):
         if pubmed_id:
             pubs.append(f'PMID:{pubmed_id}')
 
-        predicate = LabeledID(identifier=f'gwascatalog:has_phenotype',label=f'has_phenotype')
+        predicate = LabeledID(identifier=f'RO:0002200',label=f'has_phenotype')
         edge = self.create_edge(
             variant_node, 
             phenotype_node, 
