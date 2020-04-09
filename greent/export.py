@@ -46,9 +46,9 @@ class BufferedWriter:
             return
         if node.name is None or node.name == '':
             logger.warning(f"Node {node.id} is missing a label")
-        # Node should have been labeled already by synonymizer
+        # Node should have been labeled already by synonymizer (node normalization)
         # but for some misses defaulting back to export graph logic.
-        if len(node.export_labels):
+        if not len(node.export_labels):
             self.export_graph.add_type_labels(node)
         self.written_nodes.add(node.id)
         typednodes = self.node_queues[frozenset(node.export_labels)]
@@ -70,55 +70,52 @@ class BufferedWriter:
         with self.driver.session() as session:
             syn_map = {}
             for node_type in self.node_queues:
-                if node_type != frozenset([]):
-                    # This means we have we have export labels set for these nodes which
-                    # should happen if and only if they have been synonymized.
+                # Condition # 1. Handling nodes that could not be synonymized.
+                # This could happen among other reasons,
+                # maybe the synonymization service doesn't know about it.
+                # ExportGraph.addlabels should add some types for the ones missed too, if
+                # a service has decided on the node type ( Eg if gwas says node is sequence
+                # variant export and nodenormalization service doesnt know it would be labled by exportgraph)
+
+                node_queue = self.node_queues[node_type]
+                node_curies = list(node_queue.keys())
+                # Update the node queue for a type with results from normalization call
+                normalized_nodes = Synonymizer.batch_normalize_nodes(node_curies)
+
+                # lets make a list of mappings to use it to update the edges source and target ids
+                syn_map = {k: normalized_nodes[k].id for k in normalized_nodes}
+
+                # filter out the missed ones first, i.e calling synonymization on these nodes
+                # returned nothing, maybe the normalization service doesn't know about them...
+
+                missed_nodes = {curie: node_queue[curie] for curie in node_curies if curie not in normalized_nodes}
+                # previous named_thing labels won't help us catch these so saving them to file
+                with open('missed_curies.lst', 'w+') as missed_curies:
+                    for k in missed_nodes:
+                        missed_curies.write(f'{k}\t {node_type}')
+
+
+                session.write_transaction(
+                    export_node_chunk,
+                    missed_nodes,
+                    node_type
+                )
+                # Condition # 2
+                # bucket out  normalized node into chunks by their type and do something similar
+                by_type = {}
+                for curie in normalized_nodes:
+                    node = normalized_nodes[curie]
+                    types = frozenset(node.export_labels)
+                    typed_nodes = by_type.get(types, {})
+                    typed_nodes.update({curie: node})
+                    by_type[types] = typed_nodes
+                for n_type in by_type:
                     session.write_transaction(
                         export_node_chunk,
-                        self.node_queues[node_type],
-                        node_type
+                        by_type[n_type],
+                        n_type
                     )
-                    self.node_queues[node_type] = {}
-                else:
-                    # Two conditions
-                    # Condition # 1. Handling nodes that could not be synonymized. This could happen among other reasons,
-                    # maybe the synonymization service doesn't know about it.
-                    # Sending empty frozen set will ensure that the nodes are written with named_thing label only and
-                    # this makes it easier to track them in neo4j.
-
-                    node_queue = self.node_queues[node_type]
-                    node_curies = list(node_queue.keys())
-                    # Update the node queue for a type with results from normalization call
-                    normalized_nodes = Synonymizer.batch_normalize_nodes(node_curies)
-
-                    # lets make a list of mappings to use it to update the edges source and target ids
-                    syn_map = {k: normalized_nodes[k].id for k in normalized_nodes}
-
-                    # filter out the missed ones first, i.e calling synonymization on these nodes
-                    # returned nothing, maybe the normalization service doesn't know about them...
-
-                    missed_nodes = {curie: node_queue[curie] for curie in node_curies if curie not in normalized_nodes}
-                    session.write_transaction(
-                        export_node_chunk,
-                        missed_nodes,
-                        frozenset([])
-                    )
-                    # Condition # 2
-                    # bucket out  normalized node into chunks by their type and do something similar
-                    by_type = {}
-                    for curie in normalized_nodes:
-                        node = normalized_nodes[curie]
-                        types = frozenset(node.export_labels)
-                        typed_nodes = by_type.get(types, {})
-                        typed_nodes.update({curie: node})
-                        by_type[types] = typed_nodes
-                    for n_type in by_type:
-                        session.write_transaction(
-                            export_node_chunk,
-                            by_type[n_type],
-                            n_type
-                        )
-                    self.node_queues[node_type] = {}
+                self.node_queues[node_type] = {}
             # batch normalize edges
             # and group them by their standardized labels
 
