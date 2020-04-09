@@ -80,8 +80,8 @@ class Cord19Service(Service):
                     predicate=predicate,
                     publications=[],
                     properties={
-                        'num_publications': edge_raw['Effective_Pubs'],
-                        'enrichment_p': edge_raw['Enrichment_p']
+                        'num_publications': float(edge_raw['Effective_Pubs']),
+                        'enrichment_p': float(edge_raw['Enrichment_p'])
                     }
                 )
                 limit_counter += 1
