@@ -13,6 +13,16 @@ class Cord19Service(Service):
         self.rosetta = Rosetta()
         self.writer = WriterDelegator(rosetta=self.rosetta)
 
+    def load_nodes_only(self):
+        print('Writing nodes')
+        nodes_dict = self.parse_nodes()
+        index = 0
+        for node_key in nodes_dict:
+            index += 1
+            self.writer.write_node(nodes_dict[node_key])
+            if index % 10000 == 0:
+                print(f'~~~~~~~~~{(index/len(nodes_dict))* 100}% complete')
+
     def load(self, provided_by, limit=0):
         print('writing to graph')
         nodes_dict = self.parse_nodes()
@@ -64,6 +74,8 @@ class Cord19Service(Service):
 
     def parse_edges(self, nodes_dict, provided_by, limit=0):
         """ Construct KEdges"""
+        if not provided_by:
+            raise RuntimeError('Error edge property provided by is not specified')
         edges = []
         limit_counter = 0
         with open(os.path.join(self.cord_dir,'edges.txt')) as edges_file:
@@ -98,13 +110,16 @@ if __name__ == '__main__':
         Parse edges and nodes file to graph.
         """, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-p', '--provided_by',
-                        help='Provided by attribute to be used on edges.',)
+                        help='Provided by attribute to be used on edges.', default=None)
+    parser.add_argument('-n', '--nodes_only',
+                        help='Parse nodes only', action='store_true')
     args = parser.parse_args()
-    if not args.provided_by:
-        print('provided by arg is required')
-        exit(-1)
     svc = Cord19Service()
-    svc.load(provided_by=args.provided_by)
+    if args.nodes_only:
+        svc.load_nodes_only()
+        exit(1)
+    if args.provided_by:
+        svc.load(provided_by=args.provided_by)
 
 
 
