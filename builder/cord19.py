@@ -12,30 +12,40 @@ class Cord19Service(Service):
         self.cord_dir = os.environ.get('CORD_DIR')
         self.rosetta = Rosetta()
         self.writer = WriterDelegator(rosetta=self.rosetta)
+        # line counts for reporting
+        self.num_edges = self.count_lines_in_file('edges.txt')
+        self.num_nodes = self.count_lines_in_file('nodes.txt')
+
+    def count_lines_in_file(self, file_name):
+        count = -1  # don't count headers
+        with open(os.path.join(self.cord_dir, file_name)) as nodes_file:
+            for line in nodes_file:
+                count += 1
+        return count
 
     def load_nodes_only(self):
         print('Writing nodes')
-        nodes_dict = self.parse_nodes()
-        index = 0
-        for node_key in nodes_dict:
+        for index, node in self.parse_nodes():
             index += 1
-            self.writer.write_node(nodes_dict[node_key])
-            if index % 10000 == 0:
-                print(f'~~~~~~~~~{(index/len(nodes_dict))* 100}% complete')
+            self.writer.write_node(node)
+            if index % 100 == 0:
+                print(f'~~~~~~~~~{(index/self.num_nodes)* 100}% complete')
 
     def load(self, provided_by, limit=0):
         print('writing to graph')
-        nodes_dict = self.parse_nodes()
-        edges = self.parse_edges(nodes_dict=nodes_dict, provided_by=provided_by, limit=limit)
-        print(f'found {len(edges)}')
-        for index, edge in enumerate(edges):
-            source_node = nodes_dict.get(edge.source_id)
-            target_node = nodes_dict.get(edge.target_id)
+        print('writing nodes')
+        for index, node in self.parse_nodes():
+            self.writer.write_node(node)
+            if index % 1000 == 0:
+                print(f'~~~~~~~~~{(index / self.num_edges) * 100} % complete')
+        for index, edge in self.parse_edges(provided_by=provided_by, limit=limit):
+            source_node = KNode(edge.source_id)
+            target_node = KNode(edge.target_id)
             self.writer.write_node(source_node)
             self.writer.write_node(target_node)
             self.writer.write_edge(edge)
             if index % 10000 == 0:
-                print(f'~~~~~~~~~{(index/len(edges))* 100}% complete')
+                print(f'~~~~~~~~~{(index/self.num_edges)* 100} % complete')
         self.writer.flush()
         print('done writing edges')
 
@@ -45,12 +55,10 @@ class Cord19Service(Service):
         :param limit: for testing reads first n nodes from file
         :return: dict with node_id as key and KNode as value
         """
-        nodes = {}
         print('parsing nodes...')
         limit_counter = 0
         with open(os.path.join(self.cord_dir, 'nodes.txt')) as nodes_file:
             reader = csv.DictReader(nodes_file, delimiter='\t')
-
             for raw_node in reader:
                 # transform headers to knode attrbutes
                 labels = raw_node.get('semantic_type')
@@ -65,25 +73,22 @@ class Cord19Service(Service):
                     }
                 })
                 node.add_export_labels(labels)
-                nodes[node.id] = node
                 limit_counter += 1
                 if limit and limit_counter > limit:
                     break
-            print(f'done parsing nodes {len(nodes)}')
-            return nodes
+                yield limit_counter -1, node
 
-    def parse_edges(self, nodes_dict, provided_by, limit=0):
+    def parse_edges(self, provided_by, limit=0):
         """ Construct KEdges"""
         if not provided_by:
             raise RuntimeError('Error edge property provided by is not specified')
-        edges = []
         limit_counter = 0
         with open(os.path.join(self.cord_dir,'edges.txt')) as edges_file:
             reader = csv.DictReader(edges_file, delimiter='\t')
             for edge_raw in reader:
                 predicate = LabeledID(identifier='SEMMEDDB:ASSOCIATED_WITH', label='related_to')
-                source_node = nodes_dict.get(edge_raw['Term1'])
-                target_node = nodes_dict.get(edge_raw['Term2'])
+                source_node = KNode(edge_raw['Term1'])
+                target_node = KNode(edge_raw['Term2'])
                 edge = self.create_edge(
                     source_node=source_node,
                     target_node=target_node,
@@ -99,8 +104,7 @@ class Cord19Service(Service):
                 limit_counter += 1
                 if limit and limit_counter > limit:
                     break
-                edges.append(edge)
-        return edges
+                yield limit_counter - 1, edge
 
 
 if __name__ == '__main__':
