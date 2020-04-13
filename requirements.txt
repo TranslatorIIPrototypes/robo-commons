@@ -16,8 +16,8 @@ ndex2
 ontobio
 pronto
 pika
+pytest
+mock
 mysql-connector
 -e git+https://github.com/Supervisor/supervisor@dbff619f79c48da0776178e627221da6e40a3261#egg=supervisor
-aiosparql
-aiohttp
 pytabix

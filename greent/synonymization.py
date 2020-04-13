@@ -15,6 +15,14 @@ class Synonymizer:
     BIOLINK_VERSION = 'custom'
     CHUNK_SIZE = 1000
 
+    # Although Edge resolution takes up multiple keys at once
+    # it's probably good to send 1 at a time
+    # reason being if we send 100 predicates types that it needs to resolve from leaves of uberon graph
+    # that don't have direct entry in Biolink model, it would take a while to comeback with results, as it's going
+    # fetch them syncronously.
+    # We can parallelize it here by sending multiple request each containing one predicate to resolve.
+    EDGE_CHUNK_SIZE = 1
+
     @staticmethod
     def synonymize(node):
         normalization_url = f'{Synonymizer.NODE_NORMALIZATION_URL}?curie={node.id}'
@@ -73,7 +81,8 @@ class Synonymizer:
     def batch_normalize_edges(edge_predicates: list):
         # shorten edge predicates list if possible
         edge_predicates = list(set(edge_predicates))
-        chunk_size = Synonymizer.CHUNK_SIZE
+        chunk_size = Synonymizer.EDGE_CHUNK_SIZE
+        # If called from the buffered_writer.flush we are gauranteed at most we have buffered_writer.edge_queue_size predicates
         chunks = [edge_predicates[start: start + chunk_size] for start in range(0, len(edge_predicates), chunk_size)]
         urls = map(lambda chunk:
                    f"{Synonymizer.EDGE_NORMALIZATION_URL}"

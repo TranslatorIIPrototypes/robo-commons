@@ -162,6 +162,7 @@ class Program:
                     pass
 
         except pika.exceptions.ChannelClosed:
+            traceback.print_exc()
             raise
         except Exception as e:
             traceback.print_exc()

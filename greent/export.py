@@ -66,89 +66,106 @@ class BufferedWriter:
         # Append the edge in the edge queue. It will be standardized in a batch when flushing
         self.edge_queues.append(edge)
 
-    def flush(self):
-        with self.driver.session() as session:
-            syn_map = {}
-            for node_type in self.node_queues:
-                # Condition # 1. Handling nodes that could not be synonymized.
-                # This could happen among other reasons,
-                # maybe the synonymization service doesn't know about it.
-                # ExportGraph.addlabels should add some types for the ones missed too, if
-                # a service has decided on the node type ( Eg if gwas says node is sequence
-                # variant export and nodenormalization service doesnt know it would be labled by exportgraph)
+    def flush_nodes(self, session):
+        syn_map = {}
+        for node_type in self.node_queues:
+            # Condition # 1. Handling nodes that could not be synonymized.
+            # This could happen among other reasons,
+            # maybe the synonymization service doesn't know about it.
+            # ExportGraph.addlabels should add some types for the ones missed too, if
+            # a service has decided on the node type ( Eg if gwas says node is sequence
+            # variant export and nodenormalization service doesnt know it would be labled by exportgraph)
 
-                node_queue = self.node_queues[node_type]
-                node_curies = list(node_queue.keys())
-                # Update the node queue for a type with results from normalization call
-                normalized_nodes = Synonymizer.batch_normalize_nodes(node_curies)
+            node_queue = self.node_queues[node_type]
+            node_curies = list(node_queue.keys())
+            # Update the node queue for a type with results from normalization call
+            normalized_nodes = Synonymizer.batch_normalize_nodes(node_curies)
 
-                # lets make a list of mappings to use it to update the edges source and target ids
-                syn_map = {k: normalized_nodes[k].id for k in normalized_nodes}
+            # lets make a list of mappings to use it to update the edges source and target ids
+            syn_map.update({k: normalized_nodes[k].id for k in normalized_nodes})
 
-                # filter out the missed ones first, i.e calling synonymization on these nodes
-                # returned nothing, maybe the normalization service doesn't know about them...
+            # filter out the missed ones first, i.e calling synonymization on these nodes
+            # returned nothing, maybe the normalization service doesn't know about them...
 
-                missed_nodes = {curie: node_queue[curie] for curie in node_curies if curie not in normalized_nodes}
-                # previous named_thing labels won't help us catch these so saving them to file
-                with open('missed_curies.lst', 'w+') as missed_curies:
-                    for k in missed_nodes:
-                        missed_curies.write(f'{k}\t {node_type}')
-
-
+            missed_nodes = {curie: node_queue[curie] for curie in node_curies if curie not in normalized_nodes}
+            # previous named_thing labels won't help us catch these so saving them to file
+            with open('missed_curies.lst', 'w+') as missed_curies:
+                for k in missed_nodes:
+                    missed_curies.write(f'{k}\t {node_type}')
+            if missed_nodes:
+                for missed_node_id in missed_nodes:
+                    syn_map.update({missed_node_id: missed_node_id})
                 session.write_transaction(
                     export_node_chunk,
                     missed_nodes,
                     node_type
                 )
-                # Condition # 2
-                # bucket out  normalized node into chunks by their type and do something similar
-                by_type = {}
-                for curie in normalized_nodes:
-                    node = normalized_nodes[curie]
-                    types = frozenset(node.export_labels)
-                    typed_nodes = by_type.get(types, {})
-                    typed_nodes.update({curie: node})
-                    by_type[types] = typed_nodes
-                for n_type in by_type:
-                    session.write_transaction(
-                        export_node_chunk,
-                        by_type[n_type],
-                        n_type
-                    )
-                self.node_queues[node_type] = {}
-            # batch normalize edges
-            # and group them by their standardized labels
+            # Condition # 2
+            # bucket out  normalized node into chunks by their type and do something similar
+            by_type = {}
+            for curie in normalized_nodes:
+                original_node = node_queue[curie]
+                normalized_node = normalized_nodes[curie]
+                # to preserve original node properties copy original's properties
+                normalized_node.properties = original_node.properties
 
-            # get the predicate ids
-            original_predicates = set(map(lambda edge: edge.original_predicate.identifier, self.edge_queues))
-
-            # batch Normalize them
-            standard_predicates = Synonymizer.batch_normalize_edges(original_predicates)
-
-            # group edges by labels and also update their standard predicates
-            edge_by_labels = {}
-
-            for edge in self.edge_queues:
-                # update standard predicate if it's mapped.
-                edge.standard_predicate = standard_predicates.get(
-                    edge.original_predicate.identifier,
-                    LabeledID(identifier='GAMMA:0', label='Unmapped_Relation')
+                # use the types we get from normalized node to write to graph
+                types = frozenset(normalized_node.export_labels)
+                typed_nodes = by_type.get(types, {})
+                # add normalized node with properties from original node
+                typed_nodes.update({curie: normalized_node})
+                by_type[types] = typed_nodes
+            for n_type in by_type:
+                session.write_transaction(
+                    export_node_chunk,
+                    by_type[n_type],
+                    n_type
                 )
-                # also need to know if source_id and target_id have changed.
-                # This could happen if node was synonymized to a different ID that
-                # is different from what a service returned. This implies that we need to update the
-                # edge that goes along with it.
-                edge.source_id = syn_map.get(edge.source_id, edge.source_id)
-                edge.target_id = syn_map.get(edge.target_id, edge.target_id)
+            self.node_queues[node_type] = {}
+        return syn_map
 
-                label = edge.standard_predicate.label
-                if label not in edge_by_labels:
-                    edge_by_labels[label] = []
-                edge_by_labels[label].append(edge)
+    def flush_edges(self, session, synonym_map):
+        # batch normalize edges
+        # and group them by their standardized labels
 
-            for edge_label in edge_by_labels:
-                session.write_transaction(export_edge_chunk, edge_by_labels[edge_label], edge_label, self.merge_edges)
-            self.edge_queues = []
+        # get the predicate ids
+        original_predicates = set(map(lambda edge: edge.original_predicate.identifier, self.edge_queues))
+
+        # batch Normalize them
+        standard_predicates = Synonymizer.batch_normalize_edges(original_predicates)
+
+        # group edges by labels and also update their standard predicates
+        edge_by_labels = {}
+
+        for edge in self.edge_queues:
+            # update standard predicate if it's mapped.
+            edge.standard_predicate = standard_predicates.get(
+                edge.original_predicate.identifier,
+                LabeledID(identifier='GAMMA:0', label='Unmapped_Relation')
+            )
+            # also need to know if source_id and target_id have changed.
+            # This could happen if node was synonymized to a different ID that
+            # is different from what a service returned. This implies that we need to update the
+            # edge that goes along with it.
+            edge.source_id = synonym_map.get(edge.source_id, edge.source_id)
+            edge.target_id = synonym_map.get(edge.target_id, edge.target_id)
+
+            label = edge.standard_predicate.label
+            if label not in edge_by_labels:
+                edge_by_labels[label] = []
+            edge_by_labels[label].append(edge)
+
+        for edge_label in edge_by_labels:
+            session.write_transaction(export_edge_chunk, edge_by_labels[edge_label], edge_label, self.merge_edges)
+        self.edge_queues = []
+
+    def flush(self):
+        with self.driver.session() as session:
+            # flush the nodes and capture any id changes
+            synonym_map = self.flush_nodes(session)
+
+            # flush edges
+            self.flush_edges(session, synonym_map)
 
             # clear the memory on a threshold boundary to avoid using up all memory when
             # processing large data sets
