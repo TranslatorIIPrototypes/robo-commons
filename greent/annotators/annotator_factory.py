@@ -48,7 +48,10 @@ def annotate_shortcut(node, rosetta):
     generic_annotator.annotate(node)
 
     # typed annotation
+    annotated = None
     typed_annotators = make_annotator(node, rosetta)
     for annotator in typed_annotators:
         if annotator != None:
             annotator.annotate(node)
+        annotated = True
+    return annotated

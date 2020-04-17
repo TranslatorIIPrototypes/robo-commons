@@ -5,6 +5,8 @@ from datetime import datetime as dt
 from datetime import timedelta
 import hashlib
 import requests
+from builder.question import QNode
+from greent.graph_components import KNode
 from greent.export_delegator import WriterDelegator
 from greent.synonymization import Synonymizer
 from greent.util import LoggingUtil, Text
@@ -125,9 +127,14 @@ class Program:
         # we will batch synonymize results later in Buffered writer.
         for n in self.machine_question['nodes']:
             if n.curie:
-                start_node = normalized_nodes.get(n.curie)
+                # if node is not normalized via synonymization service promote it to Knowledge node.
+                start_node = normalized_nodes.get(n.curie, self.parse_QNode_to_KNode(n))
                 self.process_node(start_node, [n.id])
         return
+
+    def parse_QNode_to_KNode(self, qNode: QNode):
+        """Incase of synonymization failure question Node is promoted to Knowledge node"""
+        return KNode(qNode.curie, type=[qNode.type])
 
     def process_op(self, link, source_node, history):
         op_name = link['op']

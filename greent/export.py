@@ -37,6 +37,7 @@ class BufferedWriter:
         self.driver = self.rosetta.type_graph.driver
         self.maxWrittenNodes = 100000
         self.maxWrittenEdges = 100000
+        self.missed_curies = {}
 
     def __enter__(self):
         return self
@@ -89,9 +90,9 @@ class BufferedWriter:
 
             missed_nodes = {curie: node_queue[curie] for curie in node_curies if curie not in normalized_nodes}
             # previous named_thing labels won't help us catch these so saving them to file
-            with open('missed_curies.lst', 'w+') as missed_curies:
-                for k in missed_nodes:
-                    missed_curies.write(f'{k}\t {node_type}')
+            for k in missed_nodes:
+                self.missed_curies[k] = list(node_type)
+            self.write_missed_curies_to_file()
             if missed_nodes:
                 for missed_node_id in missed_nodes:
                     syn_map.update({missed_node_id: missed_node_id})
@@ -174,6 +175,13 @@ class BufferedWriter:
 
             if len(self.written_edges) > self.maxWrittenEdges:
                 self.written_edges.clear()
+
+    def write_missed_curies_to_file(self):
+        """ When node normalization is not working write the missed curies to file."""
+        with open('missed_curies.lst', 'a') as f:
+            for curie in self.missed_curies:
+                f.write(f'{curie}\t {",".join(self.missed_curies[curie])}')
+        self.missed_curies = {}
 
     def __exit__(self,*args):
         self.flush()
