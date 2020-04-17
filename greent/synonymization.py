@@ -2,7 +2,8 @@ import logging
 from greent.graph_components import KNode
 from greent.util import  LoggingUtil
 from builder.question import LabeledID
-import requests
+from greent.cache import Cache
+import requests, pickle
 import asyncio
 from greent.annotators.util.async_client import async_get_json
 
@@ -13,8 +14,9 @@ class Synonymizer:
     NODE_NORMALIZATION_URL = 'https://nodenormalization-sri.renci.org/get_normalized_nodes'
     EDGE_NORMALIZATION_URL = 'https://edgenormalization-sri.renci.org/resolve_predicate'
     BIOLINK_VERSION = 'custom'
+    BL_CONCEPT_URL_GENERATOR =  lambda node_type: f'https://biolink-sri.renci.org/bl/{node_type}?version={Synonymizer.BIOLINK_VERSION}'
     CHUNK_SIZE = 1000
-
+    BIOLINK_MODEL_PARTS = {}
     # Although Edge resolution takes up multiple keys at once
     # it's probably good to send 1 at a time
     # reason being if we send 100 predicates types that it needs to resolve from leaves of uberon graph
@@ -125,3 +127,29 @@ class Synonymizer:
             asyncio.gather(*tasks)
         )
         return results_array
+
+    @staticmethod
+    def synonymize_via_redis(cache: Cache, node: KNode):
+        bl_part = Synonymizer.BIOLINK_MODEL_PARTS.get(node.type, None)
+        if not bl_part:
+            # cache this call in this class to avoid hitting bl more than once
+            bl_url = Synonymizer.BL_CONCEPT_URL_GENERATOR(node.type)
+            bl_part = Synonymizer.BIOLINK_MODEL_PARTS[node.type] = requests.get(bl_url).json()
+        # grab synonyms from cache
+        cached = cache.get(f'synonymize({node.id})')
+        if cache:
+            equivalent_ids = pickle.loads(cached)
+            node.add_synonyms(equivalent_ids)
+            # set the prefered id as dictated by bl
+            preffered_id = node.id
+            for preffered_curie in bl_part['id_prefixes']:
+                found = False
+                for p_id in equivalent_ids:
+                    if p_id.starts_with(preffered_curie):
+                        found = True
+                        preffered_id = p_id
+                        break
+                if found:
+                    break
+            node.id = preffered_id
+        return node
