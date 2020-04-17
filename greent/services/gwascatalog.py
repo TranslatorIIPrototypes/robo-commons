@@ -6,6 +6,7 @@ from greent.service import Service
 from greent.util import Text, LoggingUtil
 import logging,json,pickle,re,os,sys
 from collections import defaultdict
+from greent.cache import Cache
 
 logger = LoggingUtil.init_logging("robokop-interfaces.services.gwascatalog", logging.DEBUG, format='medium', logFilePath=f'{os.environ["ROBOKOP_HOME"]}/logs/')
 
@@ -222,7 +223,7 @@ class GWASCatalog(Service):
     def create_variant_to_phenotype_components(self, query_url, variant_node, phenotype_id, phenotype_label, pubmed_id=None, properties={}):
         
         phenotype_node = KNode(phenotype_id, name=phenotype_label, type=node_types.DISEASE_OR_PHENOTYPIC_FEATURE)
-        self.synonymizer.synonymize(phenotype_node)
+#        self.synonymizer.synonymize(phenotype_node)
 
         pubs = []
         if pubmed_id:
