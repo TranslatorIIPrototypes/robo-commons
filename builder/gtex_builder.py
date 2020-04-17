@@ -156,16 +156,16 @@ class GTExBuilder:
                             curie_hgvs = f'HGVS:{hgvs}'
                             curie_uberon = f'UBERON:{uberon}'
                             curie_ensembl = f'ENSEMBL:{ensembl}'
-
                             # create variant, gene and GTEx nodes with the HGVS, ENSEMBL or UBERON expression as the id and name
                             variant_node = KNode(curie_hgvs, name=curie_hgvs, type=node_types.SEQUENCE_VARIANT)
                             gene_node = KNode(curie_ensembl, type=node_types.GENE)
                             gtex_node = KNode(curie_uberon, name=tissue_name, type=node_types.ANATOMICAL_ENTITY)
 
                             # call to load the each node with synonyms
-                            self.rosetta.synonymizer.synonymize(variant_node)
-                            self.rosetta.synonymizer.synonymize(gene_node)
-                            self.rosetta.synonymizer.synonymize(gtex_node)
+                            self.rosetta.synonymizer.synonymize_via_redis(variant_node)
+                            # expect the rest to be synonimized via node normalization
+                            # self.rosetta.synonymizer.synonymize(gene_node)
+                            # self.rosetta.synonymizer.synonymize(gtex_node)
 
                             # get the SequenceVariant object filled in with the sequence location data
                             # seq_var_data = self.gtu.get_sequence_variant_obj(variant_id)
