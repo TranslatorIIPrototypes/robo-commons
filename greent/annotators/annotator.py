@@ -40,7 +40,6 @@ class Annotator:
         self.event_loop.set_debug(True)
 
     def __del__(self):
-        logger.debug(f'Closing event loop.')
         self.event_loop.close()
 
     def get_prefix_config(self, prefix):

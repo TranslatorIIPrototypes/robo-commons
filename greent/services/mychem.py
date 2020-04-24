@@ -161,7 +161,7 @@ class MyChem(Service):
                         if outcome['case_count'] > 5 and min(outcome['prr_95_ci']) > 1:
                             predicate = LabeledID(identifier="RO:0003302", label="causes_or_contributes_to")
                         elif outcome['case_count'] > 5 and max(outcome['prr_95_ci']) < 1:
-                            predicate = LabeledID(identifier="RO:0002559", label="prevents")
+                            predicate = LabeledID(identifier="RO:0002599", label="prevents")
                         else:
                             continue
                         drug_node=self.make_drug_node(hit)

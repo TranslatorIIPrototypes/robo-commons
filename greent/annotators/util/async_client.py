@@ -11,11 +11,11 @@ async def async_get_json(url, headers = {}):
         try:
             async with session.get(url, headers= headers) as response:
                 if response.status != 200:
-                    logger.error(f"Failed to get response from {url}. Status code {response.status}")
+                    logger.debug(f"Failed to get response from {url}. Status code {response.status}")
                     return {}
                 return await response.json()
         except:
-            logger.error(f"Failed to get response from {url}." )
+            logger.debug(f"Failed to get response from {url}." )
             return {}
 
 async def async_get_text(url,headers = {}):

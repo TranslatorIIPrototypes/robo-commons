@@ -44,8 +44,8 @@ class Synonymizer:
                         break
             node.type = response['type']
         else:
-            logger.error(f'failed to normalize node {node.id} on {normalization_url}')
-            logger.error(f'{response.content.decode()}')
+            logger.debug(f'failed to normalize node {node.id} on {normalization_url}')
+            logger.debug(f'{response.content.decode()}')
 
     @staticmethod
     def batch_normalize_nodes(node_curies: list):

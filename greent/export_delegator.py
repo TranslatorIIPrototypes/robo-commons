@@ -12,13 +12,13 @@ import traceback
 logger = LoggingUtil.init_logging("builder.writer_delegate", level=logging.DEBUG, logFilePath=f'{os.environ["ROBOKOP_HOME"]}/logs/')
 
 class WriterDelegator:
-    def __init__(self, rosetta):
+    def __init__(self, rosetta, push_to_queue=False):
         self.rosetta = rosetta
         self.synonymizer = rosetta.synonymizer
         response = requests.get(f"{os.environ['BROKER_API']}queues/")
         queues = response.json()
         num_consumers = [q['consumers'] for q in queues if q['name'] == 'neo4j']
-        if num_consumers and num_consumers[0]:
+        if (num_consumers and num_consumers[0]) or push_to_queue:
             self.connection = pika.BlockingConnection(pika.ConnectionParameters(
                 heartbeat=0,
                 host=os.environ['BROKER_HOST'],
@@ -42,20 +42,21 @@ class WriterDelegator:
     def __exit__(self,*args):
         self.flush()
 
-    def write_node(self, node, synonymize=False):
+    def write_node(self, node, synonymize=False, annotate=True):
         # check if node has already hit writer
         # this step is already done
         if node.id in self.buffered_writer.written_nodes:
             return
         if synonymize:
             self.synonymizer.synonymize(node)
-        try:
-            result = annotate_shortcut(node, self.rosetta)
-            #if type(result) == type(None):
-            #    logger.debug(f'No annotator found for {node}')
-        except Exception as e:
-            logger.error(e)
-            logger.error(traceback.format_exc())
+        if annotate:
+            try:
+                result = annotate_shortcut(node, self.rosetta)
+                #if type(result) == type(None):
+                #    logger.debug(f'No annotator found for {node}')
+            except Exception as e:
+                logger.error(e)
+                logger.error(traceback.format_exc())
         if self.channel is not None:
             self.channel.basic_publish(
                 exchange='',
@@ -85,4 +86,12 @@ class WriterDelegator:
                     body=pickle.dumps('flush'))
         else:
             self.buffered_writer.flush()
-             
+
+    def close(self):
+        """ Sending close string so reciever can stop it's consumer"""
+        if self.connection and self.connection.is_open:
+            if self.channel is not None:
+                self.channel.basic_publish(
+                    exchange='',
+                    routing_key='neo4j',
+                    body=pickle.dumps('close'))

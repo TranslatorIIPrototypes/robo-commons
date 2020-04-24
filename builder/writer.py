@@ -17,6 +17,7 @@ from greent.graph_components import KNode, KEdge
 from builder.api import logging_config
 from pika.exceptions import StreamLostError
 import threading
+from functools import partial
 
 greent_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
 logger = LoggingUtil.init_logging("builder.writer", level=logging.DEBUG, logFilePath= os.path.join(greent_path,'..','logs','builder.writer'))
@@ -25,11 +26,8 @@ greent_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
 sys.path.insert(0, greent_path)
 rosetta = setup(os.path.join(greent_path, 'greent', 'greent.conf'))
 
-writer = BufferedWriter(rosetta)
 
-
-
-def callback_wrapper(ch, method, properties, body):
+def callback_wrapper(ch, method, properties, body, writer):
     ## This is basically going to create a thread for the handler and call it , and let it finish.
     ## to avoid blocking the rabbit heartbeat. 
     # Found out that rabbitmq will reset connections for channels 
@@ -43,11 +41,18 @@ def callback_wrapper(ch, method, properties, body):
     #     # just to keep the connection alive
     #     ch._connection.sleep('0.01')
     # let's acknowledge after the thread completes
-    callback(body)
+    message = pickle.loads(body)
+    if message == 'close':
+        ###  This part is for testing , sending close string to end the connection.
+        ## should not be used other wise.
+        ch.basic_ack(method.delivery_tag)
+        ch.stop_consuming()
+        return
+    callback(body, writer)
     ch.basic_ack(method.delivery_tag)
 
 
-def callback(body):
+def callback(body, writer):
     # logger.info(f" [x] Received {body}")
     graph = pickle.loads(body)
     if isinstance(graph, str) and graph == 'flush':
@@ -69,35 +74,36 @@ def setup_consumer(callback = callback):
     # Setup code same as our previous, creating the queue on the channel.
     # Not doing auto_ack incase the channel drops on us and we lose some data that 
     # the channel has picked up but not processed yet.
+    writer = BufferedWriter(rosetta)
     logger.info(f' [*] Setting up consumer, creating new connection')
     connection = pika.BlockingConnection(pika.ConnectionParameters(
-        heartbeat= 1,
         host=os.environ['BROKER_HOST'],
         virtual_host='builder',
         credentials=pika.credentials.PlainCredentials(os.environ['BROKER_USER'], os.environ['BROKER_PASSWORD'])
     ))
+    partial_callback = partial(callback, writer=writer)
     channel = connection.channel()
     channel.queue_declare(queue='neo4j')
-    channel.basic_consume('neo4j', callback, auto_ack=False)
+    channel.basic_consume('neo4j', partial_callback, auto_ack=False)
     return channel
 
 
-def start_consuming(max_retries = 0):    
+def start_consuming(max_retries=0):
     # Consumer wrappper tries to connect to the broker for 
     # max_retries then exits. We don't want to loop over and over for ever
-    while max_retries != 0:
-        print('To exit press CTRL+C')
-        try:
-            channel = setup_consumer(callback= callback_wrapper)
-            logger.info(' [*] Waiting for messages.')
-            channel.start_consuming()
-        except StreamLostError as error:
-            logger.info(f' [x] {error}')
-            logger.info(f' [x] channel connection    status: Open = {channel.is_open}')
-            if channel.is_open:
-                channel.close()
-            max_retries -= 1
-            logger.info(f" [x] Retrying connection to {os.environ['BROKER_HOST']} : {max_retries} retries left")
+    # while max_retries != 0:
+    #     print('To exit press CTRL+C')
+    try:
+        channel = setup_consumer(callback= callback_wrapper)
+        logger.info(' [*] Waiting for messages.')
+        channel.start_consuming()
+    except StreamLostError as error:
+        logger.info(f' [x] {error}')
+        logger.info(f' [x] channel connection    status: Open = {channel.is_open}')
+        if channel.is_open:
+            channel.close()
+        max_retries -= 1
+        logger.info(f" [x] Retrying connection to {os.environ['BROKER_HOST']} : {max_retries} retries left")
 
 if __name__ == "__main__":
     import argparse
