@@ -53,7 +53,7 @@ class MyChem(Service):
                                     continue
                                 predicate = LabeledID(identifier="Aeolus:0000001",label= "causes_or_contributes_to")
                             elif max(outcome['prr_95_ci']) < 1:
-                                predicate = LabeledID(identifier="RO:0002559",label= "prevents")
+                                predicate = LabeledID(identifier="RO:0002599",label= "prevents")
                             else:
                                 continue
                             obj_node = KNode(meddra_id, type=node_types.DISEASE_OR_PHENOTYPIC_FEATURE, name=outcome['name'])
