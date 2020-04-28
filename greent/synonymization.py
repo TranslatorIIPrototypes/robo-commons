@@ -14,7 +14,7 @@ class Synonymizer:
     NODE_NORMALIZATION_URL = 'https://nodenormalization-sri.renci.org/get_normalized_nodes'
     EDGE_NORMALIZATION_URL = 'https://edgenormalization-sri.renci.org/resolve_predicate'
     BIOLINK_VERSION = 'custom'
-    BL_CONCEPT_URL_GENERATOR =  lambda node_type: f'https://biolink-sri.renci.org/bl/{node_type}?version={Synonymizer.BIOLINK_VERSION}'
+    BL_CONCEPT_URL_GENERATOR =  lambda node_type: f'https://bl-lookup-sri.renci.org/bl/{node_type}?version={Synonymizer.BIOLINK_VERSION}'
     CHUNK_SIZE = 1000
     BIOLINK_MODEL_PARTS = {}
     # Although Edge resolution takes up multiple keys at once
