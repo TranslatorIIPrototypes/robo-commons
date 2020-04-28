@@ -136,16 +136,15 @@ class Synonymizer:
             bl_url = Synonymizer.BL_CONCEPT_URL_GENERATOR(node.type)
             bl_part = Synonymizer.BIOLINK_MODEL_PARTS[node.type] = requests.get(bl_url).json()
         # grab synonyms from cache
-        cached = cache.get(f'synonymize({node.id})')
-        if cache:
-            equivalent_ids = pickle.loads(cached)
+        equivalent_ids = cache.get(f'synonymize({node.id})')
+        if equivalent_ids:
             node.add_synonyms(equivalent_ids)
             # set the prefered id as dictated by bl
             preffered_id = node.id
             for preffered_curie in bl_part['id_prefixes']:
                 found = False
-                for p_id in equivalent_ids:
-                    if p_id.starts_with(preffered_curie):
+                for p_id, label in equivalent_ids:
+                    if p_id.startswith(preffered_curie):
                         found = True
                         preffered_id = p_id
                         break
