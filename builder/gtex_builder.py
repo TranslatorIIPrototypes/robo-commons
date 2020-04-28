@@ -162,7 +162,7 @@ class GTExBuilder:
                             gtex_node = KNode(curie_uberon, name=tissue_name, type=node_types.ANATOMICAL_ENTITY)
 
                             # call to load the each node with synonyms
-                            self.rosetta.synonymizer.synonymize_via_redis(variant_node)
+                            self.rosetta.synonymizer.synonymize_via_redis(self.rosetta.cache, variant_node)
                             # expect the rest to be synonimized via node normalization
                             # self.rosetta.synonymizer.synonymize(gene_node)
                             # self.rosetta.synonymizer.synonymize(gtex_node)
