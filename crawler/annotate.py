@@ -16,7 +16,7 @@ def grab_all(node_type, rosetta):
 def run_wrapper(node_type, lids):
     print('starting builder to annotate nodes...')
     print(len(lids))
-    run(f'{args.annotate}, XXXXXXX','','',None, None, None, 'greent.conf', identifier_list = lids)
+    run(f'{node_type}, XXXXXXX','','',None, None, None, 'greent.conf', identifier_list = lids)
 def start(args) :
     if args.annotate:
         rosetta = Rosetta()

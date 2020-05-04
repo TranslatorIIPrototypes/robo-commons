@@ -24,7 +24,10 @@ def make_annotator(node, rosetta):
     if so we can return all the annotators for all the types associated with the node.
     """
     annotators = []
-    for node_type in node.type:
+    node_types = node.type
+    if isinstance(node.type, str):
+        node_types = [node.type]
+    for node_type in node_types:
         if node_type not in annotator_instances:
             annotator_class = annotator_class_list.get(node_type)
             if annotator_class :
