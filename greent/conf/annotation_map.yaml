@@ -14,9 +14,9 @@ ChemicalAnnotator:
     node_type: "chemical_substance"
     prefixes: 
         - "PUBCHEM"
-        - "KEGG"
+        - "KEGG.COMPOUND"
         - "CHEBI"
-        - "CHEMBL"
+        - "CHEMBL.COMPOUND"
     PUBCHEM:
         url: "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/"
         keys:
@@ -38,7 +38,7 @@ ChemicalAnnotator:
         - smiles:
             source: "SMILES"
             data_type: string
-    KEGG:
+    KEGG.COMPOUND:
         url: "http://rest.kegg.jp/get/"
         keys:
         - molecular_formula:
@@ -47,7 +47,7 @@ ChemicalAnnotator:
         - molecular_weight:
             source: "MOL_WEIGHT"
             data_type: float
-    CHEMBL:
+    CHEMBL.COMPOUND:
         url: "https://www.ebi.ac.uk/chembl/api/data/molecule/"
         keys:
         - molecule_properties:

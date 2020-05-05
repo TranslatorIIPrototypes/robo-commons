@@ -11,7 +11,7 @@ class ChemicalAnnotator(Annotator):
         super().__init__(rosetta)
         
         self.prefix_source_mapping = {
-            'CHEMBL': self.get_chembl_data, 
+            'CHEMBL.COMPOUND': self.get_chembl_data,
             'CHEBI' : self.get_chebi_data,
             'KEGG' : self.get_kegg_data,
             'PUBCHEM': self.get_pubchem_data,
@@ -26,7 +26,7 @@ class ChemicalAnnotator(Annotator):
         """
         Fetches chembl data from ebi.ac.uk
         """
-        conf = self.get_prefix_config('CHEMBL')
+        conf = self.get_prefix_config('CHEMBL.COMPOUND')
         keys_of_interest = conf['keys']
         suffix = Text.un_curie(chembl_id)
         url_part = f'{suffix}.json'
@@ -67,17 +67,19 @@ class ChemicalAnnotator(Annotator):
         restructures chebi raw data
         """
         extract = {}
-        if 'all_properties' in chebi_raw and 'property_value' in chebi_raw['all_properties']:
-            for prop in chebi_raw['all_properties']['property_value']:
-                prop_parts = prop.split(' ')
-                prop_name = prop_parts[0].split('/')[-1]
-                prop_value = prop_parts[1].strip('"')
+        if 'all_properties' in chebi_raw:
+            for prop in chebi_raw['all_properties']:
+                prop_name = prop['property_key'].split('/')[-1]
                 if prop_name in keys_of_interest:
+                    try:
+                        prop_value = float(prop['property_values'][0])
+                    except:
+                        prop_value = prop['property_values'][0]
                     extract[keys_of_interest[prop_name]] = prop_value
         return extract
           
     async def get_kegg_data(self, kegg_id):
-        conf = self.get_prefix_config('KEGG')
+        conf = self.get_prefix_config('KEGG.COMPOUND')
         kegg_c_id = Text.un_curie(kegg_id)
         url = conf['url'] + kegg_c_id 
         response = await self.async_get_text(url)
