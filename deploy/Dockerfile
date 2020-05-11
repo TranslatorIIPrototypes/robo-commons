@@ -21,7 +21,7 @@ RUN useradd -m -u $UID -g $GID -s /bin/bash murphy
 WORKDIR /home/murphy
 
 ## Get ROBOKOP software
-RUN git clone https://github.com/NCATS-Gamma/robokop-interfaces.git
+RUN git clone https://github.com/TranslatorIIPrototypes/robo-commons.git
 
 WORKDIR /home/murphy/robokop-interfaces
 
