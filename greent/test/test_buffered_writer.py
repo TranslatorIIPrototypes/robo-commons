@@ -27,16 +27,13 @@ def test_write_node_with_export_lables():
     assert node.id in queue
 
 def test_write_node_with_out_export_labels():
-    # if no we send a node with type only exportgraph.add_type_labels() should be invoked
+    # if no we send a node with type and its not normalizable, then it should be in the queue with empty frozen set key
     node = KNode('CURIE:1', type=node_types.CHEMICAL_SUBSTANCE)
 
     bf = BufferedWriter(rosetta_mock)
-    def mock_add_labels(node): mock_add_labels.called = True
-    mock_add_labels.called = False
-    # patch export_graph.add_type_labels and see if its called
-    bf.export_graph.add_type_labels = mock_add_labels
     bf.write_node(node)
-    assert mock_add_labels.called
+    assert node == bf.node_queues[frozenset()][node.id]
+
 
 
 def test_flush_nodes_non_changing_node():
@@ -48,14 +45,13 @@ def test_flush_nodes_non_changing_node():
     node.properties = properties
 
     bf = BufferedWriter(rosetta_mock)
-    label_by_export_graph = ['this_should_be_overridden']
-    def mock_add_labels(node): node.add_export_labels(label_by_export_graph)
-    # patch export_graph.add_type_labels and see if its called
-    bf.export_graph.add_type_labels = mock_add_labels
+    # label_by_export_graph = ['this_should_be_overridden']
+    # def mock_add_labels(node): node.add_export_labels(label_by_export_graph)
+    # # patch export_graph.add_type_labels and see if its called
+    # bf.export_graph.add_type_labels = mock_add_labels
 
-    # we add the node and see if its label is what we expect export_graph gave
+    # we add the node
     bf.write_node(node)
-    assert node.export_labels == frozenset(label_by_export_graph)
 
     def write_transaction_mock(export_func, nodes, types):
         print(types)
@@ -90,16 +86,8 @@ def test_flush_nodes_changing_node():
     node.properties = properties
 
     bf = BufferedWriter(rosetta_mock)
-    label_by_export_graph = ['this_should_be_overridden']
 
-    def mock_add_labels(node): node.add_export_labels(label_by_export_graph)
-
-    # patch export_graph.add_type_labels and see if its called
-    bf.export_graph.add_type_labels = mock_add_labels
-
-    # we add the node and see if its label is what we expect export_graph gave
     bf.write_node(node)
-    assert node.export_labels == frozenset(label_by_export_graph)
 
     def write_transaction_mock(export_func, nodes, types):
         print(types)
@@ -136,16 +124,9 @@ def test_flush_nodes_non_normilizable():
     node.properties = properties
 
     bf = BufferedWriter(rosetta_mock)
-    label_by_export_graph = ['this_should_be_there']
 
-    def mock_add_labels(node): node.add_export_labels(label_by_export_graph)
 
-    # patch export_graph.add_type_labels and see if its called
-    bf.export_graph.add_type_labels = mock_add_labels
-
-    # we add the node and see if its label is what we expect export_graph gave
     bf.write_node(node)
-    assert node.export_labels == frozenset(label_by_export_graph)
 
     def write_transaction_mock(export_func, nodes, types):
         print(types)
@@ -156,7 +137,8 @@ def test_flush_nodes_non_normilizable():
         # get the node and see if the properties are preserved
         assert nodes[node.id].properties == properties
         # see if the types are expected
-        assert nodes[node.id].export_labels == types == frozenset(label_by_export_graph)
+        assert nodes[node.id].export_labels == []
+        assert types == frozenset()
 
     session = Mock()
     session.write_transaction = write_transaction_mock
@@ -187,6 +169,4 @@ def test_write_edges():
     bf.write_edge(edge, force_create=True)
     assert len(bf.edge_queues) == 2
 
-#
-# def test_flush_edges_non_normalizable():
 
