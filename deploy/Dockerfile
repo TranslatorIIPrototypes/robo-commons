@@ -23,7 +23,7 @@ WORKDIR /home/murphy
 ## Get ROBOKOP software
 RUN git clone https://github.com/TranslatorIIPrototypes/robo-commons.git
 
-WORKDIR /home/murphy/robokop-interfaces
+WORKDIR /home/murphy/robo-commons
 
 ## Install all requirements
 RUN pip install -r ./requirements.txt --src /usr/local/src
@@ -33,7 +33,7 @@ ENV HOME=/home/murphy
 ENV USER=murphy
 
 WORKDIR /home/murphy
-RUN rm -r /home/murphy/robokop-interfaces
+RUN rm -r /home/murphy/robo-commons
 
 ENTRYPOINT ["./robokop-interfaces/deploy/startup.sh"]
 CMD ["supervisord", "-c", "./robokop-interfaces/deploy/supervisord.conf"]
