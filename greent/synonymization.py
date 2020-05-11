@@ -26,9 +26,21 @@ class Synonymizer:
     EDGE_CHUNK_SIZE = 1
 
     @staticmethod
-    def synonymize(node):
+    def synonymize(node, retry=3):
         normalization_url = f'{Synonymizer.NODE_NORMALIZATION_URL}?curie={node.id}'
-        response = requests.get(normalization_url)
+
+        response = None
+        # retry for network error
+        while not response and retry:
+            try:
+                with requests.Session() as session:
+                    response = session.get(normalization_url)
+            except:
+                logger.error(f"Failed to contact {normalization_url} retries left --- {retry}")
+                retry -= 1
+        if not response:
+            logger.error(f"Synonymization network error -- Failed for {normalization_url}")
+            return
         if response.status_code == 200:
             response = response.json()[node.id]
             main_id = LabeledID(**response['id'])
