@@ -131,10 +131,12 @@ class HGNC(Service):
             #should be already annotated so we don't have to really call the hgnc endpoint
             results = self.create_gene_family_relations(gene_node, gene_node.properties)
         else:
+            hgnc_ids = gene_node.get_synonyms_by_prefix('HGNC')
+            for hgnc_id in hgnc_ids:
+                docs = self.get_hgnc_docs(gene_node.id)
+                for doc in docs:
+                    results += self.create_gene_family_relations(gene_node, doc, 'gene_group')
 
-            docs = self.get_hgnc_docs(gene_node.id)
-            for doc in docs:
-                results += self.create_gene_family_relations(gene_node, doc, 'gene_group')
         return results
 
     def create_gene_family_edge(self, gene_node, gene_family_node):
