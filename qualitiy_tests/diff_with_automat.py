@@ -178,8 +178,8 @@ def run_diff_test(connection_params):
     rename_map = {
         'uberon': 'uberongraph'
     }
-    for kg in automat_graph_summary:
-        if kg in rename_map:
+    for kg in rename_map:
+        if kg in automat_graph_summary:
             automat_graph_summary[rename_map[kg]] = automat_graph_summary[kg]
             del automat_graph_summary[kg]
 
