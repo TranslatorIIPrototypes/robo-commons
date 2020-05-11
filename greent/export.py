@@ -180,7 +180,7 @@ class BufferedWriter:
         """ When node normalization is not working write the missed curies to file."""
         with open('missed_curies.lst', 'a') as f:
             for curie in self.missed_curies:
-                f.write(f'{curie}\t {",".join(self.missed_curies[curie])}')
+                f.write(f'{curie}\t {",".join(self.missed_curies[curie])}\n')
         self.missed_curies = {}
 
     def __exit__(self,*args):
