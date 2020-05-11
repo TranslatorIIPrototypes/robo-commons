@@ -27,7 +27,7 @@ class BufferedWriter:
     def __init__(self, rosetta):
         self.rosetta = rosetta
         self.merge_edges = rosetta.service_context.config.get('MERGE_EDGES') != None
-        self.export_graph = ExportGraph(self.rosetta)
+        # self.export_graph = ExportGraph(self.rosetta)
         self.written_nodes = set()
         self.written_edges = defaultdict(lambda: defaultdict( set ) )
         self.node_queues = defaultdict(dict)
@@ -49,8 +49,8 @@ class BufferedWriter:
             logger.warning(f"Node {node.id} is missing a label")
         # Node should have been labeled already by synonymizer (node normalization)
         # but for some misses defaulting back to export graph logic.
-        if not len(node.export_labels):
-            self.export_graph.add_type_labels(node)
+        # if not len(node.export_labels):
+        #     self.export_graph.add_type_labels(node)
         self.written_nodes.add(node.id)
         typednodes = self.node_queues[frozenset(node.export_labels)]
         typednodes.update({node.id: node})
