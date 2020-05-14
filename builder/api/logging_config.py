@@ -21,27 +21,18 @@ def set_up_main_logger():
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
 
-    # create smtp handler and set level to error
-    smtp_handler = logging.handlers.SMTPHandler(mailhost=(os.environ["ROBOKOP_MAIL_SERVER"], 587),
-                                                fromaddr=os.environ["ROBOKOP_DEFAULT_MAIL_SENDER"],
-                                                toaddrs=os.environ['ADMIN_EMAIL'],
-                                                subject="ROBOKOP builder error log",
-                                                credentials=[os.environ["ROBOKOP_MAIL_USERNAME"], os.environ["ROBOKOP_MAIL_PASSWORD"]])
-    smtp_handler.setLevel(logging.ERROR)
-    smtp_handler.setFormatter(formatter)
-
     # create logger
     logger = logging.getLogger('builder')
     logger.setLevel(logging.DEBUG)
     logger.addHandler(console_handler)
     logger.addHandler(file_handler)
-    logger.addHandler(smtp_handler)
+
 
     logger = logging.getLogger('greent')
     logger.setLevel(logging.DEBUG)
     logger.addHandler(console_handler)
     logger.addHandler(file_handler)
-    logger.addHandler(smtp_handler)
+
 
     return logger
 logger = set_up_main_logger()

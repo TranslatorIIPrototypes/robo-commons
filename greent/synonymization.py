@@ -28,16 +28,12 @@ class Synonymizer:
     @staticmethod
     def synonymize(node, retry=3):
         normalization_url = f'{Synonymizer.NODE_NORMALIZATION_URL}?curie={node.id}'
-
         response = None
-        # retry for network error
-        while not response and retry:
-            try:
-                with requests.Session() as session:
-                    response = session.get(normalization_url)
-            except:
-                logger.error(f"Failed to contact {normalization_url} retries left --- {retry}")
-                retry -= 1
+        try:
+            with requests.Session() as session:
+                response = session.get(normalization_url)
+        except:
+            logger.error(f"Failed to contact {normalization_url} retries left --- {retry}")
         if not response:
             logger.error(f"Synonymization network error -- Failed for {normalization_url}")
             return
