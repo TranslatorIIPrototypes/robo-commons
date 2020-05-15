@@ -23,7 +23,16 @@ def run(id_list, service):
     triplets = get_supported_types(service_name=service, rosetta=rosy)
 
     for triplet in triplets:
-        key =  list(filter(lambda b: triplet[0] in b, id_list.keys()))[0]
+        # here a triplet contains something like
+        # 'gene' or 'disease' coming from the name attr of concept graph
+        # this mini 'crawl' should run for a type that exists in the keys
+        # of the grouped types. The keys look something like
+        # `gene:gene_or_gene_product:macromolecular ...`
+        key = list(filter(lambda b: triplet[0] in b, id_list.keys()))
+        if not len(key):
+            # if there is no match continue for others
+            continue
+        key = key[0]
         identifiers = [LabeledID(identifier=y) for y in id_list[key]]
         print(f'running {triplet[0]} --> {triplet[2]}')
         bake_programs(triplet,rosy, identifier_list=identifiers)
