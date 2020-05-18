@@ -118,6 +118,9 @@
     anatomical_entity:
       - link  : disease_to_anatomical_entity
         op    : uberongraph.get_anatomy_by_disease
+    disease:
+      - link  : disease_get_ancestors
+        op    : uberongraph.disease_get_ancestors
   drug:
     gene:
       - link  : drug_to_gene

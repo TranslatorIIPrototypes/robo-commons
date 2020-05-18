@@ -638,3 +638,45 @@ class UberonGraphKS(Service):
 
     def get_chemical_by_chemical (self, chem_node):
         return self.get_out_by_in(chem_node,node_types.CHEMICAL_SUBSTANCE,['CHEBI'])
+
+    def disease_get_ancestors(self, disease_node):
+        curie = disease_node.id
+        prefix = Text.get_curie(curie)
+        if "MONDO" != prefix:
+            return []
+        query = f"""
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        prefix MONDO: <http://purl.obolibrary.org/obo/MONDO_>
+        select distinct ?output_id ?label
+        where {{
+          graph <http://reasoner.renci.org/ontology/closure> {{
+            $disease_id  rdfs:subClassOf ?output_id .
+            ?output_id rdfs:subClassOf MONDO:0000001 .
+          }}      
+          
+          graph <http://reasoner.renci.org/ontology>{{
+          ?output_id rdfs:label ?label.
+          }}
+        }}
+        """
+        results = self.triplestore.query_template(
+            template_text=query,
+            inputs={'disease_id': curie},
+            outputs=['output_id', 'label']
+        )
+        outputs = []
+        for row in results:
+            ancestor_node = KNode(row['output_id'], label=row['label'], type=node_types.DISEASE_OR_PHENOTYPIC_FEATURE)
+            if ancestor_node.id == disease_node.id:
+                # refrain from adding edge to the node itself
+                continue
+            predicate = LabeledID(identifier='rdfs:subClassOf', label='subclass of')
+            edge = self.create_edge(
+                source_node=disease_node,
+                target_node=ancestor_node,
+                predicate=predicate,
+                provided_by='uberongraph.disease_get_ancestors',
+                input_id=disease_node.id
+            )
+            outputs.append((edge, ancestor_node))
+        return outputs
