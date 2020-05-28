@@ -18,6 +18,7 @@ class KNode(FromDictMixin):
         self.id = None
         self.name = None
         self.type = None
+        self.original_curie = None
         self.properties = {}
 
         if args and len(args) == 1 and isinstance(args[0], str):

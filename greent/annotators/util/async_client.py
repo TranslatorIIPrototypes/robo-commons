@@ -1,6 +1,5 @@
 import aiohttp
 import logging
-from aiohttp_retry import RetryClient
 
 logger = logging.getLogger(name = __name__)
 

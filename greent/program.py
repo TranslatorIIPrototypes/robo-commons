@@ -6,7 +6,7 @@ from datetime import timedelta
 import hashlib
 import requests
 from builder.question import QNode
-from greent.graph_components import KNode
+from greent.graph_components import KNode, node_types
 from greent.export_delegator import WriterDelegator
 from greent.synonymization import Synonymizer
 from greent.util import LoggingUtil, Text
@@ -115,12 +115,12 @@ class Program:
         logger.debug("Initializing program {}".format(self.program_number))
 
         # Filter out the curies in the question
-        curies = list(map(lambda n: n.curie, filter(lambda node: node.curie, self.machine_question['nodes'])))
-
+        non_sv_curies = list(map(lambda n: n.curie, filter(lambda node: node.curie and node.type != node_types.SEQUENCE_VARIANT, self.machine_question['nodes'])))
+        sv_curies = list(map(lambda n: n.curie, filter(lambda node: node.curie and node.type == node_types.SEQUENCE_VARIANT, self.machine_question['nodes'])))
         #  batch synonymize them all, getting back a dict
         # normalized_node = { <curie> : KNode() }
-        normalized_nodes = Synonymizer.batch_normalize_nodes(curies)
-
+        normalized_nodes = Synonymizer.batch_normalize_nodes(non_sv_curies)
+        normalized_nodes.update(Synonymizer.batch_normalize_sequence_variants(sv_curies))
         # go back to the question an start processing them.
         # during processing we don't need to do synonymization at
         # any point. We will let each service return a KNode

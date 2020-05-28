@@ -215,9 +215,9 @@
       #  op    : biolink.sequence_variant_get_phenotype
       - link  : sequence_variant_to_disease_or_phenotypic_feature
         op    : gwascatalog.sequence_variant_to_disease_or_phenotypic_feature
-    sequence_variant:
-      - link  : sequence_variant_to_sequence_variant
-        op    : ensembl.sequence_variant_to_sequence_variant
+#    sequence_variant:
+#      - link  : sequence_variant_to_sequence_variant
+#        op    : ensembl.sequence_variant_to_sequence_variant
   gene_family:
     gene:
       - link  : gene_family_to_gene

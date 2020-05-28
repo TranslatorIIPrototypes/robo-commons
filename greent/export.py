@@ -27,7 +27,6 @@ class BufferedWriter:
     def __init__(self, rosetta):
         self.rosetta = rosetta
         self.merge_edges = rosetta.service_context.config.get('MERGE_EDGES') != None
-        # self.export_graph = ExportGraph(self.rosetta)
         self.written_nodes = set()
         self.written_edges = defaultdict(lambda: defaultdict( set ) )
         self.node_queues = defaultdict(dict)
@@ -47,24 +46,12 @@ class BufferedWriter:
             return
         if node.name is None or node.name == '':
             logger.warning(f"Node {node.id} is missing a label")
-        # Node should have been labeled already by synonymizer (node normalization)
-        # but for some misses defaulting back to export graph logic.
-        # if not len(node.export_labels):
-        #     self.export_graph.add_type_labels(node)
-        self.written_nodes.add(node.id)
         typednodes = self.node_queues[frozenset(node.export_labels)]
         typednodes.update({node.id: node})
         if len(typednodes) >= self.node_buffer_size:
             self.flush()
 
-    def write_edge(self,edge,force_create=False):
-        if edge.original_predicate.identifier in self.written_edges[edge.source_id][edge.target_id] and not force_create:
-            return
-        # Need to only maintain the predicate id.
-        # When flushing we are going to Standardize predicates.
-        # Somethings might change. but not original predicates.
-        self.written_edges[edge.source_id][edge.target_id].add(edge.original_predicate.identifier)
-        # Append the edge in the edge queue. It will be standardized in a batch when flushing
+    def write_edge(self,edge, force_create):
         self.edge_queues.append(edge)
 
     def flush_nodes(self, session):
@@ -80,7 +67,11 @@ class BufferedWriter:
             node_queue = self.node_queues[node_type]
             node_curies = list(node_queue.keys())
             # Update the node queue for a type with results from normalization call
-            normalized_nodes = Synonymizer.batch_normalize_nodes(node_curies)
+            if node_types.SEQUENCE_VARIANT in node_type:
+                # treating S.V. nodes differently
+                normalized_nodes= Synonymizer.batch_normalize_sequence_variants(node_curies)
+            else:
+                normalized_nodes = Synonymizer.batch_normalize_nodes(node_curies)
 
             # lets make a list of mappings to use it to update the edges source and target ids
             syn_map.update({k: normalized_nodes[k].id for k in normalized_nodes})
