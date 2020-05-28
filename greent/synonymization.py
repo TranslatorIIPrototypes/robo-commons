@@ -1,10 +1,11 @@
 import logging
-from greent.graph_components import KNode
+from greent.graph_components import KNode, node_types
 from greent.util import  LoggingUtil
 from builder.question import LabeledID
 from greent.cache import Cache
-import requests, pickle
+import requests
 import asyncio
+from robokop_genetics.genetics_normalization import GeneticsNormalizer
 from greent.annotators.util.async_client import async_get_json
 
 logger = LoggingUtil.init_logging(__name__, level=logging.INFO, format='medium')
@@ -24,6 +25,8 @@ class Synonymizer:
     # fetch them syncronously.
     # We can parallelize it here by sending multiple request each containing one predicate to resolve.
     EDGE_CHUNK_SIZE = 1
+    GENETICS_NORMALIZER = GeneticsNormalizer()
+    SEQUENCE_VARIANT_BL_LABELS = None
 
     @staticmethod
     def synonymize(node, retry=3):
@@ -160,3 +163,49 @@ class Synonymizer:
                     break
             node.id = preffered_id
         return node
+
+    @staticmethod
+    def get_sequence_variant_export_labels():
+        """
+        Gets a set of labels for seqence variant
+        :return:
+        """
+        if not Synonymizer.SEQUENCE_VARIANT_BL_LABELS:
+            bl_url = f"https://bl-lookup-sri.renci.org/bl/{node_types.SEQUENCE_VARIANT}/ancestors?version=latest"
+            with requests.session() as client:
+                response = client.get(bl_url)
+                if response.status_code == 200:
+                    Synonymizer.SEQUENCE_VARIANT_BL_LABELS =  set(response.json() + [node_types.SEQUENCE_VARIANT])
+                else:
+                    raise RuntimeError(f'Could not resolve export labels for type {node_types.SEQUENCE_VARIANT}')
+        return Synonymizer.SEQUENCE_VARIANT_BL_LABELS
+
+    @staticmethod
+    def synonymize_sequence_variant_node(node: KNode):
+        normalizer = Synonymizer.GENETICS_NORMALIZER
+        normalizer.normalize(node)
+
+    @staticmethod
+    def batch_normalize_sequence_variants(node_curies):
+        """
+        Returns a dict of curies keys and normalized nodes.
+        :param node_curies: List of sequence variant ids
+        :return: {
+            <original_curie>: Normalized KNode
+        }
+        """
+        # 1. Robokopgenetics expects nodes and batch normalizer would do inplace
+        # first map node_curies to KNode list, adding a new property original_curie to help get back the curie,
+        # need
+        node_curies = list(map(lambda curie: KNode(curie, original_curie=curie), node_curies))
+        # call genetics batch normalization
+        Synonymizer.GENETICS_NORMALIZER.batch_normalize(nodes=node_curies)
+        # since it should have done in place we can map thing back to something that looks like every other return
+        response = dict()
+        for normalized_node in node_curies:
+            original_curie = normalized_node.original_curie
+            # makes sure its typed as sequence variant
+            normalized_node.type = node_types.SEQUENCE_VARIANT
+            normalized_node.add_export_labels(Synonymizer.get_sequence_variant_export_labels())
+            response[original_curie] = normalized_node
+        return response
