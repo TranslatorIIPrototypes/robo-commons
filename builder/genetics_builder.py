@@ -31,6 +31,8 @@ class GeneticsBuilder:
     def start_build(self) -> list:
         # Entry point
         variant_list = self.get_all_variants_and_synonymns()
+        if not variant_list:
+            logger.info('No Sequence variant nodes found from graph.')
         variant_subset = []
         with self.writerDelegator as writer:
             # for each variant
@@ -51,7 +53,9 @@ class GeneticsBuilder:
                     if len(variant_subset) == 1000:
                         self.process_variant_to_gene_relationships(variant_nodes=variant_subset, writer=writer)
                         variant_subset = []
-            self.process_variant_to_gene_relationships(variant_nodes=variant_subset, writer=writer)
+            if variant_subset:
+                # for left overs
+                self.process_variant_to_gene_relationships(variant_nodes=variant_subset, writer=writer)
 
     def process_variant_to_gene_relationships(self, variant_nodes: list, writer: WriterDelegator):
         all_results = self.genetics_services.get_variant_to_gene(self.crawl_for_service, variant_nodes)
