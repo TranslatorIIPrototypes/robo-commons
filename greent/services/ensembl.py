@@ -212,54 +212,60 @@ class Ensembl(Service):
         population = '1000GENOMES:phase_3:MXL'
 
         return_results = []
-        with self.redis.pipeline() as redis_pipe:
-            dbsnp_curie_ids = variant_node.get_synonyms_by_prefix('DBSNP')
-            for dbsnp_curie in dbsnp_curie_ids:
-                variant_id = Text.un_curie(dbsnp_curie)
-                query_url = f'{self.url}{ld_url}{variant_id}/{population}{options_url}'
-                query_response = requests.get(query_url, headers={"Content-Type" : "application/json"})
-                if query_response.status_code == 200:
-                    query_json = query_response.json()
-                    variant_results = self.parse_ld_variants_from_ensembl(query_json)
-                    for variant_info in variant_results:
-                        new_variant_id = variant_info[0]
-                        r_squared = variant_info[1]
-                        props = {'r2' : r_squared}
-                        new_variant_curie = f'DBSNP:{new_variant_id}'
-                        new_rsid_node = None
-                        is_new_dbsnp = False
-                        synonyms = self.cache.get(f'synonymize({new_variant_curie})') 
-                        if synonyms is None:
-                            new_rsid_node = KNode(new_variant_curie, name=f'{new_variant_id}', type=node_types.SEQUENCE_VARIANT)
-                            synonyms = self.clingen.get_synonyms_by_other_ids(new_rsid_node)
-                            redis_pipe.set(f'synonymize({new_variant_curie})', pickle.dumps(synonyms))
-                            is_new_dbsnp = True
-                        caid_count = 0
-                        caid_node = None
-                        for synonym in synonyms:
-                            if Text.get_curie(synonym.identifier) == 'CAID':
-                                caid_count += 1
-                                caid_node = KNode(synonym.identifier, name=f'{synonym.label}', type=node_types.SEQUENCE_VARIANT)
-                                edge = self.create_edge(variant_node, caid_node, 'ensembl.sequence_variant_to_sequence_variant', dbsnp_curie, self.var_to_var_predicate, url=query_url, properties=props)
-                                return_results.append((edge, caid_node))
-                                found_caid = True
+        # with self.redis.pipeline() as redis_pipe:
+        dbsnp_curie_ids = variant_node.get_synonyms_by_prefix('DBSNP')
+        for dbsnp_curie in dbsnp_curie_ids:
+            variant_id = Text.un_curie(dbsnp_curie)
+            query_url = f'{self.url}{ld_url}{variant_id}/{population}{options_url}'
+            query_response = requests.get(query_url, headers={"Content-Type" : "application/json"})
+            if query_response.status_code == 200:
+                query_json = query_response.json()
+                variant_results = self.parse_ld_variants_from_ensembl(query_json)
+                for variant_info in variant_results:
+                    new_variant_id = variant_info[0]
+                    r_squared = variant_info[1]
+                    props = {'r2' : r_squared}
+                    new_variant_curie = f'DBSNP:{new_variant_id}'
+                    new_variant_node = KNode(new_variant_curie, type=node_types.SEQUENCE_VARIANT)
+                    new_variant_node.add_export_labels([node_types.SEQUENCE_VARIANT])
+                    edge = self.create_edge(variant_node, new_variant_node,
+                                            'ensembl.sequence_variant_to_sequence_variant', dbsnp_curie,
+                                            self.var_to_var_predicate, url=query_url, properties=props)
+                    return_results.append((edge, new_variant_node))
+                        # new_rsid_node = None
+                        # is_new_dbsnp = False
+                        # synonyms = self.cache.get(f'synonymize({new_variant_curie})')
+                        # if synonyms is None:
+                        #     new_rsid_node = KNode(new_variant_curie, name=f'{new_variant_id}', type=node_types.SEQUENCE_VARIANT)
+                        #     synonyms = self.clingen.get_synonyms_by_other_ids(new_rsid_node)
+                        #     redis_pipe.set(f'synonymize({new_variant_curie})', pickle.dumps(synonyms))
+                        #     is_new_dbsnp = True
+                        # caid_count = 0
+                        # caid_node = None
+                        # for synonym in synonyms:
+                        #     if Text.get_curie(synonym.identifier) == 'CAID':
+                        #         caid_count += 1
+                        #         caid_node = KNode(synonym.identifier, name=f'{synonym.label}', type=node_types.SEQUENCE_VARIANT)
+                        #         edge = self.create_edge(variant_node, caid_node, 'ensembl.sequence_variant_to_sequence_variant', dbsnp_curie, self.var_to_var_predicate, url=query_url, properties=props)
+                        #         return_results.append((edge, caid_node))
+                        #         found_caid = True
                         # if caid_count > 2 we can't cache it easily right now so we skip it and let synonymizer do it later
-                        if caid_count == 1 and is_new_dbsnp:
+                        # if caid_count == 1 and is_new_dbsnp:
                             # assume we didn't cache the CAID yet if the dbsnp is new and do it if needed
-                            if self.cache.get(f'synonymize({caid_node.id})') is None:
-                                redis_pipe.set(f'synonymize({caid_node.id})',  pickle.dumps(synonyms))
-                        elif caid_count == 0:
-                            if not new_rsid_node:
-                                new_rsid_node = KNode(new_variant_curie, name=f'{new_variant_id}', type=node_types.SEQUENCE_VARIANT)
-                            edge = self.create_edge(variant_node, new_rsid_node, 'ensembl.sequence_variant_to_sequence_variant', dbsnp_curie, self.var_to_var_predicate, url=query_url, properties=props)
-                            return_results.append((edge, new_rsid_node))
+                            # if self.cache.get(f'synonymize({caid_node.id})') is None:
+                            #     redis_pipe.set(f'synonymize({caid_node.id})',  pickle.dumps(synonyms))
+                        # elif caid_count == 0:
+                        #     if not new_rsid_node:
+                        #         new_rsid_node = KNode(new_variant_curie, name=f'{new_variant_id}', type=node_types.SEQUENCE_VARIANT)
+                        #     edge = self.create_edge(variant_node, new_rsid_node, 'ensembl.sequence_variant_to_sequence_variant', dbsnp_curie, self.var_to_var_predicate, url=query_url, properties=props)
+                        #     return_results.append((edge, new_rsid_node))
 
                 #elif query_response.status_code == 429:
                 #   handle the rate limiting by waiting and retrying
                 #
-                else:
-                    logger.error(f'Ensembl returned a non-200 response for {variant_node.id}: {query_response.status_code})')
-            redis_pipe.execute()
+            else:
+                logger.error(f'Ensembl returned a non-200 response for {variant_node.id}: {query_response.status_code})')
+            # redis_pipe.execute()
 
         return return_results
 
