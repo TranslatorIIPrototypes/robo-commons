@@ -28,6 +28,9 @@ class GTExBuilder:
     #######
     def __init__(self, rosetta: Rosetta):
         self.rosetta = rosetta
+        self.written_anatomical_entities = set()
+        self.written_genes = set()
+        self.max_nodes = 100_000
 
         # create static edge labels for variant/gtex and gene/gtex edges
         self.variant_gtex_label = LabeledID(identifier=f'CTD:affects_expression_of', label=f'affects expression in')
@@ -193,11 +196,15 @@ class GTExBuilder:
                             graph_writer.write_node(variant_node)
 
                             # write out the gene node
-                            graph_writer.write_node(gene_node)
+
+                            if gene_node.id not in self.written_genes:
+                                graph_writer.write_node(gene_node)
+                                self.written_genes.add(gene_node.id)
 
                             # write out the anatomical gtex node
-                            graph_writer.write_node(gtex_node)
-
+                            if gtex_node.id not in self.written_anatomical_entities:
+                                graph_writer.write_node(gtex_node)
+                                self.written_anatomical_entities.add(gtex_node.id)
                             # associate the sequence variant node with an edge to the gtex anatomy node
                             self.gtu.write_new_association(graph_writer, variant_node, gtex_node, self.variant_gtex_label, hyper_edge_id, None, True)
 
@@ -210,6 +217,12 @@ class GTExBuilder:
                             # output some feedback for the user
                             if (line_counter % 250000) == 0:
                                 logger.info(f'Processed {line_counter} variants.')
+
+                            # reset written nodes list to avoid memory overflow
+                            if len(self.written_anatomical_entities) == self.max_nodes:
+                                self.written_anatomical_entities = set()
+                            if len(self.written_genes) == self.max_nodes:
+                                self.written_genes = set()
                     except Exception as e:
                         logger.error(f'Exception caught trying to process variant: {curie_hgvs}-{curie_uberon}-{curie_ensembl} at data line: {line_counter}. Exception: {e}')
 

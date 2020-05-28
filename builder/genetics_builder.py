@@ -16,6 +16,8 @@ class GeneticsBuilder:
         self.crawl_for_service = crawl_for_service
         self.genetics_services = GeneticsServices()
         self.recreate_sv_node = recreate_sv_node
+        self.written_genes = set()
+        self.written_max_size = 100_000
 
 
     def get_all_variants_and_synonymns(self):
@@ -58,6 +60,9 @@ class GeneticsBuilder:
                 self.process_variant_to_gene_relationships(variant_nodes=variant_subset, writer=writer)
 
     def process_variant_to_gene_relationships(self, variant_nodes: list, writer: WriterDelegator):
+        # reset written nodes every max size to avoid memory overflow
+        if len(self.written_genes) == self.written_max_size:
+            self.written_genes = set()
         all_results = self.genetics_services.get_variant_to_gene(self.crawl_for_service, variant_nodes)
         for source_node_id, results in all_results.items():
             # convert the simple edges and nodes to rags objects and write them to the graph
@@ -67,8 +72,9 @@ class GeneticsBuilder:
                     variant_node = KNode(source_node_id, type= node_types.SEQUENCE_VARIANT)
                     variant_node.add_export_labels([node_types.SEQUENCE_VARIANT])
                     writer.write_node(variant_node)
-
-                writer.write_node(gene_node)
+                if gene_node.id not in self.written_genes:
+                    writer.write_node(gene_node)
+                    self.written_genes.add(gene_node.id)
 
                 predicate = LabeledID(identifier=edge.predicate_id, label=edge.predicate_label)
                 gene_edge = KEdge(source_id=source_node_id,
