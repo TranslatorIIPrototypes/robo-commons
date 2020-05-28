@@ -477,11 +477,12 @@ class GTExUtils:
     #######
     def write_new_association(self, writer: WriterDelegator, source_node: KNode, associated_node: KNode, predicate: LabeledID, hyper_edge_id: int, properties: list = None, force_create: bool = False) -> KEdge:
         # if the concept model is loaded standardize the predicate label
-        if self.concept_model:
-            standard_predicate = self.concept_model.standardize_relationship(predicate)
-        else:
-            logger.warning('GTEx Utils: concept_model was missing, predicate standardization failed')
-            standard_predicate = predicate
+        # this chunk is handled when writing edges
+        # if self.concept_model:
+        #     standard_predicate = self.concept_model.standardize_relationship(predicate)
+        # else:
+        #     logger.warning('GTEx Utils: concept_model was missing, predicate standardization failed')
+        #     standard_predicate = predicate
 
         # assign the this parser as the data provider
         provided_by = 'GTEx'
@@ -506,7 +507,7 @@ class GTExUtils:
                          ctime=c_time,
                          hyper_edge_id=hyper_edge_id,
                          original_predicate=predicate,
-                         standard_predicate=standard_predicate,
+                         # standard_predicate=standard_predicate,
                          input_id=source_node.id,
                          publications=None,
                          url=None,
@@ -519,6 +520,7 @@ class GTExUtils:
         return new_edge
 
     #############
+    # Deprectated
     # prepopulate_variant_synonymization_cache - populate the variant synonymization cache by walking through the variant list
     #                                            and batch synonymize any that need it
     #
@@ -597,6 +599,7 @@ class GTExUtils:
         return ret_val
 
     #######
+    # Deprecated
     # process_variant_synonymization_cache - processes an array of un-cached variants by HGVS expression.
     #
     # param batch_of_hgvs: list - list og HGVS expressions

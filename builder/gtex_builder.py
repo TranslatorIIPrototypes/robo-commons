@@ -68,12 +68,6 @@ class GTExBuilder:
             if os.path.isfile(f'{data_directory}{out_file_name}'):
                 # was the raw GTEx data processed
                 if ret_val is None:
-                    # load up the synonymization cache for all the variants if requested
-                    if process_for_cache is True:
-                        ret_val: object = self.gtu.prepopulate_variant_synonymization_cache(data_directory, out_file_name)
-                    else:
-                        logger.info("Cache processing not selected.")
-
                     # is it ok to continue
                     if ret_val is None:
                         if process_for_graph is True:
@@ -158,11 +152,11 @@ class GTExBuilder:
                             curie_ensembl = f'ENSEMBL:{ensembl}'
                             # create variant, gene and GTEx nodes with the HGVS, ENSEMBL or UBERON expression as the id and name
                             variant_node = KNode(curie_hgvs, name=curie_hgvs, type=node_types.SEQUENCE_VARIANT)
+                            variant_node.add_export_labels([node_types.SEQUENCE_VARIANT])
                             gene_node = KNode(curie_ensembl, type=node_types.GENE)
                             gtex_node = KNode(curie_uberon, name=tissue_name, type=node_types.ANATOMICAL_ENTITY)
 
                             # call to load the each node with synonyms
-                            self.rosetta.synonymizer.synonymize_via_redis(self.rosetta.cache, variant_node)
                             # expect the rest to be synonimized via node normalization
                             # self.rosetta.synonymizer.synonymize(gene_node)
                             # self.rosetta.synonymizer.synonymize(gtex_node)
@@ -232,18 +226,18 @@ class GTExBuilder:
 #######
 # Main - Stand alone entry point for testing
 #######
-# if __name__ == '__main__':
-#     # create a new builder object
-#     gtb = GTExBuilder(Rosetta())
-#
-#     # directory with GTEx data to process
-#     working_data_directory = '.'
-#     # working_data_directory = '/projects/stars/var/GTEx/stage/smartBag/example/GTEx/GTEx_data'
-#
-#     # load up all the GTEx data
-#     rv = gtb.load(working_data_directory, out_file_name='gtex_sample.csv', process_raw_data=False, process_for_cache=False, process_for_graph=True)
-#
-#     # check the return, output error if found
-#     if rv is not None:
-#         logger.error(rv)
-#         raise rv
+if __name__ == '__main__':
+    # create a new builder object
+    gtb = GTExBuilder(Rosetta())
+
+    # directory with GTEx data to process
+    working_data_directory = '.'
+    # working_data_directory = '/projects/stars/var/GTEx/stage/smartBag/example/GTEx/GTEx_data'
+
+    # load up all the GTEx data
+    rv = gtb.load(working_data_directory, out_file_name='gtex_sample.csv', process_raw_data=True, process_for_cache=False, process_for_graph=True)
+
+    # check the return, output error if found
+    if rv is not None:
+        logger.error(rv)
+        raise rv
