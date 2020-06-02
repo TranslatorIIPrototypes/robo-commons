@@ -51,7 +51,7 @@ class BufferedWriter:
         if len(typednodes) >= self.node_buffer_size:
             self.flush()
 
-    def write_edge(self,edge, force_create):
+    def write_edge(self,edge, force_create=False):
         self.edge_queues.append(edge)
 
     def flush_nodes(self, session):
