@@ -128,7 +128,13 @@ class BufferedWriter:
 
         # group edges by labels and also update their standard predicates
         edge_by_labels = {}
-
+        ids = [edge.source_id for edge in self.edge_queues]
+        ids += [edge.target_id for edge in self.edge_queues]
+        nodes = self.rosetta.synonymizer.batch_normalize_nodes(ids)
+        # could this be an sv node
+        ids = [i for i in ids if i not in nodes]
+        nodes.update(self.rosetta.synonymizer.batch_normalize_sequence_variants(ids))
+        synonym_map = {curie: nodes[curie].id for curie in nodes}
         for edge in self.edge_queues:
             # update standard predicate if it's mapped.
             edge.standard_predicate = standard_predicates.get(
