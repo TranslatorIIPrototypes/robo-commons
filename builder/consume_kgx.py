@@ -113,7 +113,7 @@ if __name__=='__main__':
     Parse kgx files to a graph and merge them 
     """)
     parser.add_argument('-n', '--nodes_file', help="Nodes file")
-    parser.add_argument('-e', '--edge_file', help="Edges file")
+    parser.add_argument('-e', '--edges_file', help="Edges file")
     parser.add_argument('-p', '--provided_by', help="provided by")
     args = parser.parse_args()
     rosetta = Rosetta()
