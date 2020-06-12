@@ -150,7 +150,7 @@ class UberonGraphKS(Service):
         from <http://reasoner.renci.org/nonredundant>
         from <http://reasoner.renci.org/ontology>
         where {
-            graph <http://reasoner.renci.org/redundant> {
+            graph <http://reasoner.renci.org/nonredundant> {
         """
         if subject:
             text+='	 $input_id ?p ?output_id .'
