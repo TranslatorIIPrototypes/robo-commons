@@ -9,7 +9,7 @@ from greent.concept import ConceptModel
 from greent.node_types import ROOT_ENTITY
 from greent.service import Service
 from greent.util import LoggingUtil
-from neo4j.v1 import GraphDatabase
+from neo4j import GraphDatabase
 
 logger = logging.getLogger(__name__)
 
