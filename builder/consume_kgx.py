@@ -94,12 +94,12 @@ class KGX_File_parser(Service):
                 )
                 yield edge
 
-    def run(self, nodes_file_name, edges_file_name):
+    def run(self, nodes_file_name, edges_file_name, provided_by):
         self.rosetta = Rosetta()
         self.wdg = WriterDelegator(rosetta)
         for node in self.get_nodes_from_file(nodes_file_name):
             self.wdg.write_node(node)
-        for edge in self.get_edges_from_file(edges_file_name, provided_by='https://github.com/TranslatorIIPrototypes/ViralProteome'):
+        for edge in self.get_edges_from_file(edges_file_name, provided_by=provided_by):
             self.wdg.write_edge(edge)
         self.wdg.flush()
 
@@ -113,7 +113,8 @@ if __name__=='__main__':
     Parse kgx files to a graph and merge them 
     """)
     parser.add_argument('-n', '--nodes_file', help="Nodes file")
-    parser.add_argument('-e', '--edge_file', help="Edges file")
+    parser.add_argument('-e', '--edges_file', help="Edges file")
+    parser.add_argument('-p', '--provided_by', help="provided by")
     args = parser.parse_args()
     rosetta = Rosetta()
     kgx_loader =KGX_File_parser()
@@ -121,7 +122,7 @@ if __name__=='__main__':
         print('Nothing to parse exiting')
         exit()
 
-    kgx_loader.run(args.nodes_file, args.edges_file)
+    kgx_loader.run(args.nodes_file, args.edges_file, args.provided_by)
     exit(0)
 
 
