@@ -13,8 +13,8 @@ class Cord19Service(Service):
         self.rosetta = Rosetta()
         self.writer = WriterDelegator(rosetta=self.rosetta)
         # line counts for reporting
-        # self.num_edges = self.count_lines_in_file('edges.txt')
-        # self.num_nodes = self.count_lines_in_file('nodes.txt')
+        self.num_edges = self.count_lines_in_file('edges.txt')
+        self.num_nodes = self.count_lines_in_file('nodes.txt')
 
     def count_lines_in_file(self, file_name):
         count = -1  # don't count headers
@@ -34,6 +34,7 @@ class Cord19Service(Service):
     def load(self, provided_by, limit=0):
         print('writing to graph')
         print('writing nodes')
+        self.writer.normalized = True
         for index, node in self.parse_nodes():
             self.writer.write_node(node)
             if index % 1000 == 0:
@@ -95,6 +96,7 @@ class Cord19Service(Service):
                     input_id=edge_raw['Term1'],
                     provided_by=provided_by,
                     predicate=predicate,
+                    standard_predicate = predicate,
                     publications=[],
                     properties={
                         'num_publications': float(edge_raw['Effective_Pubs']),
@@ -108,6 +110,7 @@ class Cord19Service(Service):
 
     def parse_covid_pheno(self, phenotypes_file):
         items = []
+        self.writer.normalized = True
         with open(phenotypes_file) as csf_file:
             data = csv.DictReader(csf_file, delimiter=',')
             for row in data:
@@ -145,6 +148,7 @@ class Cord19Service(Service):
                 input_id=covid_node.id,
                 provided_by='covid_phenotypes_csv',
                 predicate=predicate,
+                standard_predicate= predicate,
                 publications=[],
                 properties=property
             )
@@ -203,6 +207,7 @@ class Cord19Service(Service):
             if isinstance(value, str):
                 value = f"'{value}'"
             lines.append(f"{k}: {value}")
+        lines.append('rectified: true')
         return f"{{{','.join(lines)}}}"
     @staticmethod
     def write_edge_copy(session, source_id, row, reverse,):
@@ -216,8 +221,10 @@ class Cord19Service(Service):
         edge = row['e']
         session.run(f"""
         MATCH (a:named_thing{{id:'{source_id}'}}), (b:named_thing{{id:'{target_id}'}})
-                MERGE (a)-[e:{edge_type}{{id: apoc.util.md5([a.id, b.id, '{edge['predicate_id']}']), predicate_id: '{edge['predicate_id']}'}}]->(b)
-                SET e += {edge_properties}        
+        WHERE not (a)-[:{edge_type}]-(b)
+        MERGE (a)-[e:{edge_type}{{id: apoc.util.md5([a.id, b.id, '{edge['predicate_id']}']), predicate_id: '{edge['predicate_id']}'}}]->(b)
+         
+        SET e += {edge_properties}        
                 """)
 
     def rectify_relationships(self):
@@ -227,27 +234,37 @@ class Cord19Service(Service):
         """
         disease_id = "MONDO:0100096"
         taxon_id = "NCBITaxon:2697049"
-        as_source_query = lambda source_id: f"""
+        as_source_query = lambda source_id, other_id: f"""        
         MATCH (a:named_thing{{id:'{source_id}'}})-[e]->(b)
+        WHERE b.id <> '{other_id}'
         return e, b.id as other_id , type(e) as edge_type
         """
-        as_target_query = lambda target_id: f"""
+        as_target_query = lambda target_id, other_id: f"""        
         MATCH (a)-[e]->(b:named_thing{{id:'{target_id}'}})
+        WHERE b.id <> '{other_id}'
         return e, a.id as other_id, type(e) as edge_type
         """
+        driver = self.rosetta.type_graph.driver
         with self.rosetta.type_graph.driver.session() as session:
-            disease_to_things = session.run(as_source_query(disease_id))
+            disease_to_things = [dict(**row) for row in session.run(as_source_query(disease_id, taxon_id))]
+        with driver.session() as session:
+            things_to_disease = [dict(**row) for row in session.run(as_target_query(disease_id, taxon_id))]
+        with driver.session() as session:
+            taxon_to_things = [dict(**row) for row in session.run(as_source_query(taxon_id, disease_id))]
+        with driver.session() as session:
+            things_to_taxon = [dict(**row) for row in session.run(as_target_query(taxon_id, disease_id))]
 
-            for row in disease_to_things:
+        for row in disease_to_things:
+            with driver.session() as session:
                 session.write_transaction(Cord19Service.write_edge_copy, taxon_id, row, False)
-            things_to_disease = session.run(as_target_query(disease_id))
-            for row in things_to_disease:
+        for row in things_to_disease:
+            with driver.session() as session:
                 session.write_transaction(Cord19Service.write_edge_copy,taxon_id, row, True)
-            taxon_to_things = session.run(as_source_query(taxon_id))
-            for row in taxon_to_things:
+        for row in taxon_to_things:
+            with driver.session() as session:
                 session.write_transaction(Cord19Service.write_edge_copy, disease_id, row, False)
-            things_to_taxon = session.run(as_target_query(taxon_id))
-            for row in things_to_taxon:
+        for row in things_to_taxon:
+            with driver.session() as session:
                 session.write_transaction(Cord19Service.write_edge_copy, disease_id, row, True)
 
 if __name__ == '__main__':
