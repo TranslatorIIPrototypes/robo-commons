@@ -96,13 +96,13 @@ class Cord19Service(Service):
                     input_id=edge_raw['Term1'],
                     provided_by=provided_by,
                     predicate=predicate,
-                    standard_predicate = predicate,
                     publications=[],
                     properties={
                         'num_publications': float(edge_raw['Effective_Pubs']),
                         'enrichment_p': float(edge_raw['Enrichment_p'])
                     }
                 )
+                edge.standard_predicate = predicate
                 limit_counter += 1
                 if limit and limit_counter > limit:
                     break
@@ -148,10 +148,10 @@ class Cord19Service(Service):
                 input_id=covid_node.id,
                 provided_by='covid_phenotypes_csv',
                 predicate=predicate,
-                standard_predicate= predicate,
                 publications=[],
                 properties=property
             )
+            edge.standard_predicate = predicate
             self.writer.write_edge(edge)
         self.writer.flush()
 
