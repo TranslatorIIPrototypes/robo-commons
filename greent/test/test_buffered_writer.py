@@ -71,11 +71,11 @@ def test_flush_nodes_non_changing_node():
     session = Mock()
     session.write_transaction = write_transaction_mock
     # pass the mock tester to bf and let it rip
-    synonym_map = bf.flush_nodes(session)
+    bf.flush_nodes(session)
 
     # make sure the synonym map we get here to be used for edge correction is sane
-    assert 'CHEBI:15347' in synonym_map
-    assert synonym_map['CHEBI:15347'] == 'CHEBI:15347'
+    assert 'CHEBI:15347' in bf.synonym_map
+    assert bf.synonym_map['CHEBI:15347'] == 'CHEBI:15347'
 
 def test_flush_nodes_changing_node():
     # exact same test as non changing node except have to get different synonym map from flush_nodes
@@ -108,11 +108,11 @@ def test_flush_nodes_changing_node():
     session = Mock()
     session.write_transaction = write_transaction_mock
     # pass the mock tester to bf and let it rip
-    synonym_map = bf.flush_nodes(session)
+    bf.flush_nodes(session)
 
     # make sure the synonym map we get here to be used for edge correction is sane
-    assert 'MESH:D000096' in synonym_map
-    assert synonym_map['MESH:D000096'] == 'CHEBI:15347'
+    assert 'MESH:D000096' in bf.synonym_map
+    assert bf.synonym_map['MESH:D000096'] == 'CHEBI:15347'
 
 
 def test_flush_nodes_non_normilizable():
@@ -143,11 +143,11 @@ def test_flush_nodes_non_normilizable():
     session = Mock()
     session.write_transaction = write_transaction_mock
     # pass the mock tester to bf and let it rip
-    synonym_map = bf.flush_nodes(session)
+    bf.flush_nodes(session)
 
     # make sure the synonym map we get here to be used for edge correction is sane
-    assert 'SOME:curie' in synonym_map
-    assert synonym_map['SOME:curie'] == 'SOME:curie'
+    assert 'SOME:curie' in bf.synonym_map
+    assert bf.synonym_map['SOME:curie'] == 'SOME:curie'
 
 def test_write_edges():
     bf = BufferedWriter(rosetta_mock)
@@ -169,4 +169,91 @@ def test_write_edges():
     bf.write_edge(edge, force_create=True)
     assert len(bf.edge_queues) == 2
 
+def test_edge_changing_node_ids():
+    bf = BufferedWriter(rosetta_mock)
 
+    # flush edge
+    def write_transaction_mock_edge(export_func, edges, edge_label, merge_edges):
+        import os
+        assert os.environ.get(
+            'MERGE_EDGES', False
+        ) == merge_edges
+        # make sure this is the right function
+        assert edge_label == 'causes'
+        # make sure we have out node id in there
+        assert export_func == export_edge_chunk
+        edge  = edges[0]
+        assert edge.source_id == 'CHEBI:127682'
+        assert edge.target_id == 'NCBIGene:84125'
+        print(edges)
+
+    # pass the mock tester to bf and let it rip
+    source_node = KNode('PUBCHEM:44490445')
+    target_node = KNode('HGNC:25708')
+    edge = KEdge({
+        'source_id': source_node.id,
+        'target_id': target_node.id,
+        'provided_by': 'test_write_edges',
+        'original_predicate': LabeledID(identifier='SEMMEDDB:CAUSES', label='semmed:causes'),
+        'standard_predicate': None,
+        'input_id': 'PUBCHEM:44490445',
+        'publications': [],
+    })
+    bf.write_node(source_node)
+    bf.write_node(target_node)
+    # a mock for writing node
+    session_for_node = Mock()
+    session_for_node.write_transaction = lambda export_func, node_list, labels: None
+    # we are not testing for nodes here
+    bf.flush_nodes(session_for_node)
+    assert bf.synonym_map == {
+        'PUBCHEM:44490445': 'CHEBI:127682',
+        'HGNC:25708': 'NCBIGene:84125'
+    }
+    session_for_edge = Mock()
+    session_for_edge.write_transaction = write_transaction_mock_edge
+    bf.write_edge(
+        edge
+    )
+    bf.flush_edges(session_for_edge)
+
+
+def test_edge_source_target_update_when_synmap_empty():
+    bf = BufferedWriter(rosetta_mock)
+    assert bf.synonym_map == {}
+
+    source_node = KNode('PUBCHEM:44490445')
+    target_node = KNode('HGNC:25708')
+    edge = KEdge({
+        'source_id': source_node.id,
+        'target_id': target_node.id,
+        'provided_by': 'test_write_edges',
+        'original_predicate': LabeledID(identifier='SEMMEDDB:CAUSES', label='semmed:causes'),
+        'standard_predicate': None,
+        'input_id': 'PUBCHEM:44490445',
+        'publications': [],
+    })
+
+    # mock writer
+
+    def write_transaction_mock_edge(export_func, edges, edge_label, merge_edges):
+        import os
+        assert os.environ.get(
+            'MERGE_EDGES', False
+        ) == merge_edges
+        # make sure this is the right function
+        assert edge_label == 'causes'
+        # make sure we have out node id in there
+        assert export_func == export_edge_chunk
+        edge  = edges[0]
+        assert edge.source_id == 'CHEBI:127682'
+        assert edge.target_id == 'NCBIGene:84125'
+        print(edges)
+
+    session = Mock()
+    session.write_transaction = write_transaction_mock_edge
+    bf.write_edge(edge)
+    # assert if synmap is still empty
+    assert bf.synonym_map == {}
+    bf.flush_edges(session)
+    # if succeeded this means its has converted the ids properly
