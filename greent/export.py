@@ -37,7 +37,11 @@ class BufferedWriter:
         self.maxWrittenNodes = 100000
         self.maxWrittenEdges = 100000
         self.missed_curies = {}
+        # Variable to tell if we should avoid synonym map construction when processing edges.
+        # Useful when processing kgx files, and cord19 files
         self.normalized = False
+        # temporary cache of ids , this will be kept around till we hit maxWrittenNodes
+        self.synonym_map = {}
 
     def __enter__(self):
         return self
@@ -47,16 +51,23 @@ class BufferedWriter:
             return
         if node.name is None or node.name == '':
             logger.warning(f"Node {node.id} is missing a label")
+        self.written_nodes.add(node.id)
         typednodes = self.node_queues[frozenset(node.export_labels)]
         typednodes.update({node.id: node})
         if len(typednodes) >= self.node_buffer_size:
             self.flush()
 
     def write_edge(self,edge, force_create=False):
+        if edge.original_predicate.identifier in self.written_edges[edge.source_id][edge.target_id] and not force_create:
+            return
+            # Need to only maintain the predicate id.
+            # When flushing we are going to Standardize predicates.
+            # Somethings might change. but not original predicates.
+        self.written_edges[edge.source_id][edge.target_id].add(edge.original_predicate.identifier)
+        # Append the edge in the edge queue. It will be standardized in a batch when flushing
         self.edge_queues.append(edge)
 
     def flush_nodes(self, session):
-        syn_map = {}
         for node_type in self.node_queues:
             # Condition # 1. Handling nodes that could not be synonymized.
             # This could happen among other reasons,
@@ -75,7 +86,7 @@ class BufferedWriter:
                 normalized_nodes = Synonymizer.batch_normalize_nodes(node_curies)
 
             # lets make a list of mappings to use it to update the edges source and target ids
-            syn_map.update({k: normalized_nodes[k].id for k in normalized_nodes})
+            self.synonym_map.update({k: normalized_nodes[k].id for k in normalized_nodes})
 
             # filter out the missed ones first, i.e calling synonymization on these nodes
             # returned nothing, maybe the normalization service doesn't know about them...
@@ -87,7 +98,7 @@ class BufferedWriter:
             self.write_missed_curies_to_file()
             if missed_nodes:
                 for missed_node_id in missed_nodes:
-                    syn_map.update({missed_node_id: missed_node_id})
+                    self.synonym_map.update({missed_node_id: missed_node_id})
                 session.write_transaction(
                     export_node_chunk,
                     missed_nodes,
@@ -115,9 +126,8 @@ class BufferedWriter:
                     n_type
                 )
             self.node_queues[node_type] = {}
-        return syn_map
 
-    def flush_edges(self, session, synonym_map):
+    def flush_edges(self, session):
         # batch normalize edges
         # and group them by their standardized labels
         standard_predicates = {}
@@ -131,13 +141,14 @@ class BufferedWriter:
 
             # group edges by labels and also update their standard predicates
             edge_by_labels = {}
-            ids = [edge.source_id for edge in self.edge_queues]
-            ids += [edge.target_id for edge in self.edge_queues]
-            nodes = self.rosetta.synonymizer.batch_normalize_nodes(ids)
-            # could this be an sv node
+            synonym_map = self.synonym_map
+            ids = [edge.source_id for edge in self.edge_queues if edge.source_id not in synonym_map]
+            ids += [edge.target_id for edge in self.edge_queues if edge.target_id not in synonym_map]
+            nodes = Synonymizer.batch_normalize_nodes(ids)
+            # # could this be an sv node
             ids = [i for i in ids if i not in nodes]
-            nodes.update(self.rosetta.synonymizer.batch_normalize_sequence_variants(ids))
-            synonym_map = {curie: nodes[curie].id for curie in nodes}
+            nodes.update(Synonymizer.batch_normalize_sequence_variants(ids))
+            synonym_map.update({curie: nodes[curie].id for curie in nodes})
         for edge in self.edge_queues:
             # update standard predicate if it's mapped.
             edge.standard_predicate = standard_predicates.get(
@@ -163,14 +174,15 @@ class BufferedWriter:
     def flush(self, normalized=False):
         with self.driver.session() as session:
             # flush the nodes and capture any id changes
-            synonym_map = self.flush_nodes(session)
+            self.flush_nodes(session)
 
             # flush edges
-            self.flush_edges(session, synonym_map)
+            self.flush_edges(session)
 
             # clear the memory on a threshold boundary to avoid using up all memory when
             # processing large data sets
             if len(self.written_nodes) > self.maxWrittenNodes:
+                self.synonym_map = {}
                 self.written_nodes.clear()
 
             if len(self.written_edges) > self.maxWrittenEdges:

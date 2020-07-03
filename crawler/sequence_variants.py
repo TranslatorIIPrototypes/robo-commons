@@ -35,18 +35,33 @@ def load_gwas_knowledge(rosetta: object, limit: int = None):
             if limit and counter == limit:
                 break
 
-def load_gtex_knowledge(rosetta: object, gtex_filenames=[]):
+
+def load_gtex_knowledge(rosetta: object):
     # create a new builder object
     gtb = GTExBuilder(rosetta)
 
-    # directory with GTEx data to process
-    gtex_data_directory = f'{os.environ["ROBOKOP_HOME"]}/gtex_knowledge/'
+    # directory to write/read GTEx data to process
+    #working_data_directory = f'{os.environ["ROBOKOP_HOME"]}/gtex_knowledge/'
+    working_data_directory = '.'
 
-    # assign the name of the GTEx data file
-    #associated_file_names = gtex_filenames if gtex_filenames else [default_gtex_file]
+    # load up the eqtl GTEx data with default settings
+    rv = gtb.load(working_data_directory)
 
-    # load up all the GTEx data
-    rv = gtb.load(gtex_data_directory, process_raw_data=False)
+    # check the return, output error if found
+    if rv is not None:
+        logger.error(rv)
+
+    # or use some optional parameters
+    # out_file_name specifies the name of the combined and processed gtex cvs (eqtl_signif_pairs.csv)
+    # process_raw_data creates that file - specify the existing file name and set to False if one exists
+    # rv = gtb.load(working_data_directory,
+    #    out_file_name='eqtl_signif_pairs.csv',
+    #    process_raw_data=True,
+    #    process_for_graph=True,
+    #    gtex_version=8)
+
+    # or load the sqtl data (you can use the same optional parameters)
+    rv = gtb.load_sqtl(working_data_directory)
 
     # check the return, output error if found
     if rv is not None:
