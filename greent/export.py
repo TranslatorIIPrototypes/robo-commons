@@ -37,6 +37,9 @@ class BufferedWriter:
         self.maxWrittenNodes = 100000
         self.maxWrittenEdges = 100000
         self.missed_curies = {}
+        # Variable to tell if we should avoid synonym map construction when processing edges.
+        # Useful when processing kgx files, and cord19 files
+        self.normalized = False
         # temporary cache of ids , this will be kept around till we hit maxWrittenNodes
         self.synonym_map = {}
 
@@ -127,21 +130,22 @@ class BufferedWriter:
     def flush_edges(self, session):
         # batch normalize edges
         # and group them by their standardized labels
+        standard_predicates = {}
+        synonym_map = {}
+        if not self.normalized:
+            # get the predicate ids
+            original_predicates = set(map(lambda edge: edge.original_predicate.identifier, self.edge_queues))
 
-        # get the predicate ids
-        original_predicates = set(map(lambda edge: edge.original_predicate.identifier, self.edge_queues))
+            # batch Normalize them
+            standard_predicates = Synonymizer.batch_normalize_edges(original_predicates)
 
-        # batch Normalize them
-        standard_predicates = Synonymizer.batch_normalize_edges(original_predicates)
-
-        # group edges by labels and also update their standard predicates
-        edge_by_labels = {}
-        ids = [edge.source_id for edge in self.edge_queues]
-        ids += [edge.target_id for edge in self.edge_queues]
-        synonym_map = self.synonym_map
-        if id not in self.synonym_map:
+            # group edges by labels and also update their standard predicates
+            edge_by_labels = {}
+            synonym_map = self.synonym_map
+            ids = [edge.source_id for edge in self.edge_queues if edge.source_id not in synonym_map]
+            ids += [edge.target_id for edge in self.edge_queues if edge.target_id not in synonym_map]
             nodes = Synonymizer.batch_normalize_nodes(ids)
-        # # could this be an sv node
+            # # could this be an sv node
             ids = [i for i in ids if i not in nodes]
             nodes.update(Synonymizer.batch_normalize_sequence_variants(ids))
             synonym_map.update({curie: nodes[curie].id for curie in nodes})
@@ -149,7 +153,7 @@ class BufferedWriter:
             # update standard predicate if it's mapped.
             edge.standard_predicate = standard_predicates.get(
                 edge.original_predicate.identifier,
-                LabeledID(identifier='GAMMA:0', label='Unmapped_Relation')
+                edge.standard_predicate if edge.standard_predicate else LabeledID(identifier='GAMMA:0', label='Unmapped_Relation')
             )
             # also need to know if source_id and target_id have changed.
             # This could happen if node was synonymized to a different ID that
@@ -167,7 +171,7 @@ class BufferedWriter:
             session.write_transaction(export_edge_chunk, edge_by_labels[edge_label], edge_label, self.merge_edges)
         self.edge_queues = []
 
-    def flush(self):
+    def flush(self, normalized=False):
         with self.driver.session() as session:
             # flush the nodes and capture any id changes
             self.flush_nodes(session)

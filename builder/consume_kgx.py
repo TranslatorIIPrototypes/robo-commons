@@ -13,7 +13,9 @@ class BL_lookup:
     KGX outputs relation label (the type) but not the curie,
     so grab a relevant curie from BL_Lookup
     """
-    label_to_curie_map = {}
+    label_to_curie_map = {
+        'similar_to': 'SO:similar_to'
+    }
     instance = None
     def __init__(self):
         if BL_lookup.instance == None:
@@ -90,13 +92,15 @@ class KGX_File_parser(Service):
                     target_node=target_node,
                     input_id=source_node.id,
                     provided_by=provided_by,
-                    predicate=predicate
+                    predicate=predicate,
+                    standard_predicate=predicate
                 )
                 yield edge
 
     def run(self, nodes_file_name, edges_file_name, provided_by):
         self.rosetta = Rosetta()
         self.wdg = WriterDelegator(rosetta)
+        self.wdg.normalized = True
         for node in self.get_nodes_from_file(nodes_file_name):
             self.wdg.write_node(node)
         for edge in self.get_edges_from_file(edges_file_name, provided_by=provided_by):
