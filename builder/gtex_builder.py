@@ -187,7 +187,7 @@ class GTExBuilder:
                                 predicate = LabeledID(identifier=label_id, label=label_name)
 
                             # get a MD5 hash int of the composite hyper edge ID
-                            hyper_edge_id = self.gtu.get_hyper_edge_id(uberon, ensembl, curie_hgvs)
+                            hyper_edge_id = self.gtu.get_hyper_edge_id(uberon, ensembl, hgvs)
 
                             # set the properties for the edge
                             edge_properties = [ensembl, pval_nominal, slope, namespace]
