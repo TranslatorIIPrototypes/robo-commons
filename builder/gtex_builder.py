@@ -259,7 +259,7 @@ if __name__ == '__main__':
     working_data_directory = '.'
 
     # load up the eqtl GTEx data with default settings
-    rv = gtb.load(working_data_directory, process_raw_data=False)
+    rv = gtb.load(working_data_directory)
 
     # or use some optional parameters
     # out_file_name specifies the name of the combined and processed gtex cvs (eqtl_signif_pairs.csv)
@@ -275,7 +275,7 @@ if __name__ == '__main__':
         logger.error(rv)
 
     # or load the sqtl data (you can use the same optional parameters)
-    rv = gtb.load_sqtl(working_data_directory, process_raw_data=False)
+    rv = gtb.load_sqtl(working_data_directory)
 
     # check the return, output error if found
     if rv is not None:
