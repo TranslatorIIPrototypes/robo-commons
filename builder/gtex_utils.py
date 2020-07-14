@@ -525,7 +525,7 @@ class GTExUtils:
                          ctime=c_time,
                          hyper_edge_id=hyper_edge_id,
                          original_predicate=predicate,
-                         # standard_predicate=standard_predicate,
+                         standard_predicate=predicate,
                          input_id=source_node.id,
                          publications=None,
                          url=None,
