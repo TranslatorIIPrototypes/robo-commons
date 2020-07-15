@@ -18,6 +18,13 @@ def pull_via_ftp(ftpsite, ftpdir, ftpfile):
     ftp.quit()
     return binary
 
+def get_most_recent_file_name(ftpsite, ftpdir):
+    ftp = FTP(ftpsite)
+    ftp.login()
+    ftp.cwd(ftpdir)
+    file_name = sorted(ftp.nlst(), key=lambda x: ftp.voidcmd(f"MDTM {x}"))[-1]
+    return file_name
+
 #def glom(conc_set, newgroups, unique_prefixes=[]):
 def glom(conc_set, newgroups, unique_prefixes=['INCHI']):
     """We want to construct sets containing equivalent identifiers.

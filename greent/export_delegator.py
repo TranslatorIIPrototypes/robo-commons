@@ -32,6 +32,14 @@ class WriterDelegator:
         
         self.buffered_writer = BufferedWriter(rosetta)
 
+    @property
+    def normalized(self, normalized):
+        self.buffered_writer.normalized = normalized
+
+    @normalized.getter
+    def normalized(self):
+        return self.buffered_writer.normalized
+
     def __enter__(self):
         return self
 
