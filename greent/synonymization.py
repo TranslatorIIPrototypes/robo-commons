@@ -14,7 +14,7 @@ logger = LoggingUtil.init_logging(__name__, level=logging.INFO, format='medium')
 class Synonymizer:
     NODE_NORMALIZATION_URL = 'https://nodenormalization-sri.renci.org/get_normalized_nodes'
     EDGE_NORMALIZATION_URL = 'https://edgenormalization-sri.renci.org/resolve_predicate'
-    BIOLINK_VERSION = 'custom'
+    BIOLINK_VERSION = 'latest'
     BL_CONCEPT_URL_GENERATOR =  lambda node_type: f'https://bl-lookup-sri.renci.org/bl/{node_type}?version={Synonymizer.BIOLINK_VERSION}'
     CHUNK_SIZE = 1000
     BIOLINK_MODEL_PARTS = {}

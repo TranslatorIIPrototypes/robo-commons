@@ -3,7 +3,7 @@ from greent import node_types, config
 from builder.buildmain import run
 from multiprocessing import Pool
 from functools import partial
-from crawler.crawl_util import pull_via_ftp
+from crawler.crawl_util import pull_via_ftp, get_most_recent_file_name
 from crawler.sequence_variants import get_all_variant_ids_from_graph
 from json import loads
 from greent.graph_components import KNode
@@ -163,7 +163,8 @@ def get_identifiers(input_type,rosetta):
         #         lids.append(LabeledID(ident,res['label']))
     elif input_type == node_types.GENE:
         print("Pull genes")
-        data = pull_via_ftp('ftp.ebi.ac.uk', '/pub/databases/genenames/new/json', 'hgnc_complete_set.json')
+        file_name = get_most_recent_file_name('ftp.ebi.ac.uk', '/pub/databases/genenames/hgnc/archive/monthly/json')
+        data = pull_via_ftp('ftp.ebi.ac.uk', '/pub/databases/genenames/hgnc/archive/monthly/json', file_name)
         hgnc_json = loads( data.decode() )
         hgnc_genes = hgnc_json['response']['docs']
         for gene_dict in hgnc_genes:
