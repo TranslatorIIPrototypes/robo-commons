@@ -57,7 +57,9 @@ class KGX_File_parser(Service):
         with open(file_name) as nodes_file:
             reader = csv.DictReader(nodes_file, delimiter=delimiter)
             for raw_node in reader:
-                labels = raw_node['category'].split('|')
+                labels = list(filter(lambda x : x , raw_node['category'].split('|')))
+                if not len(labels):
+                    labels = ['named_thing']
                 id = raw_node['id']
                 name = raw_node['name']
                 node = KNode(
@@ -95,8 +97,8 @@ class KGX_File_parser(Service):
                     input_id=source_node.id,
                     provided_by=provided_by,
                     predicate=predicate,
-                    standard_predicate=predicate
                 )
+                edge.standard_predicate = predicate
                 yield edge
 
     def run(self, nodes_file_name, edges_file_name, provided_by, delimiter):
@@ -105,7 +107,7 @@ class KGX_File_parser(Service):
         self.wdg.normalized = True
 
         for node in self.get_nodes_from_file(nodes_file_name, delimiter):
-            self.wdg.write_node(node)
+            self.wdg.write_node(node, annotate=False)
 
         for edge in self.get_edges_from_file(edges_file_name, provided_by=provided_by, delimiter=delimiter):
             self.wdg.write_edge(edge)
@@ -122,7 +124,7 @@ if __name__=='__main__':
     """)
     parser.add_argument('-n', '--nodes_file', help="Nodes file")
     parser.add_argument('-e', '--edges_file', help="Edges file")
-    parser.add_argument('-p', '--provided_by', help="provided by")
+    parser.add_argument('-p', '--provided_by', help="provided by", required=True)
     parser.add_argument('-d', '--delimiter', required=True, help="Data column delimiter (c=comma, t=tab)")
     args = parser.parse_args()
 

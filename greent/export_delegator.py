@@ -40,6 +40,10 @@ class WriterDelegator:
     def normalized(self):
         return self.buffered_writer.normalized
 
+    @normalized.setter
+    def normalized(self, normalized):
+        self.buffered_writer.normalized = normalized
+
     def __enter__(self):
         return self
 

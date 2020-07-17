@@ -66,6 +66,8 @@ class BufferedWriter:
         self.written_edges[edge.source_id][edge.target_id].add(edge.original_predicate.identifier)
         # Append the edge in the edge queue. It will be standardized in a batch when flushing
         self.edge_queues.append(edge)
+        if len(self.edge_queues) >= self.maxWrittenEdges:
+            self.flush()
 
     def flush_nodes(self, session):
         for node_type in self.node_queues:
@@ -132,15 +134,14 @@ class BufferedWriter:
         # and group them by their standardized labels
         standard_predicates = {}
         synonym_map = {}
+        edge_by_labels = {}
         if not self.normalized:
             # get the predicate ids
             original_predicates = set(map(lambda edge: edge.original_predicate.identifier, self.edge_queues))
 
             # batch Normalize them
             standard_predicates = Synonymizer.batch_normalize_edges(original_predicates)
-
             # group edges by labels and also update their standard predicates
-            edge_by_labels = {}
             synonym_map = self.synonym_map
             ids = [edge.source_id for edge in self.edge_queues if edge.source_id not in synonym_map]
             ids += [edge.target_id for edge in self.edge_queues if edge.target_id not in synonym_map]
@@ -171,7 +172,7 @@ class BufferedWriter:
             session.write_transaction(export_edge_chunk, edge_by_labels[edge_label], edge_label, self.merge_edges)
         self.edge_queues = []
 
-    def flush(self, normalized=False):
+    def flush(self):
         with self.driver.session() as session:
             # flush the nodes and capture any id changes
             self.flush_nodes(session)
@@ -190,6 +191,8 @@ class BufferedWriter:
 
     def write_missed_curies_to_file(self):
         """ When node normalization is not working write the missed curies to file."""
+        if not len(self.missed_curies.keys()):
+            return
         with open('missed_curies.lst', 'a') as f:
             for curie in self.missed_curies:
                 f.write(f'{curie}\t {",".join(self.missed_curies[curie])}\n')
