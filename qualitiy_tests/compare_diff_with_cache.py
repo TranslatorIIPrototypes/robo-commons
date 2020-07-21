@@ -91,9 +91,12 @@ def inspect_errors(errors, service_name, size=0, chunk_size=1000):
             neo4j_connections = grab_all_relation_with_curie(service_name, curie)
             # merge all node ids from neo4j equivalent ids
             neo4j_all_eq_ids = set(reduce(lambda x, y: x + y['node_ids'], neo4j_connections, []))
+            # converting to upper , found that test was reporting things like UniProtKB:P23141 in eqid ven though
+            # they are present
+            neo4j_all_eq_ids_upper = list(map(lambda x: x.upper(), neo4j_all_eq_ids))
             # get all redis ids
-            redis_all_ids = set([x[1].id for x in value])
-            not_in_neo = [x for x in redis_all_ids if x not in neo4j_all_eq_ids]
+            redis_all_ids = set([x[1].id.upper for x in value])
+            not_in_neo = [x for x in redis_all_ids if x not in neo4j_all_eq_ids_upper]
             if not_in_neo:
                 still_has_errors[key] = {
                     "curie": curie,
