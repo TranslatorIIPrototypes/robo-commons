@@ -95,7 +95,7 @@ def inspect_errors(errors, service_name, size=0, chunk_size=1000):
             # they are present
             neo4j_all_eq_ids_upper = list(map(lambda x: x.upper(), neo4j_all_eq_ids))
             # get all redis ids
-            redis_all_ids = set([x[1].id.upper for x in value])
+            redis_all_ids = set([x[1].id.upper() for x in value])
             not_in_neo = [x for x in redis_all_ids if x not in neo4j_all_eq_ids_upper]
             if not_in_neo:
                 still_has_errors[key] = {
@@ -164,7 +164,7 @@ def compare_neo4j_with_cache(cache_results, neo4j_results):
     ops_neo4j = set(restructured_neo4j.keys())
 
     print("comparing services are all present in redis and ")
-    r_only, n_only = ops_redis.difference(ops_neo4j), ops_neo4j.difference(ops_neo4j)
+    r_only, n_only = ops_redis.difference(ops_neo4j), ops_neo4j.difference(ops_redis)
     print(" redis only : ", r_only)
     print("neo4j only : ", n_only)
     if len(r_only) or len(n_only):
@@ -187,15 +187,14 @@ def compare_neo4j_with_cache(cache_results, neo4j_results):
             # but if it does exist in redis we expect it to have equal count of edges
 
             redis_count_set = restructured_redis.get(op, None)
+            if redis_count_set == None:
+                print(f'Skipping check for missing Redis Key  {op} ' )
+                break
+            redis_count = 0
             if redis_count_set:
                 redis_count = redis_count_set.get(curie, None)
-            if redis_count == None:
-                # use the map to get 'catser.**' keys
-                other_redis_keys = neo4j_potential_op_to_redis_caster_function_key_map.get(op, [])
-                redis_count = 0
-                for other_redis_key in other_redis_keys:
-                    redis_count_set = restructured_redis.get(other_redis_key, {})
-                    redis_count += restructured_redis.get(other_redis_key, {}).get(curie, 0)
+                errors['missing_redis_things'] = errors.get('missing_redis_things', defaultdict(set))
+                errors['missing_redis_things'][op].add(curie)
 
             if redis_count:
                 neo4j_count = restructured_neo4j[op].get(curie)
@@ -234,7 +233,7 @@ def compare_neo4j_with_cache(cache_results, neo4j_results):
     print(f"""found errors some keys still have mismatch counts after inspecting neo4j...
               {len(errors['count_mismatch'])} / {error_count} ({(len(errors['count_mismatch']) / error_count) * 100}%)
           """)
-    return still_has_errors
+    return {'neo4j_errors': still_has_errors, 'redis_errors': errors.get('missing_redis_things', {})}
 
 
 if __name__ == '__main__':
