@@ -209,7 +209,7 @@ def compare_neo4j_with_cache(cache_results, neo4j_results):
     print('##################################')
     print('stage 2: Check for count mismatch complete')
     total_redis_keys = len(cache_results)
-    error_count = len(errors['count_mismatch'])
+    error_count = len(errors.get('count_mismatch', []))
     if error_count == 0:
         print('All seems fine exiting...')
         return
