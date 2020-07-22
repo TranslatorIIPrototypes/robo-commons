@@ -233,6 +233,9 @@ def compare_neo4j_with_cache(cache_results, neo4j_results):
     print(f"""found errors some keys still have mismatch counts after inspecting neo4j...
               {len(errors['count_mismatch'])} / {error_count} ({(len(errors['count_mismatch']) / error_count) * 100}%)
           """)
+    for op in errors.get('missing_redis_things', {}):
+        # convert these to list for reporting
+        errors['missing_redis_things'][op] = list(errors['missing_redis_things'][op])
     return {'neo4j_errors': still_has_errors, 'redis_errors': errors.get('missing_redis_things', {})}
 
 
