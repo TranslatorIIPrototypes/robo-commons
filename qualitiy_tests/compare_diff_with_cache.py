@@ -70,7 +70,7 @@ def grab_all_relation_with_curie(service_name, curie):
     return results
 
 
-def inspect_errors(errors, service_name, size=0, chunk_size=1000):
+def inspect_errors(errors, service_name, prefix_map, size=0, chunk_size=1000):
     """
     This tries to cover cases where mistmatch could happen
     """
@@ -88,6 +88,9 @@ def inspect_errors(errors, service_name, size=0, chunk_size=1000):
         for key, value in zip(chunk, redis_results):
             curie = mismatches[key]['curie']
             value = pickle.loads(value)
+            curie_prefix = curie.split(':')[0]
+            actual_prefix = prefix_map[curie_prefix]
+            curie = curie.replace(curie_prefix, actual_prefix)
             neo4j_connections = grab_all_relation_with_curie(service_name, curie)
             # merge all node ids from neo4j equivalent ids
             neo4j_all_eq_ids = set(reduce(lambda x, y: x + y['node_ids'], neo4j_connections, []))
@@ -123,9 +126,14 @@ def compare_neo4j_with_cache(cache_results, neo4j_results):
     # restructring data for easier analysis
     # we are going to format them as {op: {curie: count}}
     restructured_neo4j = {}
+    prefix_map = {}
     for x in neo4j_results:
         ops = x['op']
         # redis keys are always upper case curies. To match that upper case here
+        # use this to replace prefix
+        prefixes = x['source_id'].split(':')[0], x['target_id'].split(':')[0]
+        for p in prefixes:
+            prefix_map[p.upper()] = prefix_map.get(p.upper(), p)
         curies = [x['source_id'].upper(), x['target_id'].upper()]
         # here we essentially are abstracting away direction of edges
         for op in ops:
@@ -223,7 +231,7 @@ def compare_neo4j_with_cache(cache_results, neo4j_results):
     # here we try to explain why we have mistmatch
     print('##################################')
     print('stage 3: Fetching mismatching keys and corresponding neo4j relationships')
-    still_has_errors = inspect_errors(errors, service_name)
+    still_has_errors = inspect_errors(errors, service_name, prefix_map)
     errors['count_mismatch'] = [x for x in errors['count_mismatch'] if x in still_has_errors]
     if len(errors['count_mismatch']) == 0:
         print('Neo4j data has been compared with redis results all seem to exist in neo4j.')
