@@ -84,6 +84,8 @@
         op    : ontological_hierarchy.term_get_ancestors
   chemical_substance:
     gene:
+      - link: drug_to_gene
+        op: pharos.drug_get_gene
       - link  : chemical_targets_gene
         op    : chembio.graph_pubchem_to_ncbigene
       - link  : drug_to_gene
@@ -141,10 +143,6 @@
     disease:
       - link  : subclass_of
         op    : ontological_hierarchy.term_get_ancestors
-  drug:
-    gene:
-      - link  : drug_to_gene
-        op    : pharos.drug_get_gene
   metabolite:
     gene:
       - link  : metabolite_to_gene
