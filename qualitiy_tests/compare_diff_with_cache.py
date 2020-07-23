@@ -6,7 +6,7 @@ from neo4j import GraphDatabase
 from functools import reduce
 import yaml
 
-with open(f"{os.environ['ROBOKOP_HOME']}/robokop-interfaces/greent/greent.conf") as conf_file:
+with open(f"../greent/greent.conf") as conf_file:
     bad_ids = yaml.load(conf_file, Loader = yaml.FullLoader)['bad_identifiers']
 
 redis_credenticals = {
@@ -311,10 +311,10 @@ def compare_neo4j_with_cache(cache_results, neo4j_results):
                 skipped_op_missing_redis_entry.add(op)
                 break
             redis_count = 0
-            if redis_count_set:
-                redis_count = redis_count_set.get(curie, None)
-                errors['missing_redis_things'] = errors.get('missing_redis_things', defaultdict(set))
-                errors['missing_redis_things'][op].add(curie)
+
+            redis_count = redis_count_set.get(curie, None)
+            # errors['missing_redis_things'] = errors.get('missing_redis_things', defaultdict(set))
+            # errors['missing_redis_things'][op].add(curie)
 
             if redis_count:
                 neo4j_count = restructured_neo4j[op].get(curie)
