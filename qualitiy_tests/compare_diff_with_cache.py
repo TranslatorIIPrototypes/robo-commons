@@ -37,6 +37,109 @@ def get_service_cached_counts(service_name):
     return counts
 
 
+def unwrap(ftext):
+    """We know that there will only be nested parens in the first argument"""
+    l = ftext.index('(')
+    fname = ftext[:l]
+    argstring = ftext[l + 1:-1]
+    if ')' in argstring:
+        r = argstring.rindex(')')
+        arg0 = argstring[:r + 1]
+        args = [arg0] + argstring[r + 2:].split(',')
+    else:
+        args = argstring.split(',')
+    return fname, args
+
+
+def get_real_function_and_curie(functiontext):
+    parts = functiontext.split('(')
+    curie = parts[-1].strip(')')
+    functiontext = '('.join(parts[1:-1])
+    functiontext = get_function_name(functiontext)
+    return functiontext, curie
+
+
+def get_function_name(functiontext):
+    if '(' in functiontext:
+        fname, args = unwrap(functiontext)
+        if fname == 'output_filter':
+            newargs = get_function_name(args[0])
+            return newargs
+        elif fname == 'upcast':
+            newargs = get_function_name(args[0])
+            return newargs
+        elif fname == 'input_filter':
+            newargs = get_function_name(args[0])
+            if len(args) == 3:
+                newargs = get_function_name(args[0])
+            return newargs
+    else:
+        fname = '.'.join(functiontext.split(',')[0].split('~'))
+        return fname
+
+
+def process_possible_caster_calls(service_name, missing_ops, restructured_neo4j, prefix_map):
+    """hopefully missing_ops wont be large to hang redis """
+    missing_ops_lookup = set(map(lambda x: f"caster.*{x.replace('.', '~')}*", missing_ops))
+    redis_keys = []
+    redis_conn = redis.Redis(**redis_credenticals)
+    for lookup in missing_ops_lookup:
+        redis_keys += redis_conn.keys(lookup)
+    # chunk up redis_keys for lookup
+    print(f'found {len(redis_keys)} : caster*{"|".join(missing_ops)}*')
+    chunked = [redis_keys[start: 100_000] for start in range(0, len(redis_keys), 100_000)]
+    responses = {}
+    for chunks in chunked:
+        redis_responses = redis_conn.mget(chunks)
+        for key, val in zip(chunks, redis_responses):
+            responses[key.decode('utf-8')] = val
+    # convert responses to a something that makes sense,
+
+    ## 1. convert each key to main op only
+    ## 2. grab curie and put it inside inner for the key
+    ## 3. unpickle value and insert into value for inner curie key (make sure these are unique)
+    ## 3.1 so essential caster(input.filter...)(curie) and caster(output.filter...)(curie) might
+    ## have same entries so this step will make a union of those
+    ## 4. compare against neo4j counts
+    redis_structured_with_values = {}
+    for key in responses:
+        value = pickle.loads(responses[key])
+        func, curie = get_real_function_and_curie(key)
+        inner = redis_structured_with_values.get(func, {})
+        inner_inner = inner.get(curie, set())
+        # merge them into a set
+        for v in value:
+            inner_inner.add(v)
+        inner[curie] = inner_inner
+        redis_structured_with_values[func] = inner
+    errors = {}
+    for op in missing_ops:
+        redis_values = redis_structured_with_values.get(op, None)
+        if redis_values == None:
+            print(f'oh boy still missing! {op} ... continue')
+            continue
+        for curie in redis_values:
+            r_values = redis_values[curie]
+            redis_count = len(r_values)
+            neo4j_count = restructured_neo4j[op].get(curie, 0)
+            if redis_count != neo4j_count:
+                prefix = curie.split(':')[0]
+                actual_prefix = prefix_map.get(prefix, prefix)
+                curie = curie.replace(prefix, actual_prefix)
+                neo_links = grab_all_relation_with_curie(service_name, curie)
+                neo4j_all_eq_ids = set(reduce(lambda x, y: x + y['node_ids'], neo_links, []))
+                neo4j_all_eq_ids_upper = [x.upper() for x in neo4j_all_eq_ids]
+                redis_all_ids = set([x[1].id.upper() for x in r_values])
+                not_in_neo = [x for x in redis_all_ids if x not in neo4j_all_eq_ids_upper and x not in bad_ids]
+                if len(not_in_neo):
+                    errors[f'{op}({curie})'] = {
+                        'missing_in_neo4j': not_in_neo,
+                        'curie': curie
+                    }
+
+    return errors
+
+
 def get_node_edge_data(service_name):
     """
     Returns an edge between source and target,
@@ -81,7 +184,9 @@ def inspect_errors(errors, service_name, prefix_map, size=0, chunk_size=1000):
     This tries to cover cases where mistmatch could happen
     """
     # 1. Duplicate ids
-    mismatches = errors['count_mismatch']
+    mismatches = errors.get('count_mismatch')
+    if not mismatches:
+        return {}
     keys = list(mismatches.keys())
     chunks = [keys[start: start + chunk_size] for start in range(0, size or len(keys), chunk_size)]
     r = redis.Redis(**redis_credenticals)
@@ -111,7 +216,6 @@ def inspect_errors(errors, service_name, prefix_map, size=0, chunk_size=1000):
                     "curie": curie,
                     "missing_ids": not_in_neo
                 }
-
     return still_has_errors
 
 
@@ -195,6 +299,7 @@ def compare_neo4j_with_cache(cache_results, neo4j_results):
     # we have to avoid getting ops we already know not to exist in redis
     #     return restructured_neo4j, restructured_redis
     matches = set()
+    skipped_op_missing_redis_entry = set()
     for op in [x for x in restructured_neo4j if x not in n_only]:
         for curie in restructured_neo4j[op]:
             # not all curies in the neo4j data will have a corresponding redis key
@@ -203,6 +308,7 @@ def compare_neo4j_with_cache(cache_results, neo4j_results):
             redis_count_set = restructured_redis.get(op, None)
             if redis_count_set == None:
                 print(f'Skipping check for missing Redis Key  {op} ' )
+                skipped_op_missing_redis_entry.add(op)
                 break
             redis_count = 0
             if redis_count_set:
@@ -228,7 +334,8 @@ def compare_neo4j_with_cache(cache_results, neo4j_results):
     error_count = len(errors.get('count_mismatch', []))
     if error_count == 0:
         print('All seems fine exiting...')
-        return
+        if len(skipped_op_missing_redis_entry) == 0:
+            return
     print(
         f'Some counts were not matching : {error_count}/{total_redis_keys} ({(error_count / total_redis_keys) * 100}%)')
     print('##################################')
@@ -238,19 +345,37 @@ def compare_neo4j_with_cache(cache_results, neo4j_results):
     print('##################################')
     print('stage 3: Fetching mismatching keys and corresponding neo4j relationships')
     still_has_errors = inspect_errors(errors, service_name, prefix_map)
-    errors['count_mismatch'] = [x for x in errors['count_mismatch'] if x in still_has_errors]
+    errors['count_mismatch'] = [x for x in errors.get('count_mismatch', []) if x in still_has_errors]
     if len(errors['count_mismatch']) == 0:
         print('Neo4j data has been compared with redis results all seem to exist in neo4j.')
-        print('exiting ...')
-        return
+        if len(skipped_op_missing_redis_entry)== 0:
+            print('exiting ...')
+            return
+    if errors.get('count_mismatch'):
+        print(f"""found errors some keys still have mismatch counts after inspecting neo4j...
+                  {len(errors['count_mismatch'])} / {error_count} ({(len(errors.get['count_mismatch']) / error_count) * 100}%)
+              """)
 
-    print(f"""found errors some keys still have mismatch counts after inspecting neo4j...
-              {len(errors['count_mismatch'])} / {error_count} ({(len(errors['count_mismatch']) / error_count) * 100}%)
-          """)
+    # stage 4 if there were skipped redis keys go back and get caster things
+    if len(skipped_op_missing_redis_entry):
+        print('#####################')
+        print('starting stage 4, checking back missing redis ops for caster')
+        e = process_possible_caster_calls(service_name=service_name,
+                                      missing_ops=skipped_op_missing_redis_entry,
+                                      restructured_neo4j= restructured_neo4j,
+                                      prefix_map=prefix_map)
+        if e != {}:
+            print('stage 4 completed with errors ... dumping errors')
+            errors['stage_4_still_missing'] = e
+
     for op in errors.get('missing_redis_things', {}):
         # convert these to list for reporting
         errors['missing_redis_things'][op] = list(errors['missing_redis_things'][op])
-    return {'neo4j_errors': still_has_errors, 'redis_errors': errors.get('missing_redis_things', {})}
+    return {'neo4j_errors': still_has_errors,
+            'redis_errors': errors.get('missing_redis_things', {}),
+            'stage4_still_missing': errors.get('stage_4_still_missing', {})
+
+    }
 
 
 if __name__ == '__main__':
