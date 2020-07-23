@@ -4,6 +4,10 @@ import os
 from collections import defaultdict
 from neo4j import GraphDatabase
 from functools import reduce
+import yaml
+
+with open(f"{os.environ['ROBOKOP_HOME']}/greent/greent.conf") as conf_file:
+    bad_ids = yaml.load(conf_file, Loader = yaml.FullLoader)['bad_identifiers']
 
 redis_credenticals = {
     'host': os.environ.get('CACHE_HOST', 'localhost'),
@@ -22,12 +26,14 @@ neo4j_credentials = {
 def get_service_cached_counts(service_name):
     r = redis.StrictRedis(**redis_credenticals)
     keys = r.keys(pattern=f'*{service_name}*')
-    data = r.mget(keys)
+    key_chunks = [keys[start: start + 100000] for start in range(0, len(keys), 100000)]
     counts = defaultdict(int)
-    for key, v in zip(keys, data):
-        x = pickle.loads(v)
-        for edge, node in x:
-            counts[key.decode('utf-8')] += 1
+    for key_chunk in key_chunks:
+        data = r.mget(key_chunk)
+        for key, v in zip(key_chunk, data):
+            x = pickle.loads(v)
+            for edge, node in x:
+                counts[key.decode('utf-8')] += 1
     return counts
 
 
@@ -99,7 +105,7 @@ def inspect_errors(errors, service_name, prefix_map, size=0, chunk_size=1000):
             neo4j_all_eq_ids_upper = list(map(lambda x: x.upper(), neo4j_all_eq_ids))
             # get all redis ids
             redis_all_ids = set([x[1].id.upper() for x in value])
-            not_in_neo = [x for x in redis_all_ids if x not in neo4j_all_eq_ids_upper]
+            not_in_neo = [x for x in redis_all_ids if x not in neo4j_all_eq_ids_upper or x not in bad_ids]
             if not_in_neo:
                 still_has_errors[key] = {
                     "curie": curie,
