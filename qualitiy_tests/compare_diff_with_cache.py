@@ -105,7 +105,7 @@ def inspect_errors(errors, service_name, prefix_map, size=0, chunk_size=1000):
             neo4j_all_eq_ids_upper = list(map(lambda x: x.upper(), neo4j_all_eq_ids))
             # get all redis ids
             redis_all_ids = set([x[1].id.upper() for x in value])
-            not_in_neo = [x for x in redis_all_ids if x not in neo4j_all_eq_ids_upper or x not in bad_ids]
+            not_in_neo = [x for x in redis_all_ids if x not in neo4j_all_eq_ids_upper and x not in bad_ids]
             if not_in_neo:
                 still_has_errors[key] = {
                     "curie": curie,
