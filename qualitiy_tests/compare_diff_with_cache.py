@@ -6,7 +6,7 @@ from neo4j import GraphDatabase
 from functools import reduce
 import yaml
 
-with open(f"../greent/greent.conf") as conf_file:
+with open(f"{os.environ.get('ROBOKOP_HOME')}/robokop-interfaces/greent/greent.conf") as conf_file:
     bad_ids = yaml.load(conf_file, Loader = yaml.FullLoader)['bad_identifiers']
 
 redis_credenticals = {
