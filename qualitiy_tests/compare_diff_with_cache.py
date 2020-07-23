@@ -353,7 +353,7 @@ def compare_neo4j_with_cache(cache_results, neo4j_results):
             return
     if errors.get('count_mismatch'):
         print(f"""found errors some keys still have mismatch counts after inspecting neo4j...
-                  {len(errors['count_mismatch'])} / {error_count} ({(len(errors.get['count_mismatch']) / error_count) * 100}%)
+                  {len(errors['count_mismatch'])} / {error_count} ({(len(errors.get('count_mismatch')) / error_count) * 100}%)
               """)
 
     # stage 4 if there were skipped redis keys go back and get caster things
