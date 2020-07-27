@@ -160,7 +160,7 @@ class FooDB(Service):
         elif compound['drugbank_id'] != '':
             equivalent_identifier = f'DRUGBANK:{compound["drugbank_id"]}'
         elif compound['kegg_compound_id'] != '':
-            equivalent_identifier = f'KEGG.COMPOUND:{compound["kegg_compound_id"]}'
+            equivalent_identifier = f'KEGG:{compound["kegg_compound_id"]}'
         elif compound['chebi_id'] != '':
             equivalent_identifier = f'CHEBI:{compound["chebi_id"]}'
         elif compound['hmdb_id'] != '':
