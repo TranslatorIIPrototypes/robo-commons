@@ -228,8 +228,8 @@ def get_identifiers(input_type,rosetta):
         for line in content.split('\n'):
             if line :
                 identifier, label = line.split('\t')
-                identifier = identifier.replace('cpd', 'KEGG.COMPOUND')
-                identifier= identifier.replace('CPD', 'KEGG.COMPOUND')
+                identifier = identifier.replace('cpd', 'KEGG')
+                identifier= identifier.replace('CPD', 'KEGG')
                 # maybe pick the first one for kegg,
                 label = label.split(';')[0].strip(' ')
                 lids.append(LabeledID(identifier, label))
