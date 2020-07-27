@@ -285,6 +285,21 @@ def get_identifiers(input_type,rosetta):
     elif input_type == node_types.SEQUENCE_VARIANT:
         # grab every variant already in the graph
         lids = get_all_variant_ids_from_graph(rosetta)
+
+    elif input_type == node_types.METABOLITE:
+        ## since we are calling kegg treat kegg compounds as metabolites?
+        # go for KEGG
+        print('pull KEGG')
+        content = requests.get('http://rest.kegg.jp/list/compound').content.decode('utf-8')
+
+        for line in content.split('\n'):
+            if line:
+                identifier, label = line.split('\t')
+                identifier = identifier.replace('cpd', 'KEGG')
+                identifier = identifier.replace('CPD', 'KEGG')
+                # maybe pick the first one for kegg,
+                label = label.split(';')[0].strip(' ')
+                lids.append(LabeledID(identifier, label))
     else:
         print(f'Not configured for input type: {input_type}')
     pickle_labeled_ids(input_type, lids)
