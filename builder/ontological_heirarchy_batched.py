@@ -28,8 +28,8 @@ class OntologicalHeirarchy(Service):
             node_types.BIOLOGICAL_PROCESS: "<http://purl.obolibrary.org/obo/GO_0008150>",
             node_types.CHEMICAL_SUBSTANCE: "<http://purl.obolibrary.org/obo/CHEBI_24431>",
             node_types.PHENOTYPIC_FEATURE: "<http://purl.obolibrary.org/obo/HP_0000118>",
-            node_types.CELL: "http://purl.obolibrary.org/obo/CL_0000000",
-            node_types.CELLULAR_COMPONENT: "http://purl.orolibrary.org/obo/GO_0005575"
+            node_types.CELL: "<http://purl.obolibrary.org/obo/CL_0000000>",
+            node_types.CELLULAR_COMPONENT: "<http://purl.orolibrary.org/obo/GO_0005575>"
         }
         obo_prefixes = '\n'.join([
             f'PREFIX {pref}: <http://purl.obolibrary.org/obo/{pref}_>'
