@@ -197,7 +197,7 @@ class Panther(Service):
         """
         results = []
         # @TODO make a sensible relation here 
-        predicate = LabeledID('RO:0000056','participates_in')
+        predicate = LabeledID('BFO:0000050','part_of')
         rows = self.get_rows_using_curie(gene_family_node.id)
         for gene_family_data in rows: 
             cc_data = [x for x in gene_family_data['cellular_components'] if x != '']
