@@ -11,7 +11,7 @@ def kegg(rosetta):
     return kegg
 
 def test_chem_to_enzyme_Trypanothione(kegg):
-    l = KNode('KEGG.COMPOUND:C02090', name='trypanothione', type=node_types.CHEMICAL_SUBSTANCE)
+    l = KNode('KEGG:C02090', name='trypanothione', type=node_types.CHEMICAL_SUBSTANCE)
     results = kegg.chemical_get_enzyme(l)
     ids = [node.id for edge,node in results]
     print(ids)
@@ -19,7 +19,7 @@ def test_chem_to_enzyme_Trypanothione(kegg):
 
 def test_chem_to_eynzyme_tyrosine_tat(kegg):
     #Why don't I get the gene ASS1 when I look at degradation of L-aspartic acid?
-    l = KNode('KEGG.COMPOUND:C00082', name='L-tyrosine', type = node_types.CHEMICAL_SUBSTANCE)
+    l = KNode('KEGG:C00082', name='L-tyrosine', type = node_types.CHEMICAL_SUBSTANCE)
     results = kegg.chemical_get_enzyme(l)
     ids = [node.id for edge,node in results]
     for tid in ids:
@@ -65,20 +65,20 @@ def test_chem_to_chem_codein_chebe(kegg,rosetta):
     assert norcodeine in ids
 
 def test_chem_to_chem_LGlutamine(kegg,rosetta):
-    Glutamine = KNode('KEGG.COMPOUND:C00064',name='L-Glutamine',type=node_types.CHEMICAL_SUBSTANCE)
+    Glutamine = KNode('KEGG:C00064',name='L-Glutamine',type=node_types.CHEMICAL_SUBSTANCE)
     rosetta.synonymizer.synonymize(Glutamine)
-    Phenylalanine = 'KEGG.COMPOUND:C00079'
+    other_node = 'KEGG:C00002'
     results = kegg.chemical_get_chemical(Glutamine)
     ids = []
     for edge,node in results:
         ids.append(node.id)
     assert len(results) > 0
-    assert Phenylalanine in ids
+    assert other_node in ids
 
 def test_chem_to_chem_Glucosylceramide(kegg,rosetta):
-    Glucosylceramide = KNode('KEGG.COMPOUND:C01190',name='Glucosylceramide',type=node_types.CHEMICAL_SUBSTANCE)
+    Glucosylceramide = KNode('KEGG:C01190',name='Glucosylceramide',type=node_types.CHEMICAL_SUBSTANCE)
     rosetta.synonymizer.synonymize(Glucosylceramide)
-    Acylsphingosine = 'KEGG.COMPOUND:C00195'
+    Acylsphingosine = 'KEGG:C00195'
     results = kegg.chemical_get_chemical(Glucosylceramide)
     ids = []
     for edge,node in results:
@@ -90,7 +90,7 @@ def test_chem_to_chem_caffiene(kegg,rosetta):
     caffiene = KNode('CHEBI:27732',name='Caffiene',type=node_types.CHEMICAL_SUBSTANCE)
     rosetta.synonymizer.synonymize(caffiene)
     results = kegg.chemical_get_chemical(caffiene)
-    theobromine = 'KEGG.COMPOUND:C07480'
+    theobromine = 'KEGG:C07480'
     ids = []
     for edge,node in results:
         if edge.source_id == 'CHEBI:27732':
@@ -102,14 +102,14 @@ def test_chem_to_chem_carnitine(kegg,rosetta):
     carn = KNode('CHEBI:16347',name='L-Carnitine',type=node_types.CHEMICAL_SUBSTANCE)
     rosetta.synonymizer.synonymize(carn)
     results = kegg.chemical_get_chemical(carn)
-    other = 'KEGG.COMPOUND:C02990'
+    other = 'KEGG:C02990'
     ids = []
     for edge,node in results:
         ids.append(node.id)
     assert other in ids
 
 def test_chem_to_reaction(kegg):
-    hete = KNode('KEGG.COMPOUND:C04805', name="5-HETE", type=node_types.CHEMICAL_SUBSTANCE)
+    hete = KNode('KEGG:C04805', name="5-HETE", type=node_types.CHEMICAL_SUBSTANCE)
     results = kegg.chemical_get_reaction(hete)
     assert len(results)  == 1
     assert results[0] == 'rn:R07034'
@@ -176,7 +176,7 @@ def test_chem_to_enzyme_nb(kegg,rosetta):
 
 # There is a problem with some genes coming back malformed
 def test_chem_to_enzyme_nb(kegg,rosetta):
-    input = KNode('KEGG.COMPOUND:C00319',name='Sphingosine', type=node_types.METABOLITE)
+    input = KNode('KEGG:C00319',name='Sphingosine', type=node_types.METABOLITE)
     results = kegg.chemical_get_enzyme(input)
     genes = set()
     for e,n in results:
@@ -186,9 +186,9 @@ def test_chem_to_enzyme_nb(kegg,rosetta):
     print(len(gene))
 
 def test_chem_to_gene_Glucosylceramide(kegg,rosetta):
-    Glucosylceramide = KNode('KEGG.COMPOUND:C01190',name='Glucosylceramide',type=node_types.CHEMICAL_SUBSTANCE)
+    Glucosylceramide = KNode('KEGG:C01190',name='Glucosylceramide',type=node_types.CHEMICAL_SUBSTANCE)
     rosetta.synonymizer.synonymize(Glucosylceramide)
-    GBA = 'HGNC:4177'
+    GBA = 'NCBIGene:2629'
     results = kegg.chemical_get_enzyme(Glucosylceramide)
     ids = []
     for edge,node in results:
@@ -205,14 +205,14 @@ def test_get_reaction(kegg):
 
 def test_chem_to_eynzyme_ass1(kegg):
     #Why don't I get the gene ASS1 when I look at degradation of L-aspartic acid?
-    l = KNode('KEGG.COMPOUND:C00049', name='L-aspartic acid', type = node_types.CHEMICAL_SUBSTANCE)
+    l = KNode('KEGG:C00049', name='L-aspartic acid', type = node_types.CHEMICAL_SUBSTANCE)
     results = kegg.chemical_get_enzyme(l)
     ids = [node.id for edge,node in results]
     print(ids)
     assert('NCBIGene:445' in ids)
 
 def test_chem_to_enzyme(kegg):
-    hete = KNode('KEGG.COMPOUND:C04805', name="5-HETE", type=node_types.CHEMICAL_SUBSTANCE)
+    hete = KNode('KEGG:C04805', name="5-HETE", type=node_types.CHEMICAL_SUBSTANCE)
     results = kegg.chemical_get_enzyme(hete)
     assert len(results) == 7
     ids = [ node.id for edge,node in results ]
@@ -225,22 +225,22 @@ def test_chem_to_enzyme(kegg):
     assert 'NCBIGene:493869' in ids
 
 def test_chem_to_enzyme_codeine_to_cyp3a4(kegg):
-    hete = KNode('KEGG.COMPOUND:C06174', name="Codeine", type=node_types.CHEMICAL_SUBSTANCE)
+    hete = KNode('KEGG:C06174', name="Codeine", type=node_types.CHEMICAL_SUBSTANCE)
     results = kegg.chemical_get_enzyme(hete)
     ids = [ node.id for edge,node in results ]
     assert 'NCBIGene:1576' in ids
 
 def test_chem_to_enzyme_norcodeine_to_cyp3a4(kegg):
-    hete = KNode('KEGG.COMPOUND:C16576', name="Norcodeine", type=node_types.CHEMICAL_SUBSTANCE)
+    hete = KNode('KEGG:C16576', name="Norcodeine", type=node_types.CHEMICAL_SUBSTANCE)
     results = kegg.chemical_get_enzyme(hete)
     ids = [ node.id for edge,node in results ]
     assert 'NCBIGene:1576' in ids
 
 def test_chem_to_enzymes_morphine_and_morphine3gluc(kegg):
-    morhpine = KNode('KEGG.COMPOUND:C01516', name="Morphine", type=node_types.CHEMICAL_SUBSTANCE)
+    morhpine = KNode('KEGG:C01516', name="Morphine", type=node_types.CHEMICAL_SUBSTANCE)
     results = kegg.chemical_get_enzyme(morhpine)
     morphine_enzymes = set([ node.id for edge,node in results ])
-    normorhpine = KNode('KEGG.COMPOUND:C16643', name="Morphine3Gluc", type=node_types.CHEMICAL_SUBSTANCE)
+    normorhpine = KNode('KEGG:C16643', name="Morphine3Gluc", type=node_types.CHEMICAL_SUBSTANCE)
     results = kegg.chemical_get_enzyme(normorhpine)
     normorphine_enzymes = set([ node.id for edge,node in results ])
     shared = morphine_enzymes.intersection(normorphine_enzymes)
@@ -260,7 +260,7 @@ def test_sequence_Glp(kegg):
 
 def test_one_aa_seq(kegg):
     res = kegg.get_sequence('C16008')
-    assert res == 'ISLMKRPPGF'
+    assert 'ISLMKRPPGF' in res
 
 def test_s(kegg):
     res = kegg.get_sequence('C16131')

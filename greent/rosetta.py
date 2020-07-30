@@ -80,7 +80,7 @@ class Rosetta:
             # self.configure_local_operators ()
             self.type_graph.configure_operators(self.operators.items())
             # self.configure_translator_registry ()
-            self.type_graph.cast_edges(self.type_checks)
+            # self.type_graph.cast_edges(self.type_checks)
 
         if build_indexes:
             """Create neo4j indices for identifier on different labels"""

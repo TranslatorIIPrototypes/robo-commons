@@ -31,7 +31,7 @@ class KEGG(Service):
         return set(map(lambda x : x.split('(')[0], filter( lambda x: x.startswith('C'), n)))      
 
     def chemical_get_reaction(self,chemnode):
-        identifiers = chemnode.get_synonyms_by_prefix('KEGG.COMPOUND')
+        identifiers = chemnode.get_synonyms_by_prefix('KEGG')
         results = []
         for cid in identifiers:
             url = f'{self.url}/link/reaction/{Text.un_curie(cid)}'
@@ -187,7 +187,7 @@ class KEGG(Service):
         Then we pull the reaction which gives us (1) the enzyme and (2) whether the chemical
         is a reactant or a product."""
         reactions = self.chemical_get_reaction(chemnode)
-        chemids = set([Text.un_curie(x) for x in chemnode.get_synonyms_by_prefix('KEGG.COMPOUND')])
+        chemids = set([Text.un_curie(x) for x in chemnode.get_synonyms_by_prefix('KEGG')])
         results = []
         for reaction_id in reactions:
             rxns = self.get_reaction(reaction_id)
@@ -215,7 +215,7 @@ class KEGG(Service):
         as a metabolite. We first look up the reactions for the input chemical.
         Then we pull the reaction which gives us the other chemicals and the relationship"""
         reactions = self.chemical_get_reaction(chemnode)
-        chemids = set([Text.un_curie(x) for x in chemnode.get_synonyms_by_prefix('KEGG.COMPOUND')])
+        chemids = set([Text.un_curie(x) for x in chemnode.get_synonyms_by_prefix('KEGG')])
         results = []
         for reaction_id in reactions:
             rxns = self.get_reaction(reaction_id)
@@ -236,7 +236,7 @@ class KEGG(Service):
                         logger.error(f"Mismatch between query and answer: {rxn} {chemids}")
                         continue
                     for chem in other_chems:
-                        output = KNode(f'KEGG.COMPOUND:{chem}', type=node_types.METABOLITE)
+                        output = KNode(f'KEGG:{chem}', type=node_types.METABOLITE)
                         if forward:
                             subj = chemnode
                             obj = output
@@ -251,7 +251,7 @@ class KEGG(Service):
     def add_chem_results(self,chem_ids, predicate, enzyme_node, input_identifier, results, rset):
         for chem_id in chem_ids:
             if chem_id not in rset:
-                chem_node = KNode(f'KEGG.COMPOUND:{chem_id}', type=node_types.CHEMICAL_SUBSTANCE)
+                chem_node = KNode(f'KEGG:{chem_id}', type=node_types.CHEMICAL_SUBSTANCE)
                 edge = self.create_edge(enzyme_node, chem_node, f'kegg.enzyme_get_chemicals',  input_identifier, predicate)
                 results.append( (edge, chem_node))
                 rset.add(chem_id)
@@ -276,7 +276,7 @@ class KEGG(Service):
         self.handle_kegg_list(j['children'],identifiers)
         for i,kid in enumerate(identifiers):
             s = self.get_sequence(kid)
-            kegg_sequences[s].add(f'KEGG.COMPOUND:{kid}')
+            kegg_sequences[s].add(f'KEGG:{kid}')
         return kegg_sequences
 
     def handle_kegg_list(self,childlist,names):
