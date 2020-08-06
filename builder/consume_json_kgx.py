@@ -32,7 +32,7 @@ class KGX_JSON_File_parser(Service):
                     print(f'Missing required properties for node: {line.strip().rstrip(",")}({e})')
                     yield None
 
-    def get_edges_from_file(self, file_name, provided_by = None):
+    def get_edges_from_file(self, file_name, kgx_provided_by=None):
         """
         All is stuff is till we get kgx to merge edges. For now creating
         a pattern looking like a robokopservice and let writer handle it.
@@ -43,8 +43,10 @@ class KGX_JSON_File_parser(Service):
         if not file_name:
             return
 
+        # TODO this is hacky - should the file include a list of expected properties?
+        # we could grab all the properties and dynamically add them but then we'd get everything..
         desired_edge_properties = ["distance",
-                                   "p-value",
+                                   "p_value",
                                    "slope",
                                    "expressed_in"]
 
@@ -81,11 +83,13 @@ class KGX_JSON_File_parser(Service):
 
                     if 'provided_by' in json_edge:
                         provided_by = json_edge['provided_by']
+                    else:
+                        provided_by = kgx_provided_by
 
                     props = {}
-                    for key in json_edge:
-                        if key in desired_edge_properties:
-                            props[key] = json_edge[key]
+                    for key in desired_edge_properties:
+                        if key in json_edge:
+                            props[key] = float(json_edge[key])
 
                     # TODO this input id is not necessarily correct
                     edge = self.create_edge(
@@ -112,7 +116,6 @@ class KGX_JSON_File_parser(Service):
 
         for edge in self.get_edges_from_file(edges_file_name, provided_by):
             self.wdg.write_edge(edge)
-
 
         self.wdg.flush()
 
