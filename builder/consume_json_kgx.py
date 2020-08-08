@@ -1,4 +1,4 @@
-import csv
+import time
 import json
 from greent.graph_components import KNode, LabeledID
 from greent.rosetta import Rosetta
@@ -54,8 +54,8 @@ class KGX_JSON_File_parser(Service):
         with open(file_name) as edges_file:
             for i, line in enumerate(edges_file, start=1):
 
-                if i % 1_500_000 == 0:
-                    print(f'Still writing edges.. {i} written')
+                if i % 1_000_000 == 0:
+                    print(f'({time.ctime()}) Still writing edges.. {i} written')
 
                 try:
                     json_edge = json.loads(line.strip().rstrip(","))
