@@ -25,7 +25,7 @@ class GeneticsBuilder:
             results = session.run("MATCH (c:sequence_variant) WHERE not (c)--(:gene) RETURN c.id as id, c.equivalent_identifiers as synonyms")
             response = []
             for row in results:
-                print(row)
+                #print(row)
                 response.append((row['id'], row['synonyms']))
         return response
 
