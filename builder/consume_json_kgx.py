@@ -49,7 +49,7 @@ class KGX_JSON_File_parser(Service):
                                    "p_value",
                                    "slope",
                                    "expressed_in"]
-
+        print(f'({time.ctime()}) Starting Edges...')
         unmapped_predicates = set()
         with open(file_name) as edges_file:
             for i, line in enumerate(edges_file, start=1):
@@ -89,7 +89,7 @@ class KGX_JSON_File_parser(Service):
                     props = {}
                     for key in desired_edge_properties:
                         if key in json_edge:
-                            props[key] = float(json_edge[key])
+                            props[key] = json_edge[key]
 
                     # TODO this input id is not necessarily correct
                     edge = self.create_edge(
