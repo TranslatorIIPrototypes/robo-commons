@@ -84,9 +84,10 @@ class KGX_File_parser(Service):
         with open(file_name) as edge_file:
             reader = csv.DictReader(edge_file, delimiter=delimiter)
             for raw_edge in reader:
-                edge_label = raw_edge['edge_label']
+                edge_label = raw_edge['edge_label'].split(':')[-1]
+                relation_predicate = raw_edge['relation']
                 predicate = LabeledID(
-                    identifier=bl_resolver.resolve_curie(edge_label),
+                    identifier=relation_predicate, #bl_resolver.resolve_curie(edge_label),
                     label=edge_label
                 )
                 source_node = KNode(raw_edge['subject'])
