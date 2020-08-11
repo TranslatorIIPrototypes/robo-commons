@@ -246,7 +246,7 @@ def get_identifiers(input_type,rosetta):
         n=0
         for gtopdb_ligand in gtopdb_ligands:
             try:
-                lids.append(LabeledID(f"GTOPDB:{gtopdb_ligand['ligandId']}",gtopdb_ligand['name']))
+                lids.append(LabeledID(f"gtop:{gtopdb_ligand['ligandId']}",gtopdb_ligand['name']))
                 n+=1
             except:
                 print(gtopdb_ligand)
