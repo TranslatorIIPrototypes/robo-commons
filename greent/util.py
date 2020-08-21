@@ -94,6 +94,7 @@ class Text:
     @staticmethod
     def obo_to_curie(text):
         obo_removed = text.replace('http://purl.obolibrary.org/obo/', '')
+        obo_removed = obo_removed.replace('http://www.ebi.ac.uk/efo/', '')
         # two types so far things like <obo_url>/UBERON_XXXXX and
         # things like <obo_url>/Uberon/core#<xcxcxcx>
         if not ('/' in obo_removed or '#' in obo_removed):  # we do like we used to

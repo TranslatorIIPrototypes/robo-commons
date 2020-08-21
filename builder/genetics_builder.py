@@ -6,7 +6,8 @@ from greent.rosetta import Rosetta
 from neo4j import GraphDatabase
 import argparse
 
-logger = LoggingUtil.init_logging('genetics_builder')
+import logging
+logger = LoggingUtil.init_logging("robo-commons.builder.genetics_builder", logging.INFO, format='medium', logFilePath=f'{os.environ["ROBOKOP_HOME"]}/logs/')
 
 class GeneticsBuilder:
     def __init__(self, sv_neo4j_credentials, crawl_for_service, recreate_sv_node):
@@ -17,18 +18,16 @@ class GeneticsBuilder:
         self.genetics_services = GeneticsServices()
         self.recreate_sv_node = recreate_sv_node
         self.written_genes = set()
-        self.written_max_size = 100_000
-
 
     def get_all_variants_and_synonymns(self):
         driver = GraphDatabase.driver(**self.sv_neo4j_credentials)
         with driver.session() as session:
-            results = session.run("MATCH (c:sequence_variant) RETURN c.id as id, c.equivalent_identifiers as synonyms")
-        response = []
-        for row in results:
-            response.append((row['id'], row['synonyms']))
+            results = session.run("MATCH (c:sequence_variant) WHERE not (c)--(:gene) RETURN c.id as id, c.equivalent_identifiers as synonyms")
+            response = []
+            for row in results:
+                #print(row)
+                response.append((row['id'], row['synonyms']))
         return response
-
 
     def start_build(self) -> list:
         # Entry point
@@ -60,9 +59,6 @@ class GeneticsBuilder:
                 self.process_variant_to_gene_relationships(variant_nodes=variant_subset, writer=writer)
 
     def process_variant_to_gene_relationships(self, variant_nodes: list, writer: WriterDelegator):
-        # reset written nodes every max size to avoid memory overflow
-        if len(self.written_genes) == self.written_max_size:
-            self.written_genes = set()
         all_results = self.genetics_services.get_variant_to_gene(self.crawl_for_service, variant_nodes)
         for source_node_id, results in all_results.items():
             # convert the simple edges and nodes to rags objects and write them to the graph

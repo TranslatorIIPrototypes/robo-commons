@@ -55,7 +55,7 @@ class PharosMySQL(Service):
         return predicate, pmids, props
 
     def g2d(self,hgnc,query,chembls,resolved_edge_nodes,gene_node):
-        prefixmap={'ChEMBL':'CHEMBL.COMPOUND', 'Guide to Pharmacology':'GTOPDB'}
+        prefixmap={'ChEMBL':'CHEMBL.COMPOUND', 'Guide to Pharmacology':'gtpo'}
         cursor = self.db.cursor(dictionary = True, buffered = True)
         cursor.execute(query)
         for result in cursor:

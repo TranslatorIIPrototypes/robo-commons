@@ -12,10 +12,11 @@ class gtopdb(Service):
     """ Interface to the Guide to Pharmacology."""
     def __init__(self, context):
         super(gtopdb, self).__init__("gtopdb", context)
+        self.chem_prefix = 'gtpo'
 
     def chem_to_precursor(self, drug):
         output = []
-        identifiers = drug.get_synonyms_by_prefix('GTOPDB')
+        identifiers = drug.get_synonyms_by_prefix(self.chem_prefix)
         for identifier in identifiers:
             logger.debug(f'chem->precursor {identifier}')
             ligandId = Text.un_curie(identifier)
@@ -39,7 +40,7 @@ class gtopdb(Service):
 
     def ligand_to_gene(self, drug):
         output = []
-        identifiers = drug.get_synonyms_by_prefix('GTOPDB')
+        identifiers = drug.get_synonyms_by_prefix(self.chem_prefix)
         for identifier in identifiers:
             logger.debug(f'ligand->gene {identifier}')
             ligandId = Text.un_curie(identifier)
@@ -71,14 +72,14 @@ class gtopdb(Service):
             for r in obj:
                 if r['species'] != 'Human':
                     continue
-                chem_node = KNode(f"GTOPDB:{r['targetId']}", type=node_types.GENE)
+                chem_node = KNode(f"{self.chem_prefix}:{r['targetId']}", type=node_types.GENE)
                 edge = self.make_edge(chem_node,gene,r,identifier,url)
                 output.append( (edge,chem_node) )
         return output
 
     def complex_to_part(self, chem_node):
         output = []
-        identifiers = chem_node.get_synonyms_by_prefix('GTOPDB')
+        identifiers = chem_node.get_synonyms_by_prefix(self.chem_prefix)
         for identifier in identifiers:
             ligandid = Text.un_curie(identifier)
             url=f"{self.url}/ligands/{ligandid}"
@@ -89,7 +90,7 @@ class gtopdb(Service):
             if obj['species'] != 'Human':
                 continue
             for part in obj['subunitIds']:
-                part_node = KNode(f"GTOPDB:{part}", type=node_types.CHEMICAL_SUBSTANCE)
+                part_node = KNode(f"{self.chem_prefix}:{part}", type=node_types.CHEMICAL_SUBSTANCE)
                 predicate = LabeledID(identifier="BFO:0000051",label="has_part")
                 edge = self.create_edge(chem_node,part_node,'gtopdb.complex_to_part',
                                         identifier, predicate, url=url)

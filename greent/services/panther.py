@@ -173,7 +173,7 @@ class Panther(Service):
         """
         results = []  
         # @TODO make sensible edge here
-        predicate = LabeledID('BFO:0000054','related_to')      
+        predicate = LabeledID('RO:0000056','participates_in')
         rows = self.get_rows_using_curie(gene_family_node.id)
         for row in rows:
             bio_process_or_activity_data = [x for x in row['panther_molecular_func'] if x != ''] + [x for x in row['panther_biological_process'] if x != '']
@@ -197,7 +197,7 @@ class Panther(Service):
         """
         results = []
         # @TODO make a sensible relation here 
-        predicate = LabeledID('BFO:0000054','related_to')
+        predicate = LabeledID('BFO:0000050','part_of')
         rows = self.get_rows_using_curie(gene_family_node.id)
         for gene_family_data in rows: 
             cc_data = [x for x in gene_family_data['cellular_components'] if x != '']

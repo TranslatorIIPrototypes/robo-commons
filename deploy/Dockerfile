@@ -1,6 +1,6 @@
 # This Dockerfile is used to build ROBOKOP
 
-FROM python:3.6.6-stretch
+FROM python:3.8.3-buster
 
 LABEL maintainer="patrick@covar.com"
 ENV REFRESHED_AT 2018-05-03

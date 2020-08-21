@@ -17,12 +17,12 @@ def xtest_string_to_info(pharos):
 def xtest_string_to_info_wackycap(pharos):
     r = pharos.drugname_string_to_pharos_info('CeLEcOXIB')
     assert len(r) == 1
-    assert r[0][0] == 'CHEMBL:CHEMBL118' #first result is a tuple (curie,name)
+    assert r[0][0] == 'CHEMBL.COMPOUND:CHEMBL118' #first result is a tuple (curie,name)
 
 def test_drug_get_gene(pharos):
     #pharos should find chembl in the synonyms
     node = KNode('DB:FakeyName', type=node_types.CHEMICAL_SUBSTANCE)
-    node.add_synonyms([LabeledID(identifier='CHEMBL:CHEMBL118', label='blahbalh')])
+    node.add_synonyms([LabeledID(identifier='CHEMBL.COMPOUND:CHEMBL118', label='blahbalh')])
     results = pharos.drug_get_gene(node)
     #we get results
     assert len(results) > 0
@@ -54,7 +54,7 @@ def test_gene_get_drug(pharos,rosetta):
     
     output = pharos.gene_get_drug(gene_node)
     identifiers = [ output_i[1].id for output_i in output ]
-    assert 'CHEMBL:CHEMBL118'in identifiers
+    assert 'CHEMBL.COMPOUND:CHEMBL118'in identifiers
 
 def test_disease_get_gene(pharos,rosetta):
     disease_node = KNode('DOID:4325', type=node_types.DISEASE, name="ebola")
@@ -67,4 +67,21 @@ def test_disease_gene_mondo(pharos,rosetta):
     rosetta.synonymizer.synonymize(d_node)
     output = pharos.disease_get_gene(d_node)
     assert len(output) > 0
-    #identifiers = [ output_i[1].id for output_i in output ]
+
+def test_disease_gene_direction(pharos, rosetta):
+    d_node = KNode('MONDO:0008903', type=node_types.DISEASE)
+    rosetta.synonymizer.synonymize(d_node)
+    output = pharos.disease_get_gene(d_node)
+    edge_exists = False
+    for edge, node in output:
+        if edge.original_predicate.identifier == 'WD:P2293':
+            edge_exists = True
+            assert edge.target_id == d_node.id
+    assert edge_exists
+
+def test_gene_disease_direction(pharos, rosetta):
+    gene_node = KNode('NCBIGene:11176')
+    rosetta.synonymizer.synonymize(gene_node)
+    output = pharos.gene_get_disease(gene_node)
+    for edge , node in output:
+        assert edge.source_id == gene_node.id

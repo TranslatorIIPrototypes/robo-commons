@@ -3,7 +3,7 @@ from greent import node_types, config
 from builder.buildmain import run
 from multiprocessing import Pool
 from functools import partial
-from crawler.crawl_util import pull_via_ftp
+from crawler.crawl_util import pull_via_ftp, get_most_recent_file_name
 from crawler.sequence_variants import get_all_variant_ids_from_graph
 from json import loads
 from greent.graph_components import KNode
@@ -163,7 +163,8 @@ def get_identifiers(input_type,rosetta):
         #         lids.append(LabeledID(ident,res['label']))
     elif input_type == node_types.GENE:
         print("Pull genes")
-        data = pull_via_ftp('ftp.ebi.ac.uk', '/pub/databases/genenames/new/json', 'hgnc_complete_set.json')
+        file_name = get_most_recent_file_name('ftp.ebi.ac.uk', '/pub/databases/genenames/hgnc/archive/monthly/json')
+        data = pull_via_ftp('ftp.ebi.ac.uk', '/pub/databases/genenames/hgnc/archive/monthly/json', file_name)
         hgnc_json = loads( data.decode() )
         hgnc_genes = hgnc_json['response']['docs']
         for gene_dict in hgnc_genes:
@@ -227,8 +228,8 @@ def get_identifiers(input_type,rosetta):
         for line in content.split('\n'):
             if line :
                 identifier, label = line.split('\t')
-                identifier = identifier.replace('cpd', 'KEGG.COMPOUND')
-                identifier= identifier.replace('CPD', 'KEGG.COMPOUND')
+                identifier = identifier.replace('cpd', 'KEGG')
+                identifier= identifier.replace('CPD', 'KEGG')
                 # maybe pick the first one for kegg,
                 label = label.split(';')[0].strip(' ')
                 lids.append(LabeledID(identifier, label))
@@ -245,7 +246,7 @@ def get_identifiers(input_type,rosetta):
         n=0
         for gtopdb_ligand in gtopdb_ligands:
             try:
-                lids.append(LabeledID(f"GTOPDB:{gtopdb_ligand['ligandId']}",gtopdb_ligand['name']))
+                lids.append(LabeledID(f"gtop:{gtopdb_ligand['ligandId']}",gtopdb_ligand['name']))
                 n+=1
             except:
                 print(gtopdb_ligand)
@@ -284,6 +285,21 @@ def get_identifiers(input_type,rosetta):
     elif input_type == node_types.SEQUENCE_VARIANT:
         # grab every variant already in the graph
         lids = get_all_variant_ids_from_graph(rosetta)
+
+    elif input_type == node_types.METABOLITE:
+        ## since we are calling kegg treat kegg compounds as metabolites?
+        # go for KEGG
+        print('pull KEGG')
+        content = requests.get('http://rest.kegg.jp/list/compound').content.decode('utf-8')
+
+        for line in content.split('\n'):
+            if line:
+                identifier, label = line.split('\t')
+                identifier = identifier.replace('cpd', 'KEGG')
+                identifier = identifier.replace('CPD', 'KEGG')
+                # maybe pick the first one for kegg,
+                label = label.split(';')[0].strip(' ')
+                lids.append(LabeledID(identifier, label))
     else:
         print(f'Not configured for input type: {input_type}')
     pickle_labeled_ids(input_type, lids)

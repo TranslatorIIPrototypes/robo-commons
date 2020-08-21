@@ -26,7 +26,7 @@ class BufferedWriter:
 
     def __init__(self, rosetta):
         self.rosetta = rosetta
-        self.merge_edges = rosetta.service_context.config.get('MERGE_EDGES') != None
+        self.merge_edges = rosetta.service_context.config.get('MERGE_EDGES') is not None
         self.written_nodes = set()
         self.written_edges = defaultdict(lambda: defaultdict( set ) )
         self.node_queues = defaultdict(dict)
@@ -37,6 +37,9 @@ class BufferedWriter:
         self.maxWrittenNodes = 100000
         self.maxWrittenEdges = 100000
         self.missed_curies = {}
+        # Variable to tell if we should avoid synonym map construction when processing edges.
+        # Useful when processing kgx files, and cord19 files
+        self.normalized = False
         # temporary cache of ids , this will be kept around till we hit maxWrittenNodes
         self.synonym_map = {}
 
@@ -63,6 +66,8 @@ class BufferedWriter:
         self.written_edges[edge.source_id][edge.target_id].add(edge.original_predicate.identifier)
         # Append the edge in the edge queue. It will be standardized in a batch when flushing
         self.edge_queues.append(edge)
+        if len(self.edge_queues) >= self.edge_buffer_size:
+            self.flush()
 
     def flush_nodes(self, session):
         for node_type in self.node_queues:
@@ -127,21 +132,21 @@ class BufferedWriter:
     def flush_edges(self, session):
         # batch normalize edges
         # and group them by their standardized labels
-
-        # get the predicate ids
-        original_predicates = set(map(lambda edge: edge.original_predicate.identifier, self.edge_queues))
-
-        # batch Normalize them
-        standard_predicates = Synonymizer.batch_normalize_edges(original_predicates)
-
-        # group edges by labels and also update their standard predicates
+        standard_predicates = {}
+        synonym_map = {}
         edge_by_labels = {}
-        ids = [edge.source_id for edge in self.edge_queues]
-        ids += [edge.target_id for edge in self.edge_queues]
-        synonym_map = self.synonym_map
-        if id not in self.synonym_map:
+        if not self.normalized:
+            # get the predicate ids
+            original_predicates = set(map(lambda edge: edge.original_predicate.identifier, self.edge_queues))
+
+            # batch Normalize them
+            standard_predicates = Synonymizer.batch_normalize_edges(original_predicates)
+            # group edges by labels and also update their standard predicates
+            synonym_map = self.synonym_map
+            ids = [edge.source_id for edge in self.edge_queues if edge.source_id not in synonym_map]
+            ids += [edge.target_id for edge in self.edge_queues if edge.target_id not in synonym_map]
             nodes = Synonymizer.batch_normalize_nodes(ids)
-        # # could this be an sv node
+            # # could this be an sv node
             ids = [i for i in ids if i not in nodes]
             nodes.update(Synonymizer.batch_normalize_sequence_variants(ids))
             synonym_map.update({curie: nodes[curie].id for curie in nodes})
@@ -149,7 +154,7 @@ class BufferedWriter:
             # update standard predicate if it's mapped.
             edge.standard_predicate = standard_predicates.get(
                 edge.original_predicate.identifier,
-                LabeledID(identifier='GAMMA:0', label='Unmapped_Relation')
+                edge.standard_predicate if edge.standard_predicate else LabeledID(identifier='GAMMA:0', label='Unmapped_Relation')
             )
             # also need to know if source_id and target_id have changed.
             # This could happen if node was synonymized to a different ID that
@@ -186,6 +191,8 @@ class BufferedWriter:
 
     def write_missed_curies_to_file(self):
         """ When node normalization is not working write the missed curies to file."""
+        if not len(self.missed_curies.keys()):
+            return
         with open('missed_curies.lst', 'a') as f:
             for curie in self.missed_curies:
                 f.write(f'{curie}\t {",".join(self.missed_curies[curie])}\n')
@@ -208,7 +215,6 @@ def export_edge_chunk(tx,edgelist,edgelabel, merge_edges):
     cypher = f"""UNWIND $batches as row            
             MATCH (a:{node_types.ROOT_ENTITY} {{id: row.source_id}}),(b:{node_types.ROOT_ENTITY} {{id: row.target_id}})
             MERGE (a)-[r:{edgelabel} {{id: apoc.util.md5([a.id, b.id, '{edgelabel}']), predicate_id: row.standard_id}}]->(b)
-            ON CREATE SET r.hyper_edge_id=CASE WHEN exists(row.hyper_edge_id)  THEN [row.hyper_edge_id] END
             SET r.edge_source = row.provided_by
             SET r.relation_label = row.original_predicate_label
             SET r.source_database= row.database
@@ -217,11 +223,6 @@ def export_edge_chunk(tx,edgelist,edgelabel, merge_edges):
             SET r.relation = row.original_predicate_id
             SET r.predicate_id = row.standard_id            
             SET r += row.properties
-            // Hyper-edge merging.
-            FOREACH (__ IN CASE WHEN EXISTS(row.hyper_edge_id) THEN [1] ELSE [] END  | 
-            FOREACH (_ IN CASE WHEN row.hyper_edge_id in r.hyper_edge_id THEN [] ELSE [1] END |
-            SET r.hyper_edge_id = CASE WHEN EXISTS(r.hyper_edge_id) THEN r.hyper_edge_id + [row.hyper_edge_id] ELSE [row.hyper_edge_id] END
-            ))
             """
     if merge_edges:
         cypher = f"""UNWIND $batches as row
@@ -231,7 +232,6 @@ def export_edge_chunk(tx,edgelist,edgelabel, merge_edges):
                 ON CREATE SET r.relation_label = [row.original_predicate_label]
                 ON CREATE SET r.source_database=[row.database]
                 ON CREATE SET r.ctime=[row.ctime]
-                ON CREATE SET r.hyper_edge_id=CASE WHEN exists(row.hyper_edge_id)  THEN [row.hyper_edge_id] END
                 ON CREATE SET r.publications=row.publications
                 ON CREATE SET r.relation = [row.original_predicate_id]
                 // FOREACH mocks if condition
@@ -245,11 +245,6 @@ def export_edge_chunk(tx,edgelist,edgelabel, merge_edges):
                 SET r.publications = [pub in row.publications where not pub in r.publications ] + r.publications
                 )
                 SET r += row.properties
-                FOREACH (__ IN CASE WHEN EXISTS(row.hyper_edge_id) THEN [1] ELSE [] END  |
-                FOREACH (_ IN CASE WHEN row.hyper_edge_id in r.hyper_edge_id THEN [] ELSE [1] END |
-                SET r.hyper_edge_id = CASE WHEN EXISTS(r.hyper_edge_id) THEN r.hyper_edge_id + [row.hyper_edge_id] ELSE [row.hyper_edge_id] END
-                )
-                )
                 """
 
     batch = [ {'source_id': edge.source_id,
@@ -257,7 +252,6 @@ def export_edge_chunk(tx,edgelist,edgelabel, merge_edges):
                'provided_by': edge.provided_by,
                'database': edge.provided_by.split('.')[0],
                'ctime': edge.ctime,
-               'hyper_edge_id': edge.hyper_edge_id if hasattr(edge,'hyper_edge_id') else None,
                'standard_id': edge.standard_predicate.identifier,
                'original_predicate_id': edge.original_predicate.identifier,
                'original_predicate_label': edge.original_predicate.label,

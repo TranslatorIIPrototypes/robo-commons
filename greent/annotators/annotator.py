@@ -66,11 +66,6 @@ class Annotator:
         until all results are done.
         """
         logger.debug(f"Annotating {node.id}")
-        if node.type == node_types.GENE:
-            hgnc_symbols = node.get_synonyms_by_prefix('HGNC.SYMBOL')
-            for hgnc_symbol in hgnc_symbols:
-                key = f'synonymize({hgnc_symbol})'
-                self.rosetta.cache.set(key, node.synonyms)
         synonym_basket = {prefix : node.get_synonyms_by_prefix(prefix) for prefix in self.prefix_source_mapping.keys()}
         synonym_basket.update(synonyms)
         self.event_loop.set_debug(True) # 

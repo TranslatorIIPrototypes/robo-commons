@@ -14,7 +14,7 @@ logger = LoggingUtil.init_logging(__name__, level=logging.INFO, format='medium')
 class Synonymizer:
     NODE_NORMALIZATION_URL = 'https://nodenormalization-sri.renci.org/get_normalized_nodes'
     EDGE_NORMALIZATION_URL = 'https://edgenormalization-sri.renci.org/resolve_predicate'
-    BIOLINK_VERSION = 'custom'
+    BIOLINK_VERSION = 'latest'
     BL_CONCEPT_URL_GENERATOR =  lambda node_type: f'https://bl-lookup-sri.renci.org/bl/{node_type}?version={Synonymizer.BIOLINK_VERSION}'
     CHUNK_SIZE = 1000
     BIOLINK_MODEL_PARTS = {}
@@ -138,31 +138,6 @@ class Synonymizer:
             asyncio.gather(*tasks)
         )
         return results_array
-
-    @staticmethod
-    def synonymize_via_redis(cache: Cache, node: KNode):
-        bl_part = Synonymizer.BIOLINK_MODEL_PARTS.get(node.type, None)
-        if not bl_part:
-            # cache this call in this class to avoid hitting bl more than once
-            bl_url = Synonymizer.BL_CONCEPT_URL_GENERATOR(node.type)
-            bl_part = Synonymizer.BIOLINK_MODEL_PARTS[node.type] = requests.get(bl_url).json()
-        # grab synonyms from cache
-        equivalent_ids = cache.get(f'synonymize({node.id})')
-        if equivalent_ids:
-            node.add_synonyms(equivalent_ids)
-            # set the prefered id as dictated by bl
-            preffered_id = node.id
-            for preffered_curie in bl_part['id_prefixes']:
-                found = False
-                for p_id, label in equivalent_ids:
-                    if p_id.startswith(preffered_curie):
-                        found = True
-                        preffered_id = p_id
-                        break
-                if found:
-                    break
-            node.id = preffered_id
-        return node
 
     @staticmethod
     def get_sequence_variant_export_labels():

@@ -19,7 +19,7 @@ logger = LoggingUtil.init_logging("robo-commons.builder.GTExBuilder", logging.IN
 #
 # By: Phil Owen
 # Date: 5/21/2019
-# Desc: Class that pre-loads significant GTEx data elements into the redis cache and neo4j graph database.
+# Desc: Class that pre-loads significant GTEx data elements into a neo4j graph database.
 ##############
 class GTExBuilder:
     #######
@@ -32,10 +32,12 @@ class GTExBuilder:
         self.written_genes = set()
         self.max_nodes = 100_000
 
-        # create static edge labels for variant/gtex and gene/gtex edges
-        self.variant_gtex_label = LabeledID(identifier=f'CTD:affects_expression_of', label=f'affects expression in')
-        self.gene_gtex_label = LabeledID(identifier=f'gene_to_expression_site_association', label=f'gene to expression site association')
-        self.variant_gene_sqtl_label = LabeledID(identifier=f'GTEx:affects_splicing_of', label=f'affects splicing of')
+        # create static labels for the edge predicates
+        self.variant_anatomy_predicate = LabeledID(identifier=f'biolink:affects_expression_of', label=f'affects_expression_in')
+        self.gene_anatomy_predicate = LabeledID(identifier=f'biolink:gene_to_expression_site_association', label=f'gene_to_expression_site_association')
+        self.variant_gene_sqtl_predicate = LabeledID(identifier=f'biolink:affects_splicing_of', label=f'affects_splicing_of')
+        self.increases_expression_predicate = LabeledID(identifier='biolink:increases_expression_of', label='increases_expression_of')
+        self.decreases_expression_predicate = LabeledID(identifier='biolink:decreases_expression_of', label='decreases_expression_of')
 
         # get a ref to the util class
         self.gtu = GTExUtils(self.rosetta)
@@ -67,7 +69,7 @@ class GTExBuilder:
         if not os.path.isdir(data_directory):
             ret_val = Exception("Working directory does not exist. Aborting.")
         else:
-            # insure the working directory ends with a '/' in order to properly append a data file name
+            # ensure the working directory ends with a '/' in order to properly append a data file name
             if data_directory[-1] != '/':
                 data_directory = f'{data_directory}/'
 
@@ -81,15 +83,11 @@ class GTExBuilder:
             if os.path.isfile(f'{data_directory}{out_file_name}'):
                 # was the raw GTEx data processed
                 if ret_val is None:
-                    # is it ok to continue
-                    if ret_val is None:
-                        if process_for_graph is True:
-                            # call the GTEx builder to load the cache and graph database
-                            ret_val: object = self.create_gtex_graph(data_directory, out_file_name, f'GTEx.v{gtex_version}', is_sqtl=is_sqtl)
-                        else:
-                            logger.info("Graph node/edge processing not selected.")
+                    if process_for_graph is True:
+                        # call the GTEx builder to load the cache and graph database
+                        ret_val: object = self.create_gtex_graph(data_directory, out_file_name, f'GTEx.v{gtex_version}', is_sqtl=is_sqtl)
                     else:
-                        ret_val = Exception("Error detected in pre-processing variant synonymization. Aborting.", ret_val)
+                        logger.info("Graph node/edge processing not selected.")
                 else:
                     ret_val = Exception('Error detected in GTEx file creation. Aborting.', ret_val)
             else:
@@ -105,12 +103,12 @@ class GTExBuilder:
                   process_raw_data: bool = True,
                   process_for_graph: bool = True,
                   gtex_version: int = 8):
-        self.load(data_directory,
-                  out_file_name,
-                  process_raw_data=process_raw_data,
-                  process_for_graph=process_for_graph,
-                  is_sqtl=True,
-                  gtex_version=gtex_version)
+        return self.load(data_directory,
+                         out_file_name,
+                         process_raw_data=process_raw_data,
+                         process_for_graph=process_for_graph,
+                         is_sqtl=True,
+                         gtex_version=gtex_version)
 
     #######
     # create_gtex_graph - Parses the CSV file(s) and inserts the data into the graph DB
@@ -131,16 +129,15 @@ class GTExBuilder:
             # get the full path to the input file
             full_file_path = f'{data_directory}{file_name}'
 
-            logger.info(f'Creating GTEx graph data elements in file: {full_file_path}')
+            logger.info(f'Creating GTEx graph data elements from file: {full_file_path}')
 
-            # open a pipe to the redis cache DB
+            # walk through the gtex data file and create/write nodes and edges to the graph
             with WriterDelegator(self.rosetta) as graph_writer:
                 # init these outside of try catch block
                 curie_hgvs = None
                 curie_uberon = None
                 curie_ensembl = None
 
-                # loop through the variants
                 # open the file and start reading
                 with open(full_file_path, 'r') as inFH:
                     # open up a csv reader
@@ -149,11 +146,10 @@ class GTExBuilder:
                     # read the header
                     header_line = next(csv_reader)
 
-                    # index into the array to the variant id position
+                    # find relevant indices
                     tissue_name_index = header_line.index('tissue_name')
                     tissue_uberon_index = header_line.index('tissue_uberon')
                     hgvs_index = header_line.index('HGVS')
-                    # variant_id_index = header_line.index('variant_id')
                     ensembl_id_index = header_line.index('gene_id')
                     pval_nominal_index = header_line.index('pval_nominal')
                     pval_slope_index = header_line.index('slope')
@@ -168,7 +164,6 @@ class GTExBuilder:
                             tissue_name = line[tissue_name_index]
                             uberon = line[tissue_uberon_index]
                             hgvs = line[hgvs_index]
-                            # variant_id = line[variant_id_index]
                             ensembl = line[ensembl_id_index].split(".", 1)[0]
                             pval_nominal = line[pval_nominal_index]
                             slope = line[pval_slope_index]
@@ -180,26 +175,27 @@ class GTExBuilder:
                             # create variant, gene and GTEx nodes with the HGVS, ENSEMBL or UBERON expression as the id and name
                             variant_node = KNode(curie_hgvs, name=hgvs, type=node_types.SEQUENCE_VARIANT)
                             variant_node.add_export_labels([node_types.SEQUENCE_VARIANT])
-                            gene_node = KNode(curie_ensembl, type=node_types.GENE)
+                            gene_node = KNode(curie_ensembl, name=ensembl, type=node_types.GENE)
+                            gene_node.add_export_labels([node_types.GENE])
                             gtex_node = KNode(curie_uberon, name=tissue_name, type=node_types.ANATOMICAL_ENTITY)
-
-                            # for now ensure that the gene node has a name after synonymization
-                            # this can happen if gene is not currently in the graph DB
-                            if gene_node.name is None:
-                                gene_node.name = ensembl
 
                             if is_sqtl:
                                 # sqtl variant to gene always uses the same predicate
-                                predicate = self.variant_gene_sqtl_label
+                                predicate = self.variant_gene_sqtl_predicate
                             else:
                                 # for eqtl use the polarity of slope to get the direction of expression.
                                 # positive value increases expression, negative decreases
-                                label_id, label_name = self.gtu.get_expression_direction(slope)
+                                try:
+                                    if float(slope) > 0.0:
+                                        predicate = self.increases_expression_predicate
+                                    else:
+                                        predicate = self.decreases_expression_predicate
+                                except ValueError as e:
+                                    logger.error(f"Error casting slope to a float on line {line_counter} (slope - {slope}) {e}")
+                                    continue
 
-                                # create the edge label predicate for the gene/variant relationship
-                                predicate = LabeledID(identifier=label_id, label=label_name)
                             # get a MD5 hash int of the composite hyper edge ID
-                            hyper_edge_id = self.gtu.get_hyper_edge_id(uberon, ensembl, Text.un_curie(variant_node.id))
+                            hyper_edge_id = self.gtu.get_hyper_edge_id(uberon, ensembl, hgvs)
 
                             # set the properties for the edge
                             edge_properties = [ensembl, pval_nominal, slope, namespace]
@@ -212,7 +208,6 @@ class GTExBuilder:
                             graph_writer.write_node(variant_node)
 
                             # write out the gene node
-
                             if gene_node.id not in self.written_genes:
                                 graph_writer.write_node(gene_node)
                                 self.written_genes.add(gene_node.id)
@@ -221,11 +216,12 @@ class GTExBuilder:
                             if gtex_node.id not in self.written_anatomical_entities:
                                 graph_writer.write_node(gtex_node)
                                 self.written_anatomical_entities.add(gtex_node.id)
+
                             # associate the sequence variant node with an edge to the gtex anatomy node
-                            self.gtu.write_new_association(graph_writer, variant_node, gtex_node, self.variant_gtex_label, hyper_edge_id, None, True)
+                            self.gtu.write_new_association(graph_writer, variant_node, gtex_node, self.variant_anatomy_predicate, hyper_edge_id, None, True)
 
                             # associate the gene node with an edge to the gtex anatomy node
-                            self.gtu.write_new_association(graph_writer, gene_node, gtex_node, self.gene_gtex_label, 0, None, False)
+                            self.gtu.write_new_association(graph_writer, gene_node, gtex_node, self.gene_anatomy_predicate, 0, None, False)
 
                             # associate the sequence variant node with an edge to the gene node. also include the GTEx properties
                             self.gtu.write_new_association(graph_writer, variant_node, gene_node, predicate, hyper_edge_id, edge_properties, True)
@@ -239,8 +235,8 @@ class GTExBuilder:
                                 self.written_anatomical_entities = set()
                             if len(self.written_genes) == self.max_nodes:
                                 self.written_genes = set()
-                    except Exception as e:
-                        logger.error(f'Exception caught trying to process variant: {curie_hgvs}-{curie_uberon}-{curie_ensembl} at data line: {line_counter}. Exception: {e}')
+                    except (KeyError, IndexError) as e:
+                        logger.error(f'Exception caught trying to process variant: {curie_hgvs}-{curie_uberon}-{curie_ensembl} at data line: {line_counter}. Exception: {e}, Line: {line}')
 
         except Exception as e:
             logger.error(f'Exception caught: Exception: {e}')
@@ -261,7 +257,6 @@ if __name__ == '__main__':
 
     # directory to write/read GTEx data to process
     working_data_directory = '.'
-    # working_data_directory = '/projects/stars/var/GTEx/stage/smartBag/example/GTEx/GTEx_data'
 
     # load up the eqtl GTEx data with default settings
     rv = gtb.load(working_data_directory)
