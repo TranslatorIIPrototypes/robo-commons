@@ -2,6 +2,7 @@ import pickle
 import datetime
 import psycopg2
 from collections import defaultdict
+from functools import lru_cache
 
 bad_ids = defaultdict(list)
 bad_ids['CL'].append('CL:0000000')
@@ -10,38 +11,22 @@ max_piped = 1000000
 
 
 def create_omnicache(rosetta):
-    conn = create_connection(rosetta)
     redis = rosetta.cache.redis
-    cacheit('HP', 'CL', conn, redis)
-    cacheit('HGNC', 'CL', conn, redis)
-    cacheit('HGNC', 'HP', conn, redis)
-    cacheit('HGNC', 'GO', conn, redis)
-    cacheit('HGNC', 'MONDO', conn, redis)
-    cacheit('HGNC', 'CHEBI', conn, redis)
-    cacheit('HGNC', 'EFO', conn, redis)
-    cacheit('CL', 'GO', conn, redis)
-    cacheit('CL', 'MONDO', conn, redis)
-    cacheit('CL', 'CHEBI', conn, redis)
-    cacheit('HP', 'GO', conn, redis)
-    cacheit('HP', 'MONDO', conn, redis)
-    cacheit('HP', 'CHEBI', conn, redis)
-    cacheit('HP', 'EFO', conn, redis)
-    cacheit('GO', 'MONDO', conn, redis)
-    cacheit('GO', 'CHEBI', conn, redis)
-    cacheit('MONDO', 'CHEBI', conn, redis)
-    cacheit('HP', 'UBERON', conn, redis)
-    cacheit('HGNC', 'UBERON', conn, redis)
-    cacheit('CL', 'UBERON', conn, redis)
-    cacheit('MONDO', 'EFO', conn, redis)
-    cacheit('EFO', 'EFO', conn, redis)
-    cacheit('CHEBI', 'EFO', conn, redis)
-    cacheit('MONDO', 'UBERON', conn, redis)
-    cacheit('CHEBI', 'UBERON', conn, redis)
-    cacheit('MONDO', 'MONDO', conn, redis)
-    cacheit('HP', 'HP', conn, redis)
-    cacheit('HGNC', 'HGNC', conn, redis)
-    cacheit('CHEBI', 'CHEBI', conn, redis)
-    conn.close()
+    key = 'OmnicorpPrefixes'
+    value = redis.get(key)
+    if value is None:
+        pairset = set()
+    else:
+        pairset = pickle.loads(value)
+    p=['CHEBI','CHEMBL.COMPOUND','CL','DRUGBANK','ECTO','EFO','ENVO','FOODON','GO','HANCESTRO','HP','MONDO','NCBIGene','NCBITaxon','PUBCHEM','UBERON','UMLS']
+    sizes={}
+    for i,prefix_i in enumerate(p):
+        for prefix_j in p[i:]:
+            conn = create_connection(rosetta)
+            print(prefix_i,prefix_j)
+            #cacheit(prefix_i, prefix_j, conn, redis)
+            cacheit2(prefix_i, prefix_j, conn, redis, pairset,sizes)
+            conn.close()
 
 def update_omnicache(rosetta,p1,p2):
     """Use this one to add a single pair to the cache.  But if you find yourself doing this,
@@ -57,11 +42,11 @@ def create_connection(rosetta):
     port = context.config['OMNICORP_PORT']
     host = context.config['OMNICORP_HOST']
     pw = context.config['OMNICORP_PASSWORD']
-    print(db)
-    print(user)
-    print(port)
-    print(host)
-    print(pw)
+    #print(db)
+    #print(user)
+    #print(port)
+    #print(host)
+    #print(pw)
     return psycopg2.connect(dbname=db, user=user, host=host, port=port,password=pw)
 
 
@@ -89,6 +74,51 @@ def update_prefixes(p1, p2, redis):
     pairset.add((p1, p2))
     redis.set(key, pickle.dumps(pairset))
 
+def cacheit2(p1,p2,conn,redis,pairset,sizes):
+    start = datetime.datetime.now()
+    p1,p2 = sorted([p1,p2])
+    if (p1,p2) in pairset:
+        print('Already computed')
+        return
+    if p1 not in sizes:
+        sizes[p1] = get_curie_count(p1,conn)
+    if p2 not in sizes:
+        sizes[p2] = get_curie_count(p2,conn)
+    if sizes[p1] > sizes[p2]:
+        small_prefix = p2
+        large_prefix = p1
+    else:
+        small_prefix = p1
+        large_prefix = p2
+    print('Go!')
+    print('get dicts')
+    curie_1_to_pmid = get_curie_to_pmid(small_prefix,conn)
+    pmid_to_curie_2 = get_pmid_to_curie(large_prefix,conn)
+    num_piped=0
+    print('start')
+    n=0
+    with redis.pipeline() as pipe:
+        for curie_1 in curie_1_to_pmid:
+            pmids = curie_1_to_pmid[curie_1]
+            shareds = { p:pmid_to_curie_2[p] for p in pmids }
+            inv = defaultdict(list)
+            for p,cs in shareds.items():
+                for c in cs:
+                    inv[c].append(p)
+            for curie_2,pubs in inv.items():
+                curie_1,curie_2 = sorted( [curie_1, curie_2] )
+                ckey = (curie_1, curie_2)
+                n+=1
+                dump(ckey, pubs, pipe)
+                dump_count(ckey, len(pubs), pipe)
+                num_piped += 1
+                if num_piped >= max_piped:
+                    pipe.execute()
+                    num_piped = 0
+        pipe.execute()
+    end = datetime.datetime.now()
+    print(f'Wrote {n} entries in {end-start}')
+    update_prefixes(p1, p2, redis)
 
 def cacheit(p1, p2, conn, redis):
     p1, p2 = sorted([p1, p2])
@@ -114,6 +144,7 @@ def cacheit(p1, p2, conn, redis):
                 records = cursor.fetchmany(size=2000)
                 if not records:
                     break
+                print(len(records))
                 for r in records:
                     curie_1 = r[0]
                     curie_2 = r[1]
@@ -150,8 +181,19 @@ def cacheit(p1, p2, conn, redis):
     update_prefixes(p1, p2, redis)
 
 
+def get_curie_count(prefix,conn):
+    pf = ''.join(prefix.split('.'))
+    query = f'SELECT COUNT(DISTINCT curie) FROM omnicorp.{pf}'
+    with conn.cursor() as cursor:
+        cursor.execute(query, ())
+        records = cursor.fetchall()
+        count = records[0][0]
+    print(prefix,count)
+    return count
+
 def get_curies(prefix, conn):
-    query = f'SELECT DISTINCT curie FROM omnicorp.{prefix}'
+    pf = ''.join(prefix.split('.'))
+    query = f'SELECT DISTINCT curie FROM omnicorp.{pf}'
     with conn.cursor() as cursor:
         cursor.execute(query, ())
         records = cursor.fetchall()
@@ -160,6 +202,31 @@ def get_curies(prefix, conn):
             curies.remove(bad)
     return curies
 
+#@lru_cache(maxsize=2)
+def get_curie_to_pmid(prefix, conn):
+    pf = ''.join(prefix.split('.'))
+    query = f'SELECT DISTINCT curie,pubmedid FROM omnicorp.{pf}'
+    c2p = defaultdict(list)
+    with conn.cursor() as cursor:
+        cursor.execute(query, ())
+        records = cursor.fetchall()
+        for r in records:
+            if r[0] not in bad_ids[prefix]:
+                c2p[r[0]].append(r[1])
+    return c2p
+
+#@lru_cache(maxsize=2)
+def get_pmid_to_curie(prefix, conn):
+    pf = ''.join(prefix.split('.'))
+    query = f'SELECT DISTINCT curie,pubmedid FROM omnicorp.{pf}'
+    p2c = defaultdict(list)
+    with conn.cursor() as cursor:
+        cursor.execute(query, ())
+        records = cursor.fetchall()
+        for r in records:
+            if r[0] not in bad_ids[prefix]:
+                p2c[r[1]].append(r[0])
+    return p2c
 
 def generate_query(p1, p2):
     query = f'SELECT a.curie, b.curie, a.pubmedid FROM omnicorp.{p1} a JOIN omnicorp.{p2} b ON a.pubmedid = b.pubmedid'

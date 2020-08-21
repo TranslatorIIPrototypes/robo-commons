@@ -59,7 +59,7 @@ class Rosetta:
         self.cache = self.service_context.cache  # core.service_context.cache
 
         """ Initialize type graph. """
-        self.type_graph = TypeGraph(self.service_context, debug=debug)
+        #self.type_graph = TypeGraph(self.service_context, debug=debug)
         self.synonymizer = Synonymizer()
 
         """ Merge identifiers.org vocabulary into Rosetta vocab. """
