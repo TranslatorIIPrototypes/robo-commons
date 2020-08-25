@@ -18,12 +18,13 @@ def create_omnicache(rosetta):
         pairset = set()
     else:
         pairset = pickle.loads(value)
-    p=['CHEBI','CHEMBL.COMPOUND','CL','DRUGBANK','ECTO','EFO','ENVO','FOODON','GO','HANCESTRO','HP','MONDO','NCBIGene','NCBITaxon','PUBCHEM','UBERON','UMLS']
+    p=['CHEBI','CL','DRUGBANK','ECTO','EFO','ENVO','FOODON','GO','HANCESTRO','HP','MONDO','NCBIGene','NCBITaxon','PUBCHEM_COMPOUND','UBERON','UMLS']
     sizes={}
     for i,prefix_i in enumerate(p):
         for prefix_j in p[i:]:
-            conn = create_connection(rosetta)
             print(prefix_i,prefix_j)
+            conn = create_connection(rosetta)
+            print('go') 
             #cacheit(prefix_i, prefix_j, conn, redis)
             cacheit2(prefix_i, prefix_j, conn, redis, pairset,sizes)
             conn.close()
@@ -42,11 +43,12 @@ def create_connection(rosetta):
     port = context.config['OMNICORP_PORT']
     host = context.config['OMNICORP_HOST']
     pw = context.config['OMNICORP_PASSWORD']
-    #print(db)
-    #print(user)
-    #print(port)
-    #print(host)
-    #print(pw)
+    print(db)
+    print(user)
+    print(port)
+    print(host)
+    print(pw)
+    print('connect')
     return psycopg2.connect(dbname=db, user=user, host=host, port=port,password=pw)
 
 
