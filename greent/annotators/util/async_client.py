@@ -23,7 +23,7 @@ async def async_get_text(url,headers = {}):
         Gets text response from url asyncronously
     """
     async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers= headers, **retry_opts) as response:
+        async with session.get(url, headers= headers) as response:
             if response.status != 200:
                 logger.error(f'Failed to get response from {url}, returned status : {response.status}')
                 return ''
