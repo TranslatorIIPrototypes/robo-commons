@@ -37,7 +37,8 @@ class Rosetta:
                  delete_type_graph=False,
                  init_db=False,
                  build_indexes=False,
-                 debug=False):
+                 debug=False,
+                 use_graph=True):
 
         """ The constructor loads the config file an prepares the type graph.
         If delete_type_graph flag is true, the graph is deleted entirely. 
@@ -59,7 +60,8 @@ class Rosetta:
         self.cache = self.service_context.cache  # core.service_context.cache
 
         """ Initialize type graph. """
-        #self.type_graph = TypeGraph(self.service_context, debug=debug)
+        if use_graph:
+            self.type_graph = TypeGraph(self.service_context, debug=debug)
         self.synonymizer = Synonymizer()
 
         """ Merge identifiers.org vocabulary into Rosetta vocab. """
