@@ -100,21 +100,18 @@ def load_annotations(rosetta):
     load_annotations_genes(rosetta)
 
 def run(args):
+    rosetta = Rosetta()
     if args.all:
         print('all')
-        rosetta = Rosetta()
         crawl_all(rosetta)
     elif args.synonyms:
         print('synonyms')
-        rosetta = Rosetta()
         load_synonyms(rosetta)
     elif args.load_genetics:
-        rosetta = Rosetta()
         print('load genetic variation')
         load_genetic_variants(rosetta)
     elif args.crawl_genetics:
         print('crawl genetic variation')
-        rosetta = Rosetta()
         crawl_genetic_variants(rosetta)
     elif args.omnicache:
         rosetta = Rosetta(use_graph=False)
