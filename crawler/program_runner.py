@@ -301,8 +301,17 @@ def get_identifiers(input_type,rosetta):
         print('pull KEGG')
         content = requests.get('http://rest.kegg.jp/list/compound').content.decode('utf-8')
 
+        content = requests.get('http://rest.kegg.jp/list/compound').content.decode('utf-8')
+        line_counter = 0
         for line in content.split('\n'):
             if line:
+                contains_tab = '\t' in line
+                if not contains_tab:
+                    print(f"expected tab but not found line : {line} ")
+                    print(f"error parsing line {line_counter}")
+                    with open('kegg-file.xml', 'w') as file:
+                        file.write(content)
+                    exit(1)
                 identifier, label = line.split('\t')
                 identifier = identifier.replace('cpd', 'KEGG')
                 identifier = identifier.replace('CPD', 'KEGG')
