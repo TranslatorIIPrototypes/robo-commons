@@ -166,14 +166,16 @@ class KEdge(FromDictMixin):
         if self.publications is None:
             self.publications = []
         for publication in self.publications:
-            if not isinstance(publication,str):
-                raise Exception(f"Publication should be a PMID curie: {publication}")
-            if not publication.startswith('PMID:'):
-                raise Exception(f"Publication should be a PMID curie: {publication}")
+            if not isinstance(publication, str):
+                raise Exception(f"Publication should be a string: {publication}")
+            if not publication.startswith('PMID:') and not publication.startswith('IM:'):
+                raise Exception(f"Publication should be a PMID or IM curie: {publication}")
             try:
-                int(publication[5:])
+                curie_suffix = publication.split(':')[1]
+
+                int(curie_suffix)
             except:
-                raise Exception(f"Publication should be a PMID curie: {publication}")
+                raise Exception(f"Publication should be a PMID or IM curie that contains an integer value: {publication}")
 
     def __repr__(self):
         return self.long_form()
