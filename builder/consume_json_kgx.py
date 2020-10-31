@@ -14,6 +14,9 @@ class KGX_JSON_File_parser(Service):
         if not file_name:
             return
 
+        # declare a set of properties that should/may be in all datasets
+        baseline_node_properties = ['id', 'name', 'category', 'equivalent_identifiers', '']
+
         with open(file_name) as nodes_file:
             for line in nodes_file:
                 try:
@@ -24,9 +27,19 @@ class KGX_JSON_File_parser(Service):
 
                 try:
                     labels = json_node['category']
-                    node = KNode(json_node['id'], type='named_thing', name=json_node['name'])
+
+                    # init some storage for any non-default properties on the node
+                    props: dict = {}
+
+                    # find the properties that are non-standard and add them
+                    for key in json_node:
+                        if key not in baseline_node_properties:
+                            props[key] = json_node[key]
+
+                    node = KNode(json_node['id'], type='named_thing', name=json_node['name'], properties=props)
                     node.add_synonyms(json_node['equivalent_identifiers'])
                     node.add_export_labels(labels)
+
                     yield node
                 except KeyError as e:
                     print(f'Missing required properties for node: {line.strip().rstrip(",")}({e})')
@@ -43,14 +56,13 @@ class KGX_JSON_File_parser(Service):
         if not file_name:
             return
 
-        # TODO this is hacky - should the file include a list of expected properties?
-        # we could grab all the properties and dynamically add them but then we'd get everything..
-        desired_edge_properties = ["distance",
-                                   "p_value",
-                                   "slope",
-                                   "expressed_in"]
+        # declare a set of properties that should/may be in all datasets
+        baseline_edge_properties = ['relation', 'predicate', 'subject', 'object', 'provided_by', 'edge_label', 'source_database', 'publications']
+
         print(f'({time.ctime()}) Starting Edges...')
+
         unmapped_predicates = set()
+
         with open(file_name) as edges_file:
             for i, line in enumerate(edges_file, start=1):
 
@@ -81,26 +93,39 @@ class KGX_JSON_File_parser(Service):
                         identifier=json_edge['edge_label'],
                         label=json_edge['edge_label'].split(':')[-1])
 
+                    # get the data source. this is in priority order
                     if 'provided_by' in json_edge:
                         provided_by = json_edge['provided_by']
+                    elif 'source_database' in json_edge:
+                        provided_by = json_edge['source_database'].replace('.', '_')
                     else:
                         provided_by = kgx_provided_by
 
+                    # if there are publications add them in
+                    if 'publications' in json_edge:
+                        publications: list = [json_edge['publications']]
+                    else:
+                        publications: list = []
+
                     props = {}
-                    for key in desired_edge_properties:
-                        if key in json_edge:
+
+                    for key in json_edge:
+                        if key not in baseline_edge_properties:
                             props[key] = json_edge[key]
 
-                    # TODO this input id is not necessarily correct
+                    # create the edge
                     edge = self.create_edge(
                         source_node=source_node,
                         target_node=target_node,
                         input_id=source_node.id,
                         provided_by=provided_by,
                         predicate=original_predicate,
+                        publications=publications,
                         properties=props
                     )
+
                     edge.standard_predicate = normalized_predicate
+
                     yield edge
                 except KeyError as e:
                     print(f'Missing properties for edge: {line}({e})')
@@ -108,16 +133,32 @@ class KGX_JSON_File_parser(Service):
 
     def run(self, nodes_file_name, edges_file_name, provided_by):
         self.rosetta = Rosetta()
-        self.wdg = WriterDelegator(rosetta)
-        self.wdg.normalized = True
+#        self.wdg = WriterDelegator(rosetta)
+#        self.wdg.normalized = True
 
-        for node in self.get_nodes_from_file(nodes_file_name):
-            self.wdg.write_node(node, annotate=False)
+        nodes = self.get_nodes_from_file(nodes_file_name)
 
-        for edge in self.get_edges_from_file(edges_file_name, provided_by):
-            self.wdg.write_edge(edge)
+        counter = 0
 
-        self.wdg.flush()
+        for node in nodes:
+            print(node)
+            counter += 1
+            if counter > 10:
+                break
+        #     self.wdg.write_node(node, annotate=False)
+
+        edges = self.get_edges_from_file(edges_file_name, provided_by)
+
+        counter = 0
+
+        for edge in edges:
+            print(edge)
+            counter += 1
+            if counter > 10:
+                break
+        #     self.wdg.write_edge(edge)
+
+        # self.wdg.flush()
 
 
 if __name__=='__main__':
