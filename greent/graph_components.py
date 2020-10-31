@@ -6,6 +6,7 @@ from typing import NamedTuple
 from builder.question import LabeledID
 from builder.util import FromDictMixin
 import logging
+import re
 
 logger = LoggingUtil.init_logging (__name__, level=logging.DEBUG)
 
@@ -134,7 +135,7 @@ class KEdge(FromDictMixin):
         super().__init__(*args, **kwargs)
 
         if self.provided_by is None:
-            raise 'Invalid source?'
+            raise Exception('Invalid source?')
 
         self.validate_publications()
 
@@ -167,15 +168,26 @@ class KEdge(FromDictMixin):
             self.publications = []
         for publication in self.publications:
             if not isinstance(publication, str):
-                raise Exception(f"Publication should be a string: {publication}")
-            if not publication.startswith('PMID:') and not publication.startswith('IM:'):
-                raise Exception(f"Publication should be a PMID or IM curie: {publication}")
+                raise Exception(f"Publication value should be a string: {publication}")
+            if not publication.startswith('PMID:') and not publication.startswith('IM:') and not publication.startswith('DOI:'):
+                raise Exception(f"Publication should be a PMID, IM or DOI publication curie: {publication}")
             try:
+                # get the curie suffix
                 curie_suffix = publication.split(':')[1]
 
-                int(curie_suffix)
+                # PMID and IM publications get integer validation
+                if not publication.startswith('DOI:'):
+                    int(curie_suffix)
+                else:
+                    # try to get a regex match
+                    match = re.match('^10.\d{4,9}/[-._;()/:A-Z0-9]+$', curie_suffix)
+
+                    # if a match was not found raise an exception
+                    if not match:
+                        raise Exception(f'Error validating DOI publication id: {publication}')
+
             except:
-                raise Exception(f"Publication should be a PMID or IM curie that contains an integer value: {publication}")
+                raise Exception(f"Publication should be a PMID, IM that contains an integer or a valid DOI identifier: {publication}")
 
     def __repr__(self):
         return self.long_form()
