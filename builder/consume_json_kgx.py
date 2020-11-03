@@ -133,8 +133,8 @@ class KGX_JSON_File_parser(Service):
 
     def run(self, nodes_file_name, edges_file_name, provided_by):
         self.rosetta = Rosetta()
-#        self.wdg = WriterDelegator(rosetta)
-#        self.wdg.normalized = True
+        self.wdg = WriterDelegator(rosetta)
+        self.wdg.normalized = True
 
         nodes = self.get_nodes_from_file(nodes_file_name)
 
@@ -145,7 +145,7 @@ class KGX_JSON_File_parser(Service):
             counter += 1
             if counter > 10:
                 break
-        #     self.wdg.write_node(node, annotate=False)
+            self.wdg.write_node(node, annotate=False)
 
         edges = self.get_edges_from_file(edges_file_name, provided_by)
 
@@ -156,9 +156,9 @@ class KGX_JSON_File_parser(Service):
             counter += 1
             if counter > 10:
                 break
-        #     self.wdg.write_edge(edge)
+            self.wdg.write_edge(edge)
 
-        # self.wdg.flush()
+        self.wdg.flush()
 
 
 if __name__=='__main__':

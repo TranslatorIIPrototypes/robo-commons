@@ -164,30 +164,40 @@ class KEdge(FromDictMixin):
         return "E(src={0},subjn={1},objn={2})".format(self.provided_by, self.source_id, self.target_id)
 
     def validate_publications(self):
+        """ validate the publication. """
+
+        # default this item into a list
         if self.publications is None:
             self.publications = []
-        for publication in self.publications:
-            if not isinstance(publication, str):
-                raise Exception(f"Publication value should be a string: {publication}")
-            if not publication.startswith('PMID:') and not publication.startswith('IM:') and not publication.startswith('DOI:'):
-                raise Exception(f"Publication should be a PMID, IM or DOI publication curie: {publication}")
-            try:
-                # get the curie suffix
-                curie_suffix = publication.split(':')[1]
+        else:
+            # validate each publication in the list
+            for publication in self.publications:
+                # if it is not a string or is empty
+                if not isinstance(publication, str):
+                    raise Exception(f"Publication value should be a string: {publication}")
+                # just continue if there is no publication. this is not necessarily an error
+                elif publication == '':
+                    continue
+                # make sure it is a valid curie
+                elif not publication.startswith('PMID:') and not publication.startswith('IM:') and not publication.startswith('DOI:'):
+                    raise Exception(f"Publication should be a PMID, IM or DOI publication curie: {publication}")
 
-                # PMID and IM publications get integer validation
-                if not publication.startswith('DOI:'):
-                    int(curie_suffix)
-                else:
-                    # try to get a regex match
-                    match = re.match('^10.\d{4,9}/[-._;()/:A-Z0-9]+$', curie_suffix)
+                try:
+                    # get the curie suffix
+                    curie_suffix = publication.split(':')[1]
 
-                    # if a match was not found raise an exception
-                    if not match:
-                        raise Exception(f'Error validating DOI publication id: {publication}')
+                    # PMID and IM publications get integer validation
+                    if not publication.startswith('DOI:'):
+                        int(curie_suffix)
+                    else:
+                        # try to get a regex match
+                        match = re.match('^10.\d{4,9}/[-._;()/:A-Z0-9]+$', curie_suffix)
 
-            except:
-                raise Exception(f"Publication should be a PMID, IM that contains an integer or a valid DOI identifier: {publication}")
+                        # if a match was not found raise an exception
+                        if not match:
+                            raise Exception(f'Error validating DOI publication id: {publication}')
+                except:
+                    raise Exception(f"Publication should be a PMID, IM that contains an integer or a valid DOI identifier: {publication}")
 
     def __repr__(self):
         return self.long_form()
