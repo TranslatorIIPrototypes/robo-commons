@@ -288,7 +288,7 @@ def export_node_chunk(tx,nodelist,labels):
     for node_id in nodelist:
         n = nodelist[node_id]
         n.properties['equivalent_identifiers'] = [s.identifier for s in n.synonyms]
-        n.properties['category'] = labels
+        n.properties['category'] = list(labels)
         if n.name is not None:
             n.properties['name'] = n.name
         nodeout = {'id': n.id, 'properties': n.properties}
