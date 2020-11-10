@@ -134,7 +134,7 @@ class BufferedWriter:
         # and group them by their standardized labels
         standard_predicates = {}
         synonym_map = {}
-        edge_by_labels = {}
+        edge_by_predicate_id = {}
         if not self.normalized:
             # get the predicate ids
             original_predicates = set(map(lambda edge: edge.original_predicate.identifier, self.edge_queues))
@@ -163,13 +163,13 @@ class BufferedWriter:
             edge.source_id = synonym_map.get(edge.source_id, edge.source_id)
             edge.target_id = synonym_map.get(edge.target_id, edge.target_id)
 
-            label = edge.standard_predicate.label
-            if label not in edge_by_labels:
-                edge_by_labels[label] = []
-            edge_by_labels[label].append(edge)
+            predicate_id = edge.standard_predicate.identifier
+            if predicate_id not in edge_by_predicate_id:
+                edge_by_predicate_id[predicate_id] = []
+            edge_by_predicate_id[predicate_id].append(edge)
 
-        for edge_label in edge_by_labels:
-            session.write_transaction(export_edge_chunk, edge_by_labels[edge_label], edge_label, self.merge_edges)
+        for predicate_id in edge_by_predicate_id:
+            session.write_transaction(export_edge_chunk, edge_by_predicate_id[predicate_id], predicate_id, self.merge_edges)
         self.edge_queues = []
 
     def flush(self):
@@ -214,26 +214,30 @@ def export_edge_chunk(tx,edgelist,edgelabel, merge_edges):
     What defines the edge are the identifiers of its nodes, and the source.function that created it."""
     cypher = f"""UNWIND $batches as row            
             MATCH (a:{node_types.ROOT_ENTITY} {{id: row.source_id}}),(b:{node_types.ROOT_ENTITY} {{id: row.target_id}})
-            MERGE (a)-[r:{edgelabel} {{id: apoc.util.md5([a.id, b.id, '{edgelabel}']), predicate_id: row.standard_id}}]->(b)
-            SET r.edge_source = row.provided_by
+            MERGE (a)-[r:{edgelabel} {{id: apoc.util.md5([a.id, b.id, '{edgelabel}']), predicate: row.standard_id}}]->(b)
+            SET r.provided_by = row.provided_by
             SET r.relation_label = row.original_predicate_label
             SET r.source_database= row.database
             SET r.ctime= row.ctime            
             SET r.publications=row.publications
             SET r.relation = row.original_predicate_id
-            SET r.predicate_id = row.standard_id            
+            SET r.predicate = row.standard_id     
+            SET r.source_id = a.id
+            SET r.target_id = b.id       
             SET r += row.properties
             """
     if merge_edges:
         cypher = f"""UNWIND $batches as row
                 MATCH (a:{node_types.ROOT_ENTITY} {{id: row.source_id}}),(b:{node_types.ROOT_ENTITY} {{id: row.target_id}})
-                MERGE (a)-[r:{edgelabel} {{id: apoc.util.md5([a.id, b.id, '{edgelabel}']), predicate_id: row.standard_id}}]->(b)
+                MERGE (a)-[r:{edgelabel} {{id: apoc.util.md5([a.id, b.id, '{edgelabel}']), predicate: row.standard_id}}]->(b)
                 ON CREATE SET r.edge_source = [row.provided_by]
                 ON CREATE SET r.relation_label = [row.original_predicate_label]
                 ON CREATE SET r.source_database=[row.database]
                 ON CREATE SET r.ctime=[row.ctime]
                 ON CREATE SET r.publications=row.publications
                 ON CREATE SET r.relation = [row.original_predicate_id]
+                ON CREATE SET r.source_id = a.id
+                ON CREATE SET r.target_id = b.id   
                 // FOREACH mocks if condition
                 FOREACH (_ IN CASE WHEN row.provided_by in r.edge_source THEN [] ELSE [1] END |
                 SET r.edge_source = CASE WHEN EXISTS(r.edge_source) THEN r.edge_source + [row.provided_by] ELSE [row.provided_by] END
@@ -284,6 +288,7 @@ def export_node_chunk(tx,nodelist,labels):
     for node_id in nodelist:
         n = nodelist[node_id]
         n.properties['equivalent_identifiers'] = [s.identifier for s in n.synonyms]
+        n.properties['category'] = labels
         if n.name is not None:
             n.properties['name'] = n.name
         nodeout = {'id': n.id, 'properties': n.properties}
