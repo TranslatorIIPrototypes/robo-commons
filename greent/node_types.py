@@ -25,7 +25,7 @@ GENE_FAMILY = 'gene_family'
 FOOD = 'food'
 
 #The root of all biolink_model entities, which every node in neo4j will also have as a label. used to specify constraints/indices
-ROOT_ENTITY = 'named_thing'
+ROOT_ENTITY = 'biolink:NamedThing'
 
 node_types = set([
 NAMED_THING,
