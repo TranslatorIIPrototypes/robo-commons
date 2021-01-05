@@ -94,7 +94,7 @@ class gtopdb(Service):
                 predicate = LabeledID(identifier="BFO:0000051",label="has_part")
                 edge = self.create_edge(chem_node,part_node,'gtopdb.complex_to_part',
                                         identifier, predicate, url=url)
-            output.append( (edge,part_node) )
+                output.append( (edge,part_node) )
         return output
 
     def make_edge(self,chem,gene,r,identifier,url):
