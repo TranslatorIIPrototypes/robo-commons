@@ -16,6 +16,7 @@ class Panther(Service):
     
     def __init__(self, context):
         super(Panther, self).__init__("panther", context)
+        self.data_version = "16.0"
         self.sequence_file_columns = {
             0: 'gene_identifier',            # format:  organism|gene id source:gene id|protein id source:protein id
             1: 'protein_id',                 # currently empty. The protein ids can be retrieved from above
@@ -59,8 +60,8 @@ class Panther(Service):
         Makes ftp request to get sequence classification file from Panther ftp.
         """
         # get the human file
-        sequence_classication_path = '/sequence_classifications/14.1/PANTHER_Sequence_Classification_files/'
-        sequence_classication_file = 'PTHR14.1_human_'
+        sequence_classication_path = f'/sequence_classifications/{self.data_version}/PANTHER_Sequence_Classification_files/'
+        sequence_classication_file = f'PTHR{self.data_version}_human_'
         ftp_data = self.pull_ftp_data(sequence_classication_file, sequence_classication_path, self.url) 
         return ftp_data
 
