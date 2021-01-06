@@ -61,7 +61,7 @@ class Panther(Service):
         """
         # get the human file
         sequence_classication_path = f'/sequence_classifications/{self.data_version}/PANTHER_Sequence_Classification_files/'
-        sequence_classication_file = f'PTHR{self.data_version}_human_'
+        sequence_classication_file = f'PTHR{self.data_version}_human'
         ftp_data = self.pull_ftp_data(sequence_classication_file, sequence_classication_path, self.url) 
         return ftp_data
 
