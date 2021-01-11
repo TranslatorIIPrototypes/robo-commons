@@ -18,6 +18,19 @@ class Panther(Service):
         super(Panther, self).__init__("panther", context)
         self.data_version = "16.0"
         self.sequence_file_columns = {
+            "16.0": {
+            0: 'gene_identifier',            # format:  organism|gene id source:gene id|protein id source:protein id
+            1: 'protein_id',                 # currently empty. The protein ids can be retrieved from above
+            2: 'gene_name',
+            3: 'panther_sf_id',              # for example, PTHR12213:SF6.  ":SF" indicates the subfamily ID
+            4: 'panther_family_name',
+            5: 'panther_subfamily_name',
+            6: 'panther_molecular_func',
+            7: 'panther_biological_process',
+            8: 'cellular_components',        # PANTHER GO slim cellular component terms assigned to families and subfamilies
+            9: 'protein_class',              # PANTHER protein class terms assigned to families and subfamilies
+            10: 'pathway'                    # The format of the pathway information is: pathway_long_name#pathway_short_name#pathway_accession>component_long_name#component_short_name#component_accession
+        }, "14.1": {
             0: 'gene_identifier',            # format:  organism|gene id source:gene id|protein id source:protein id
             1: 'protein_id',                 # currently empty. The protein ids can be retrieved from above
             2: 'panther_sf_id',              # for example, PTHR12213:SF6.  ":SF" indicates the subfamily ID
@@ -28,7 +41,7 @@ class Panther(Service):
             7: 'cellular_components',        # PANTHER GO slim cellular component terms assigned to families and subfamilies
             8: 'protein_class',              # PANTHER protein class terms assigned to families and subfamilies
             9: 'pathway'                    # The format of the pathway information is: pathway_long_name#pathway_short_name#pathway_accession>component_long_name#component_short_name#component_accession
-        }
+        }}
         # to seperate each column into sub entries for better access
         self.splitter_mapping = {
             'gene_identifier': partial(self.split_with,splitter = '|', keys=['organism','gene_id','protein_id']),
@@ -74,12 +87,12 @@ class Panther(Service):
         if self.__gene_family_data__ :
             return self.__gene_family_data__
         with self.get_gene_family_data() as ftp_data:
-            reader = csv.reader(iter(ftp_data.readline().strip,''), delimiter= '\t')
+            reader = csv.reader(iter(ftp_data.readline,''), delimiter= '\t')
             # first pass transform csv to dictionary
             for row in reader:
                 rows.append(row)
         logger.debug(f'Found {len(rows)} records')
-        with_columns = [{self.sequence_file_columns[index]: value for index, value in enumerate(row)} for row in rows]
+        with_columns = [{self.sequence_file_columns[self.data_version][index]: value for index, value in enumerate(row)} for row in rows]
         # second pass transform into sub dictionaries for relevant ones
         for row in with_columns:
             for key in self.splitter_mapping:
