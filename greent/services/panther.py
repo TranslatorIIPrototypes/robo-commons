@@ -74,7 +74,7 @@ class Panther(Service):
         if self.__gene_family_data__ :
             return self.__gene_family_data__
         with self.get_gene_family_data() as ftp_data:
-            reader = csv.reader(iter(ftp_data.readline,''), delimiter= '\t')
+            reader = csv.reader(iter(ftp_data.readline().strip,''), delimiter= '\t')
             # first pass transform csv to dictionary
             for row in reader:
                 rows.append(row)
