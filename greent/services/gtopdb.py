@@ -115,5 +115,5 @@ class gtopdb(Service):
             logger.debug(f"Can't parse affinity {r['affinity']}")
             pass
         edge = self.create_edge(chem,gene,'gtopdb.ligand_to_gene',identifier,predicate,
-            publications=[f"PMID:{x['pmid']}" for x in r['refs']],url=url,properties=props)
+            publications=[f"PMID:{x['pmid']}" for x in r['refs'] if x['pmid']],url=url,properties=props)
         return edge
