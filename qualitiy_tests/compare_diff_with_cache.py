@@ -149,12 +149,12 @@ def get_node_edge_data(service_name):
     """
 
     query = f"""
-    MATCH (a:named_thing)-[e]->(b:named_thing) 
-    WHERE any(x in e.edge_source WHERE x starts with '{service_name}.' )
+    MATCH (a:`biolink:NamedThing`)-[e]->(b:`biolink:NamedThing`) 
+    WHERE any(x in e.provided_by WHERE x starts with '{service_name}.' )
     RETURN COLLECT ({{
     source_id: a.id, 
     source_eq: a.equivalent_identifiers,
-    op: [e_s in e.edge_source where e_s starts with '{service_name}' | e_s  ], 
+    op: [e_s in e.provided_by where e_s starts with '{service_name}' | e_s  ], 
     target_id: b.id,
     target_eq: b.equivalent_identifiers
     }}) AS results
@@ -167,10 +167,8 @@ def get_node_edge_data(service_name):
 
 def grab_all_relation_with_curie(service_name, curie):
     query = f"""
-    MATCH (a:named_thing)-[e]-(b)
-    USING INDEX a:named_thing(id)
-    WHERE any(x in e.edge_source WHERE x starts with '{service_name}' )
-    AND a.id = '{curie}'
+    MATCH (a:`biolink:NamedThing`{{id: "{curie}"}})-[e]-(b)    
+    WHERE e.provided_by starts with '{service_name}' or any(x in e.provided_by WHERE x starts with '{service_name}' )    
     RETURN collect({{edge: e , node_ids: b.equivalent_identifiers}}) as edges
     """
     driver = GraphDatabase.driver(**neo4j_credentials)
